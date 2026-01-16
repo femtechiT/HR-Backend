@@ -11,6 +11,7 @@
     "seed-admin": "npx ts-node src/seed-admin.ts",
     "migrate-appraisal": "npx ts-node src/migrate-appraisal.ts",
     "init-system": "tsx src/scripts/setup-initial-admin.ts",
+    "start-workers": "tsx src/start-workers.ts",
     "test": "jest",
     "test-appraisal": "jest src/__tests__/complete-appraisal-system.test.ts",
     "lint": "eslint src --ext .ts,.js",

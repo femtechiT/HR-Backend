@@ -36,6 +36,7 @@ import roleManagementRoutes from './api/role-management.route';
 import completeSystemInitRoutes from './api/complete-system-init.route';
 import branchManagementRoutes from './api/branch-management.route';
 import departmentManagementRoutes from './api/department-management.route';
+import notificationRoutes from './api/notification.route';
 
 // Load environment variables
 dotenv.config();
@@ -111,6 +112,7 @@ app.use('/api/role-management', roleManagementRoutes);
 app.use('/api/system-complete', completeSystemInitRoutes);
 app.use('/api/branches', branchManagementRoutes);
 app.use('/api/departments', departmentManagementRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

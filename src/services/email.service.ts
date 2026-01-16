@@ -16,28 +16,28 @@ export const sendWelcomeEmail = async ({ to, fullName }: WelcomeEmailProps): Pro
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #2c3e50;">Welcome, ${fullName}!</h1>
-          
+
           <p>Congratulations on initializing your Tripa HR Management System. You've successfully set up your Super Admin account.</p>
-          
+
           <h2 style="color: #3498db;">Getting Started:</h2>
           <ol>
             <li><strong>Build Your Organization:</strong> Create departments and branches that match your company structure.</li>
             <li><strong>Set Up Roles:</strong> Define custom roles with specific permissions for your team.</li>
             <li><strong>Invite Team Members:</strong> Use our automated invitation system to provision professional email addresses for your staff.</li>
           </ol>
-          
+
           <h2 style="color: #3498db;">Security Tips:</h2>
           <ul>
             <li>Keep your login credentials secure</li>
             <li>Regularly review user permissions</li>
             <li>Enable two-factor authentication when available</li>
           </ul>
-          
+
           <p>If you have any questions or need assistance, please reach out to our support team.</p>
-          
+
           <p>Best regards,<br/>
           The Tripa HR Management Team</p>
-          
+
           <hr style="margin-top: 30px; border: none; height: 1px; background-color: #ecf0f1;" />
           <p style="font-size: 12px; color: #7f8c8d;">
             This email was sent to ${to} because you registered as a Super Admin for Tripa HR Management System.
@@ -66,12 +66,12 @@ interface StaffInvitationEmailProps {
   fromAdmin: string;
 }
 
-export const sendStaffInvitationEmail = async ({ 
-  to, 
-  fullName, 
-  workEmail, 
-  temporaryPassword, 
-  fromAdmin 
+export const sendStaffInvitationEmail = async ({
+  to,
+  fullName,
+  workEmail,
+  temporaryPassword,
+  fromAdmin
 }: StaffInvitationEmailProps): Promise<void> => {
   try {
     const { error } = await resend.emails.send({
@@ -81,22 +81,22 @@ export const sendStaffInvitationEmail = async ({
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #2c3e50;">Welcome to Tripa, ${fullName}!</h1>
-          
+
           <p>You've been invited by ${fromAdmin} to join Tripa HR Management System.</p>
-          
+
           <h2 style="color: #3498db;">Your New Work Identity:</h2>
           <p><strong>Email:</strong> ${workEmail}</p>
           <p><strong>Temporary Password:</strong> ${temporaryPassword}</p>
-          
+
           <p>Please download our mobile application and log in with these credentials. On your first login, you will be required to set a new password for security.</p>
-          
+
           <p>Once logged in, you'll be able to access your dashboard, track your KPIs, request time off, and more.</p>
-          
+
           <p>If you have any questions, please contact your administrator.</p>
-          
+
           <p>Welcome aboard!<br/>
           The Tripa HR Management Team</p>
-          
+
           <hr style="margin-top: 30px; border: none; height: 1px; background-color: #ecf0f1;" />
           <p style="font-size: 12px; color: #7f8c8d;">
             This email was sent to ${to} because ${fromAdmin} invited you to join Tripa HR Management System.
