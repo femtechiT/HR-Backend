@@ -1,11 +1,12 @@
 import express from 'express';
 import { login, logout, refreshToken, getPermissions } from '../controllers/auth.controller';
 import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
+import { companyEmailOnly } from '../middleware/company-email.middleware';
 
 const router = express.Router();
 
 // Public routes
-router.post('/login', login);
+router.post('/login', companyEmailOnly, login);
 router.post('/refresh', refreshToken);
 
 // Protected routes

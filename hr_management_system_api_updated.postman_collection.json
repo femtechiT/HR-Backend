@@ -3227,6 +3227,67 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Staff Invitation",
+      "item": [
+        {
+          "name": "Invite New Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"personalEmail\": \"john.doe@example.com\",\n  \"roleId\": 2,\n  \"branchId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/staff-invitation/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff-invitation",
+                "invite"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Staff (with email removal)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/staff-invitation/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff-invitation",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [

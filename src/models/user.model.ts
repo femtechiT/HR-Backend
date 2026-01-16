@@ -8,8 +8,9 @@ export interface User {
   full_name: string;
   phone?: string;
   role_id: number;
-  branch_id?: number;
-  status: 'active' | 'inactive' | 'terminated';
+  branch_id?: number | null;
+  status: 'active' | 'inactive' | 'terminated' | 'pending';
+  must_change_password: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -20,7 +21,8 @@ export interface UserInput {
   full_name: string;
   phone?: string;
   role_id: number;
-  branch_id?: number;
+  branch_id?: number | null;
+  must_change_password?: boolean;
 }
 
 export interface UserUpdate {
@@ -29,8 +31,9 @@ export interface UserUpdate {
   full_name?: string;
   phone?: string;
   role_id?: number;
-  branch_id?: number;
+  branch_id?: number | null;
   status?: 'active' | 'inactive' | 'terminated';
+  must_change_password?: boolean;
 }
 
 class UserModel {
@@ -112,15 +115,16 @@ class UserModel {
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
     const [result]: any = await pool.execute(
-      `INSERT INTO ${this.tableName} (email, password_hash, full_name, phone, role_id, branch_id, status)
-       VALUES (?, ?, ?, ?, ?, ?, 'active')`,
+      `INSERT INTO ${this.tableName} (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', ?)`,
       [
         userData.email,
         hashedPassword,
         userData.full_name,
-        userData.phone,
+        userData.phone || null,  // Convert undefined to null
         userData.role_id,
-        userData.branch_id
+        userData.branch_id || null,  // Convert undefined to null
+        userData.must_change_password !== undefined ? userData.must_change_password : true
       ]
     );
 
@@ -208,6 +212,19 @@ class UserModel {
 
   static async comparePassword(inputPassword: string, hashedPassword: string): Promise<boolean> {
     return bcrypt.compare(inputPassword, hashedPassword);
+  }
+
+  // Method to update password change requirement
+  static async setPasswordChangeRequirement(userId: number, mustChange: boolean): Promise<User | null> {
+    const result: any = await pool.execute(
+      `UPDATE ${this.tableName} SET must_change_password = ? WHERE id = ?`,
+      [mustChange, userId]
+    );
+
+    if (result.affectedRows > 0) {
+      return this.findById(userId);
+    }
+    return null;
   }
 }
 

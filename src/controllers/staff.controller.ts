@@ -3,6 +3,7 @@ import { getNumberQueryParam } from '../utils/type-utils';
 import StaffModel, { StaffInput, StaffUpdate } from '../models/staff.model';
 import UserModel from '../models/user.model';
 import AuditLogModel from '../models/audit-log.model';
+import CpanelEmailService from '../services/cpanel-email.service';
 
 // Controller for staff management
 export const getAllStaff = async (req: Request, res: Response) => {
@@ -228,6 +229,15 @@ export const deleteStaff = async (req: Request, res: Response) => {
       });
     }
 
+    // Get the associated user to access their email
+    const user = await UserModel.findById(existingStaff.user_id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated user not found'
+      });
+    }
+
     // Instead of hard deleting, we'll deactivate the staff
     const deactivated = await StaffModel.deactivate(staffId);
     if (!deactivated) {
@@ -253,9 +263,34 @@ export const deleteStaff = async (req: Request, res: Response) => {
       );
     }
 
+    // Only remove email if it belongs to our domain
+    const emailParts = user.email.split('@');
+    if (emailParts.length === 2) {
+      const domain = emailParts[1];
+      const companyDomain = process.env.CPANEL_DOMAIN || 'example.com';
+      
+      if (domain === companyDomain) {
+        try {
+          const emailPrefix = emailParts[0];
+          const cpanelService = new CpanelEmailService();
+          const deletionResult = await cpanelService.deleteEmailAccount(emailPrefix);
+          
+          if (deletionResult.success) {
+            console.log(`Email account ${user.email} removed from cPanel successfully`);
+          } else {
+            console.error(`Failed to remove email account ${user.email} from cPanel:`, deletionResult.error);
+            // Don't fail the entire operation if email deletion fails
+          }
+        } catch (emailError) {
+          console.error('Error removing email account from cPanel:', emailError);
+          // Don't fail the entire operation if email deletion fails
+        }
+      }
+    }
+
     return res.json({
       success: true,
-      message: 'Staff deactivated successfully'
+      message: 'Staff deactivated successfully and email account removed from cPanel if applicable'
     });
   } catch (error) {
     console.error('Deactivate staff error:', error);
@@ -287,6 +322,15 @@ export const terminateStaff = async (req: Request, res: Response) => {
       });
     }
 
+    // Get the associated user to access their email
+    const user = await UserModel.findById(existingStaff.user_id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated user not found'
+      });
+    }
+
     // Update staff status to terminated
     const updatedStaff = await StaffModel.update(staffId, { status: 'terminated' });
     if (!updatedStaff) {
@@ -309,9 +353,34 @@ export const terminateStaff = async (req: Request, res: Response) => {
       );
     }
 
+    // Only remove email if it belongs to our domain
+    const emailParts = user.email.split('@');
+    if (emailParts.length === 2) {
+      const domain = emailParts[1];
+      const companyDomain = process.env.CPANEL_DOMAIN || 'example.com';
+      
+      if (domain === companyDomain) {
+        try {
+          const emailPrefix = emailParts[0];
+          const cpanelService = new CpanelEmailService();
+          const deletionResult = await cpanelService.deleteEmailAccount(emailPrefix);
+          
+          if (deletionResult.success) {
+            console.log(`Email account ${user.email} removed from cPanel successfully`);
+          } else {
+            console.error(`Failed to remove email account ${user.email} from cPanel:`, deletionResult.error);
+            // Don't fail the entire operation if email deletion fails
+          }
+        } catch (emailError) {
+          console.error('Error removing email account from cPanel:', emailError);
+          // Don't fail the entire operation if email deletion fails
+        }
+      }
+    }
+
     return res.json({
       success: true,
-      message: 'Staff terminated successfully'
+      message: 'Staff terminated successfully and email account removed from cPanel if applicable'
     });
   } catch (error) {
     console.error('Terminate staff error:', error);
