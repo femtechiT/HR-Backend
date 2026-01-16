@@ -532,9 +532,76 @@ payslipsFolder.item = [
         path: ["api", "payslips", "download", "1", "1"]
       }
     }
+  },
+  {
+    name: "Send Payslip by Email",
+    request: {
+      method: "POST",
+      header: [
+        {
+          key: "Authorization",
+          value: "Bearer {{accessToken}}"
+        }
+      ],
+      url: {
+        raw: "{{baseUrl}}/api/payslips/send/1/1",
+        host: ["{{baseUrl}}"],
+        path: ["api", "payslips", "send", "1", "1"]
+      }
+    }
+  }
+];
+
+// Add Branch Global Attendance folder and requests
+const branchGlobalAttendanceFolder = findOrCreateFolder(collection, 'Branch Global Attendance');
+
+branchGlobalAttendanceFolder.item = [
+  {
+    name: "Update Global Attendance Mode",
+    request: {
+      method: "POST",
+      header: [
+        {
+          key: "Authorization",
+          value: "Bearer {{accessToken}}"
+        },
+        {
+          key: "Content-Type",
+          value: "application/json"
+        }
+      ],
+      body: {
+        mode: "raw",
+        raw: JSON.stringify({
+          attendance_mode: "multiple_locations"  // or "branch_based"
+        }, null, 2)
+      },
+      url: {
+        raw: "{{baseUrl}}/api/branches/global-attendance-mode",
+        host: ["{{baseUrl}}"],
+        path: ["api", "branches", "global-attendance-mode"]
+      }
+    }
+  },
+  {
+    name: "Get Global Attendance Mode Status",
+    request: {
+      method: "GET",
+      header: [
+        {
+          key: "Authorization",
+          value: "Bearer {{accessToken}}"
+        }
+      ],
+      url: {
+        raw: "{{baseUrl}}/api/branches/global-attendance-mode",
+        host: ["{{baseUrl}}"],
+        path: ["api", "branches", "global-attendance-mode"]
+      }
+    }
   }
 ];
 
 // Write the updated collection back to the file
 fs.writeFileSync(collectionPath, JSON.stringify(collection, null, 2));
-console.log('Postman collection updated with payroll endpoints!');
+console.log('Postman collection updated with payroll and global attendance mode endpoints!');

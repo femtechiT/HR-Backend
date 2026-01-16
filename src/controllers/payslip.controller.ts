@@ -79,6 +79,7 @@ export const generatePayslip = async (req: Request, res: Response) => {
     // Send the HTML response
     res.setHeader('Content-Type', 'text/html');
     res.send(payslipHtml);
+    return; // Explicitly return to satisfy TypeScript
   } catch (error) {
     console.error('Generate payslip error:', error);
     return res.status(500).json({
@@ -166,6 +167,7 @@ export const downloadPayslip = async (req: Request, res: Response) => {
     // For now, we'll send the HTML as a response since we don't have PDF generation implemented
     // In a real system, we would convert the HTML to PDF here
     res.send(payslipHtml);
+    return; // Explicitly return to satisfy TypeScript
   } catch (error) {
     console.error('Download payslip error:', error);
     return res.status(500).json({

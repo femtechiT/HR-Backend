@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import PayrollRecordModel from '../models/payroll-record.model';
 import PayrollRunModel from '../models/payroll-run.model';
 import StaffModel from '../models/staff.model';
+import UserModel from '../models/user.model';
 import AuditLogModel from '../models/audit-log.model';
 
 // Controller for payroll record management
@@ -51,15 +52,21 @@ export const getPayrollRecordById = async (req: Request, res: Response) => {
     // Get associated staff information
     const staff = await StaffModel.findById(payrollRecord.staff_id);
 
+    // Get associated user information for full_name and email
+    let user = null;
+    if (staff) {
+      user = await UserModel.findById(staff.user_id);
+    }
+
     // Get associated payroll run information
     const payrollRun = await PayrollRunModel.findById(payrollRecord.payroll_run_id);
 
     return res.json({
       success: true,
       message: 'Payroll record retrieved successfully',
-      data: { 
-        payrollRecord, 
-        staff: { id: staff?.id, full_name: staff?.full_name, email: staff?.email },
+      data: {
+        payrollRecord,
+        staff: { id: staff?.id, full_name: user?.full_name, email: user?.email },
         payrollRun: { id: payrollRun?.id, month: payrollRun?.month, year: payrollRun?.year }
       }
     });
@@ -188,7 +195,7 @@ export const updatePayrollRecord = async (req: Request, res: Response) => {
         before_data: existingPayrollRecord,
         after_data: updatedPayrollRecord,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 
@@ -244,7 +251,7 @@ export const deletePayrollRecord = async (req: Request, res: Response) => {
         before_data: existingPayrollRecord,
         after_data: null,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 

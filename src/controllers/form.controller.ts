@@ -130,7 +130,7 @@ export const createForm = async (req: Request, res: Response) => {
         before_data: null,
         after_data: newForm,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 
@@ -223,7 +223,7 @@ export const updateForm = async (req: Request, res: Response) => {
         before_data: existingForm,
         after_data: updatedForm,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 
@@ -283,7 +283,7 @@ export const deleteForm = async (req: Request, res: Response) => {
         before_data: existingForm,
         after_data: updatedForm,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 

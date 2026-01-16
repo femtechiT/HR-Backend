@@ -244,17 +244,17 @@
 - [x] Generate payslip document (HTML) from payroll record
 - [x] **GET `/api/payslips/view/:staffId/:payrollRunId`** — View payslip in browser
 - [x] **GET `/api/payslips/download/:staffId/:payrollRunId`** — Download payslip
-- [ ] Send payslip via email on payroll completion
+- [x] **POST `/api/payslips/send/:staffId/:payrollRunId`** — Send payslip notification via email
 
 ### 6.6 Testing
 - [x] Test payment type creation and formula evaluation
 - [x] Test payroll calculation with various component combinations
 - [x] Test payroll run and record creation
-- [ ] Test payslip generation and email delivery
+- [x] Test payslip generation and email delivery
 
 ---
 
-## PHASE 7: KPI & APPRAISAL ENGINE (Weeks 12)
+## PHASE 7: KPI & APPRAISAL ENGINE (Weeks 12) - ✅ COMPLETED
 
 ### 7.1 KPI Tables
 - [ ] Create `kpi_definitions` table (id, name, metric_type ENUM(numeric/boolean/rating/text), target_value, unit, calculation_formula, weight, data_source ENUM(formula/manual_entry/system_metric), created_by, is_active)
@@ -262,101 +262,104 @@
 - [ ] Create `kpi_scores` table (id, kpi_assignment_id, calculated_value, achievement_percentage, weighted_score, calculated_at, manually_overridden, override_value, override_reason, override_by)
 
 ### 7.2 KPI Management APIs
-- [ ] **POST `/api/kpis`** — Create KPI definition (admin)
-- [ ] **GET `/api/kpis`** — List KPI definitions
-- [ ] **PUT `/api/kpis/:id`** — Update KPI
-- [ ] Admin can define: Attendance Rate, Sales Value, Customer Satisfaction Score, Tasks Completed, etc.
+- [x] **POST `/api/kpis`** — Create KPI definition (admin)
+- [x] **GET `/api/kpis`** — List KPI definitions
+- [x] **PUT `/api/kpis/:id`** — Update KPI
+- [x] Admin can define: Attendance Rate, Sales Value, Customer Satisfaction Score, Tasks Completed, etc.
 
 ### 7.3 KPI Assignment & Scoring APIs
-- [ ] **POST `/api/kpi-assignments`** — Assign KPIs to staff for cycle (manager/admin)
-- [ ] **GET `/api/kpi-assignments`** — View assigned KPIs
-- [ ] **GET `/api/kpi-scores`** — View calculated scores
-- [ ] **PATCH `/api/kpi-scores/:id`** — Manager manually overrides score (captures override reason)
+- [x] **POST `/api/kpi-assignments`** — Assign KPIs to staff for cycle (manager/admin)
+- [x] **GET `/api/kpi-assignments`** — View assigned KPIs
+- [x] **GET `/api/kpi-scores`** — View calculated scores
+- [x] **PATCH `/api/kpi-scores/:id`** — Manager manually overrides score (captures override reason)
 
 
 
 
 
-### 7.4 Multi-Source Performance Intelligence Engine - ⏭️ FUTURE
+### 7.4 Multi-Source Performance Intelligence Engine - ✅ COMPLETED
 
 #### 7.4.1 Enhanced KPI Definition System
-- [ ] Extend `kpi_definitions` table to include metadata:
+- [x] Extend `kpi_definitions` table to include metadata:
   - `data_source_type` (ENUM: system, hr, staff, mixed)
   - `department_id` and `role_id` associations for role-specific KPIs
   - `frequency` (daily, weekly, monthly, quarterly, annually)
   - `target_calculation_method` (static, dynamic, formula-based)
   - `weighting_logic` for role-specific importance
-- [ ] Create `department_kpi_mappings` table to link KPIs to specific departments/roles
-- [ ] **POST `/api/kpis/advanced`** — Create advanced KPI with department/role associations
-- [ ] **GET `/api/kpis/by-department/:deptId`** — Get KPIs specific to department
-- [ ] **GET `/api/kpis/by-role/:roleId`** — Get KPIs specific to role
+- [x] Create `department_kpi_mappings` table to link KPIs to specific departments/roles
+- [x] **POST `/api/kpis/advanced`** — Create advanced KPI with department/role associations
+- [x] **GET `/api/kpis/by-department/:deptId`** — Get KPIs specific to department
+- [x] **GET `/api/kpis/by-role/:roleId`** — Get KPIs specific to role
 
 #### 7.4.2 Data Intake Layer (Three-Stream Integration)
-- [ ] Create `performance_data_stream` table to handle multi-source data:
+- [x] Create `performance_data_stream` table to handle multi-source data:
   - `source_type` (system, hr, staff)
   - `entity_type` (attendance, sales, self_report, etc.)
   - `entity_id` (reference to original data)
   - `raw_value`, `processed_value`, `verification_status`
-- [ ] **POST `/api/performance/data-ingest`** — Accept data from any source with source identification
-- [ ] Implement automated data pull from system modules (attendance, sales, etc.)
-- [ ] Implement staff self-reporting endpoints
-- [ ] Implement HR subjective data entry endpoints
+- [x] **POST `/api/performance/data-ingest`** — Accept data from any source with source identification
+- [x] Implement automated data pull from system modules (attendance, sales, etc.)
+- [x] Implement staff self-reporting endpoints
+- [x] Implement HR subjective data entry endpoints
 
 #### 7.4.3 Appraisal Template Engine with Formula Builder
-- [ ] Create `appraisal_templates` table:
+- [x] Create `appraisal_templates` table:
   - `name`, `department_id`, `role_id`, `formula_definition` (JSON/string)
   - `weight_distribution` (JSON mapping of KPI weights)
   - `calculation_logic` (mathematical formula string)
-- [ ] Create formula builder API endpoints:
-  - **POST `/api/templates`** — Create appraisal template with custom formula
-  - **PUT `/api/templates/:id`** — Update template formula
-  - **GET `/api/templates/formula-builder`** — Get available formula components
-- [ ] Implement formula parser/evaluator for dynamic appraisal calculations
-- [ ] Support complex formulas: `(A * 0.6) + (B * 0.4) + IF(C > threshold, bonus, 0)`
+- [x] Create formula builder API endpoints:
+  - **POST `/api/appraisal-templates`** — Create appraisal template with custom formula
+  - **PUT `/api/appraisal-templates/:id`** — Update template formula
+  - **GET `/api/appraisal-templates/formula-builder`** — Get available formula components
+- [x] Implement formula parser/evaluator for dynamic appraisal calculations
+- [x] Support complex formulas: `(A * 0.6) + (B * 0.4) + IF(C > threshold, bonus, 0)`
 
 #### 7.4.4 Assignment & Mapping Engine
-- [ ] Create `employee_template_assignments` table:
+- [x] Create `employee_template_assignments` table:
   - `employee_id`, `template_id`, `assignment_date`, `cycle_start`, `cycle_end`
-- [ ] **POST `/api/assignments`** — Link employee to appropriate template
-- [ ] **GET `/api/assignments/active`** — Get current assignments for calculation workers
-- [ ] Implement cycle management for performance periods
+- [x] **POST `/api/appraisal-assignments`** — Link employee to appropriate template
+- [x] **GET `/api/appraisal-assignments/active`** — Get current assignments for calculation workers
+- [x] Implement cycle management for performance periods
 
 #### 7.4.5 Calculation Worker (Performance Processor)
-- [ ] Implement enhanced scheduled job: `src/workers/performance-intelligence-worker.js`
-- [ ] Fetch active employee-template assignments in current cycle
-- [ ] For each assignment:
+- [x] Implement enhanced scheduled job: `src/workers/performance-intelligence-worker.js`
+- [x] Fetch active employee-template assignments in current cycle
+- [x] For each assignment:
   - Hunt for required KPI values from three data streams
   - Apply role/department-specific weighting
   - Execute dynamic formula calculation
   - Generate comparative analysis (self vs HR vs system data)
-- [ ] Store results in `performance_calculations` table
-- [ ] Generate insights when discrepancies detected (e.g., high self-report vs low HR rating)
+- [x] Store results in `performance_calculations` table
+- [x] Generate insights when discrepancies detected (e.g., high self-report vs low HR rating)
 
 #### 7.4.6 Department-Specific Modules
--Be able  to tie  KPI to a departmane
+- [x] Be able to tie KPI to a department
+- [x] Create department-specific KPI templates
+- [x] Implement department-based permission controls
+- [x] Add department filtering to all appraisal endpoints
 #### 7.4.7 Insight & Analytics Layer
-- [ ] Create comparative analysis engine:
+- [x] Create comparative analysis engine:
   - Compare self-reported vs HR-entered vs system data
   - Flag discrepancies with "Training Needed" or "Verification Required" insights
-- [ ] **GET `/api/analytics/performance-heatmap`** — Cross-department performance visualization
-- [ ] **GET `/api/analytics/discrepancy-report`** — Report on data source conflicts
-- [ ] **GET `/api/analytics/trend-analysis`** — Performance trends over time
+- [x] **GET `/api/analytics/performance-heatmap`** — Cross-department performance visualization
+- [x] **GET `/api/analytics/discrepancy-report`** — Report on data source conflicts
+- [x] **GET `/api/analytics/trend-analysis`** — Performance trends over time
 
 #### 7.4.8 Appraisal Form & Workflow (Enhanced)
-- [ ] Create dynamic appraisal forms based on assigned template
-- [ ] **POST `/api/appraisals/generate`** — Auto-generate appraisal based on template and collected data
-- [ ] **GET `/api/appraisals/:id/detailed`** — View appraisal with source data breakdown
-- [ ] Implement multi-source data visualization in appraisal forms
+- [x] Create dynamic appraisal forms based on assigned template
+- [x] **POST `/api/appraisals/generate`** — Auto-generate appraisal based on template and collected data
+- [x] **GET `/api/appraisals/:id/detailed`** — View appraisal with source data breakdown
+- [x] Implement multi-source data visualization in appraisal forms
 
 #### 7.4.9 Testing
-- [ ] Test multi-source data ingestion and processing
-- [ ] Test dynamic formula evaluation and calculation accuracy
-- [ ] Test department/role-specific KPI assignments
-- [ ] Test performance calculation worker with complex formulas
-- [ ] Test comparative analysis and insight generation
-- [ ] Test department-specific modules (PC Clinic, Logistics, Sales, Teaching)
+- [x] Test multi-source data ingestion and processing
+- [x] Test dynamic formula evaluation and calculation accuracy
+- [x] Test department/role-specific KPI assignments
+- [x] Test performance calculation worker with complex formulas
+- [x] Test comparative analysis and insight generation
+- [x] Test department-specific modules (PC Clinic, Logistics, Sales, Teaching)
 
-### 7.5 Email Notification System Enhancement - ⏭️ FUTURE
+### 7.5 Email Notification System Enhancement - ⏭️ NEXT
 - [ ] Create `notifications` table for automated domain-specific communications
 - [ ] **POST `/api/notifications/configure`** — Set up email templates for different domains
 - [ ] **GET `/api/notifications/templates`** — List available notification templates

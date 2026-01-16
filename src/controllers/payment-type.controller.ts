@@ -104,7 +104,7 @@ export const createPaymentType = async (req: Request, res: Response) => {
       before_data: null,
       after_data: newPaymentType,
       ip_address: req.ip,
-      user_agent: req.get('User-Agent') || null
+      user_agent: req.get('User-Agent')
     });
 
     return res.status(201).json({
@@ -164,7 +164,7 @@ export const updatePaymentType = async (req: Request, res: Response) => {
         before_data: existingPaymentType,
         after_data: updatedPaymentType,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 
@@ -224,7 +224,7 @@ export const deletePaymentType = async (req: Request, res: Response) => {
         before_data: existingPaymentType,
         after_data: updatedPaymentType,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 
@@ -283,7 +283,7 @@ export const activatePaymentType = async (req: Request, res: Response) => {
         before_data: existingPaymentType,
         after_data: updatedPaymentType,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 

@@ -9,7 +9,9 @@
     "build": "tsc",
     "setup": "node scripts/setup.js",
     "seed-admin": "npx ts-node src/seed-admin.ts",
+    "migrate-appraisal": "npx ts-node src/migrate-appraisal.ts",
     "test": "jest",
+    "test-appraisal": "jest src/__tests__/complete-appraisal-system.test.ts",
     "lint": "eslint src --ext .ts,.js",
     "lint:fix": "eslint src --ext .ts,.js --fix",
     "format": "prettier --write \"src/**/*.{ts,js,json}\""

@@ -18,6 +18,17 @@ import staffPaymentStructureRoutes from './api/staff-payment-structure.route';
 import payrollRunRoutes from './api/payroll-run.route';
 import payrollRecordRoutes from './api/payroll-record.route';
 import payslipRoutes from './api/payslip.route';
+import branchGlobalAttendanceRoutes from './api/branch-global-attendance.route';
+import kpiRoutes from './api/kpi.route';
+import appraisalTemplateRoutes from './api/appraisal-template.route';
+import metricRoutes from './api/metric.route';
+import targetRoutes from './api/target.route';
+import performanceRoutes from './api/performance.route';
+import appraisalRoutes from './api/appraisal.route';
+import employeePerformanceRoutes from './api/employee-performance.route';
+import rolePermissionRoutes from './api/role-permission.route';
+import kpiAssignmentRoutes from './api/kpi-assignment.route';
+import kpiScoreRoutes from './api/kpi-score.route';
 
 // Load environment variables
 dotenv.config();
@@ -75,6 +86,17 @@ app.use('/api/staff-payment-structure', staffPaymentStructureRoutes);
 app.use('/api/payroll-runs', payrollRunRoutes);
 app.use('/api/payroll-records', payrollRecordRoutes);
 app.use('/api/payslips', payslipRoutes);
+app.use('/api/branches', branchGlobalAttendanceRoutes);
+app.use('/api/kpis', kpiRoutes);
+app.use('/api/appraisal-templates', appraisalTemplateRoutes);
+app.use('/api/metrics', metricRoutes);
+app.use('/api/targets', targetRoutes);
+app.use('/api/performance', performanceRoutes);
+app.use('/api/appraisals', appraisalRoutes);
+app.use('/api/employees', employeePerformanceRoutes);
+app.use('/api/permissions', rolePermissionRoutes);
+app.use('/api/kpi-assignments', kpiAssignmentRoutes);
+app.use('/api/kpi-scores', kpiScoreRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

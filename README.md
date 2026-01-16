@@ -8,7 +8,9 @@ A comprehensive HR management system for companies with 200+ employees, featurin
 - **Dynamic Attendance Tracking**: GPS-verified clock-in/out with flexible late/early policies
 - **Leave Management**: Configurable leave types with automated approval workflows
 - **Payroll Processing**: Automated salary calculations with dynamic components
-- **Performance Evaluation**: KPI-based appraisal system with multi-level reviews
+- **Intelligent Appraisal System**: Comprehensive KPI-based appraisal system with automated calculations from existing data sources
+- **Batch Assignment**: Assign KPIs and targets to multiple employees simultaneously
+- **Self-Assessment Workflow**: Employees can evaluate themselves with manager review
 - **Document Management**: Secure storage of employee documents with expiry alerts
 - **Notifications**: Email and push notifications for important events
 

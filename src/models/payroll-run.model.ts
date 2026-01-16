@@ -46,7 +46,7 @@ class PayrollRunModel {
       conditions.push('year = ?');
       params.push(year);
     }
-    if (branchId) {
+    if (branchId !== undefined) {
       conditions.push('branch_id = ?');
       params.push(branchId);
     }
@@ -75,11 +75,11 @@ class PayrollRunModel {
 
   static async findByMonthYear(month: number, year: number, branchId?: number | null): Promise<PayrollRun | null> {
     let query = `SELECT * FROM ${this.tableName} WHERE month = ? AND year = ?`;
-    const params = [month, year];
+    const params: (number | null | string)[] = [month, year];
 
     if (branchId !== undefined) {
       query += ' AND branch_id = ?';
-      params.push(branchId);
+      params.push(branchId); // branchId can be number or null, which is acceptable for MySQL
     }
 
     const [rows] = await pool.execute(query, params);

@@ -121,7 +121,14 @@ export const createPayrollRun = async (req: Request, res: Response) => {
       notes: notes || null
     };
 
-    const newPayrollRun = await PayrollRunModel.create(payrollRunData);
+    const newPayrollRun = await PayrollRunModel.create({
+      month,
+      year,
+      branch_id: branch_id || null,
+      status: 'draft', // Start as draft
+      processed_by: req.currentUser.id,
+      notes: notes || null
+    });
 
     // Log the payroll run creation
     await AuditLogModel.create({
@@ -132,7 +139,7 @@ export const createPayrollRun = async (req: Request, res: Response) => {
       before_data: null,
       after_data: newPayrollRun,
       ip_address: req.ip,
-      user_agent: req.get('User-Agent') || null
+      user_agent: req.get('User-Agent')
     });
 
     return res.status(201).json({
@@ -188,7 +195,7 @@ export const updatePayrollRun = async (req: Request, res: Response) => {
         before_data: existingPayrollRun,
         after_data: updatedPayrollRun,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 
@@ -298,7 +305,7 @@ export const executePayrollRun = async (req: Request, res: Response) => {
         before_data: { ...payrollRun, status: 'processing' },
         after_data: { ...payrollRun, status: 'completed', total_amount: totalAmount },
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
 
       return res.json({
@@ -376,7 +383,7 @@ export const deletePayrollRun = async (req: Request, res: Response) => {
         before_data: existingPayrollRun,
         after_data: null,
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 

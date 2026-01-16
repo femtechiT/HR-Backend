@@ -158,7 +158,7 @@ export const addPaymentToStaff = async (req: Request, res: Response) => {
       before_data: null,
       after_data: { ...newPaymentStructure, payment_type_details: paymentTypeDetails },
       ip_address: req.ip,
-      user_agent: req.get('User-Agent') || null
+      user_agent: req.get('User-Agent')
     });
 
     return res.status(201).json({
@@ -219,7 +219,7 @@ export const updateStaffPayment = async (req: Request, res: Response) => {
         before_data: existingStructure,
         after_data: { ...updatedStructure, payment_type_details: paymentTypeDetails },
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 
@@ -285,7 +285,7 @@ export const removePaymentFromStaff = async (req: Request, res: Response) => {
         before_data: existingStructure,
         after_data: { ...updatedStructure, payment_type_details: paymentTypeDetails },
         ip_address: req.ip,
-        user_agent: req.get('User-Agent') || null
+        user_agent: req.get('User-Agent')
       });
     }
 

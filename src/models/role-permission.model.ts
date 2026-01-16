@@ -85,6 +85,21 @@ class RolePermissionModel {
     return result.affectedRows > 0;
   }
 
+  // Method to delete multiple permissions for a role
+  static async deleteMultipleRolePermissions(roleId: number, permissions: string[]): Promise<boolean> {
+    if (permissions.length === 0) {
+      return true; // Nothing to delete
+    }
+
+    const placeholders = permissions.map(() => '?').join(',');
+    const query = `DELETE FROM ${this.tableName} WHERE role_id = ? AND permission IN (${placeholders})`;
+    const values = [roleId, ...permissions];
+
+    const result: any = await pool.execute(query, values);
+
+    return result.affectedRows >= 0; // Return true if query executed successfully
+  }
+
   // Method to get all permissions for a specific role
   static async getRolePermissions(roleId: number): Promise<RolePermission[]> {
     return await this.findByRoleId(roleId);

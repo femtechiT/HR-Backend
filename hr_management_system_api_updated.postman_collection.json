@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "hr-management-system-api",
     "name": "HR Management System API",
-    "description": "API collection for the HR Management System with authentication, user management, role management, staff management, forms framework, and comprehensive appraisal system features.",
+    "description": "API collection for the HR Management System with authentication, user management, role management, staff management, and forms framework features.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "1.0.0"
   },
@@ -156,7 +156,7 @@
                   "var jsonData = pm.response.json();",
                   "if(jsonData.success && jsonData.data && jsonData.data.permissions) {",
                   "    pm.environment.set(\"permissions\", JSON.stringify(jsonData.data.permissions));",
-                  "    console.log('Permissions set in environment');",
+                  "    console.log('Permissions updated in environment');",
                   "    console.log('Current permissions:', JSON.stringify(jsonData.data.permissions, null, 2));",
                   "}"
                 ],
@@ -1634,6 +1634,30 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Delete Payment Type",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-types/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payment-types",
+                "1"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -2103,7 +2127,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Productivity Index\",\n  \"description\": \"Measure of work output\",\n  \"data_type\": \"percentage\",\n  \"formula\": \"calculateAttendanceRate\",\n  \"data_source\": \"attendance_module\",\n  \"categories\": [\"Teacher\", \"Sales\", \"Inventory\", \"Technician\"],\n  \"is_active\": true\n}"
+                  "raw": "{\n  \"name\": \"Productivity Index\",\n  \"description\": \"Measure of work output\",\n  \"data_type\": \"numeric\",\n  \"formula\": \"tasks_completed / time_spent\",\n  \"data_source\": \"task_management_system\",\n  \"categories\": [\"Teacher\", \"Sales\", \"Inventory\", \"Technician\"],\n  \"is_active\": true\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/metrics",
@@ -2134,7 +2158,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Updated Productivity Index\",\n  \"description\": \"Updated measure of work output\",\n  \"data_type\": \"percentage\",\n  \"formula\": \"calculateAttendanceRate\",\n  \"data_source\": \"attendance_module\",\n  \"categories\": [\"Teacher\", \"Sales\", \"Inventory\", \"Technician\"],\n  \"is_active\": true\n}"
+                  "raw": "{\n  \"name\": \"Updated Productivity Index\",\n  \"description\": \"Updated measure of work output\",\n  \"data_type\": \"percentage\",\n  \"formula\": \"(tasks_completed / target_tasks) * 100\",\n  \"data_source\": \"task_management_system\",\n  \"categories\": [\"Teacher\", \"Sales\", \"Inventory\", \"Technician\"],\n  \"is_active\": true\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/metrics/1",
@@ -2229,26 +2253,24 @@
             {
               "name": "Get KPIs by Category",
               "request": {
-                "method": {
-                  "method": "GET",
-                  "header": [
-                    {
-                      "key": "Authorization",
-                      "value": "Bearer {{accessToken}}"
-                    }
-                  ],
-                  "url": {
-                    "raw": "{{baseUrl}}/api/kpis/categories/Sales",
-                    "host": [
-                      "{{baseUrl}}"
-                    ],
-                    "path": [
-                      "api",
-                      "kpis",
-                      "categories",
-                      "Sales"
-                    ]
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
                   }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/kpis/categories/Sales",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "kpis",
+                    "categories",
+                    "Sales"
+                  ]
                 }
               },
               "response": []
@@ -2269,7 +2291,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Sales Target Achievement\",\n  \"description\": \"Percentage of sales target achieved\",\n  \"formula\": \"calculateOverallPerformance\",\n  \"weight\": 35.00,\n  \"metric_ids\": [1, 2],\n  \"categories\": [\"Sales\"],\n  \"is_active\": true\n}"
+                  "raw": "{\n  \"name\": \"Sales Target Achievement\",\n  \"description\": \"Percentage of sales target achieved\",\n  \"formula\": \"(actual_sales / target_sales) * 100\",\n  \"weight\": 35.00,\n  \"metric_ids\": [1, 2],\n  \"categories\": [\"Sales\"],\n  \"is_active\": true\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/kpis",
@@ -2300,7 +2322,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Updated Sales Target Achievement\",\n  \"description\": \"Updated percentage of sales target achieved\",\n  \"formula\": \"calculateOverallPerformance\",\n  \"weight\": 40.00,\n  \"metric_ids\": [1, 2],\n  \"categories\": [\"Sales\"],\n  \"is_active\": true\n}"
+                  "raw": "{\n  \"name\": \"Updated Sales Target Achievement\",\n  \"description\": \"Updated percentage of sales target achieved\",\n  \"formula\": \"(actual_sales / target_sales) * 100\",\n  \"weight\": 40.00,\n  \"metric_ids\": [1, 2],\n  \"categories\": [\"Sales\"],\n  \"is_active\": true\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/kpis/1",
@@ -2335,38 +2357,6 @@
                     "api",
                     "kpis",
                     "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Batch Assign KPIs to Multiple Employees",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"employee_ids\": [1, 2, 3, 4],\n  \"kpi_ids\": [1, 2],\n  \"cycle_start_date\": \"2024-01-01\",\n  \"cycle_end_date\": \"2024-12-31\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpis/batch-assign",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpis",
-                    "batch-assign"
                   ]
                 }
               },
@@ -2679,7 +2669,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"kpi_id\": 1,\n  \"employee_id\": 1,\n  \"template_id\": 1,\n  \"target_type\": \"standard\",\n  \"target_value\": 90.00,\n  \"period_start\": \"2023-01-01\",\n  \"period_end\": \"2023-12-31\"\n}"
+                  "raw": "{\n  \"kpi_id\": 1,\n  \"employee_id\": 1,\n  \"template_id\": 1,\n  \"target_type\": \"standard\",\n  \"target_value\": 90.00,\n  \"period_start\": \"2023-01-01\",\n  \"period_end\": \"2023-12-31\",\n  \"created_by\": 1\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/targets",
@@ -2745,38 +2735,6 @@
                     "api",
                     "targets",
                     "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Batch Assign Targets to Multiple Employees",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"employee_ids\": [1, 2, 3, 4],\n  \"kpi_id\": 1,\n  \"target_type\": \"standard\",\n  \"target_value\": 90.00,\n  \"period_start\": \"2024-01-01\",\n  \"period_end\": \"2024-12-31\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/targets/batch-assign",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "targets",
-                    "batch-assign"
                   ]
                 }
               },
@@ -2875,7 +2833,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Q1 2024 Appraisals\",\n  \"description\": \"First quarter appraisal cycle\",\n  \"template_id\": 1,\n  \"start_date\": \"2024-04-01\",\n  \"end_date\": \"2024-04-30\",\n  \"status\": \"draft\"\n}"
+                  "raw": "{\n  \"name\": \"Q1 2023 Appraisals\",\n  \"description\": \"First quarter appraisal cycle\",\n  \"template_id\": 1,\n  \"start_date\": \"2023-04-01\",\n  \"end_date\": \"2023-04-30\",\n  \"status\": \"draft\",\n  \"created_by\": 1\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/appraisals",
@@ -2906,7 +2864,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Updated Q1 2024 Appraisals\",\n  \"description\": \"Updated first quarter appraisal cycle\",\n  \"status\": \"active\"\n}"
+                  "raw": "{\n  \"name\": \"Updated Q1 2023 Appraisals\",\n  \"description\": \"Updated first quarter appraisal cycle\",\n  \"status\": \"active\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/appraisals/1",
@@ -3129,448 +3087,6 @@
           ]
         },
         {
-          "name": "KPI Assignments",
-          "item": [
-            {
-              "name": "Get All KPI Assignments",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-assignments",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-assignments"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get KPI Assignment by ID",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-assignments/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-assignments",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get KPI Assignments by User",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-assignments/user/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-assignments",
-                    "user",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get KPI Assignments by KPI",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-assignments/kpi/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-assignments",
-                    "kpi",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create KPI Assignment",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"user_id\": 1,\n  \"kpi_definition_id\": 1,\n  \"cycle_start_date\": \"2024-01-01\",\n  \"cycle_end_date\": \"2024-12-31\",\n  \"custom_target_value\": 90.00,\n  \"notes\": \"Annual performance review\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-assignments",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-assignments"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update KPI Assignment",
-              "request": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"custom_target_value\": 95.00,\n  \"notes\": \"Updated annual targets\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-assignments/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-assignments",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Partially Update KPI Assignment",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"notes\": \"Updated notes for assignment\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-assignments/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-assignments",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete KPI Assignment",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-assignments/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-assignments",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "KPI Scores",
-          "item": [
-            {
-              "name": "Get All KPI Scores",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-scores",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-scores"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get KPI Score by ID",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-scores/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-scores",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get KPI Scores by Assignment",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-scores/assignment/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-scores",
-                    "assignment",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get KPI Scores by User",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-scores/user/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-scores",
-                    "user",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create KPI Score",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"kpi_assignment_id\": 1,\n  \"calculated_value\": 85.50,\n  \"achievement_percentage\": 85.50,\n  \"weighted_score\": 85.50,\n  \"manually_overridden\": false\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-scores",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-scores"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update KPI Score",
-              "request": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"calculated_value\": 90.00,\n  \"achievement_percentage\": 90.00,\n  \"weighted_score\": 90.00\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-scores/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-scores",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Manually Override KPI Score",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"override_value\": 95.00,\n  \"override_reason\": \"Exceptional performance during project delivery\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-scores/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-scores",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete KPI Score",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/kpi-scores/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "kpi-scores",
-                    "1"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
           "name": "Employee Performance",
           "item": [
             {
@@ -3709,126 +3225,6 @@
               "response": []
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "Permissions Management",
-      "item": [
-        {
-          "name": "Get Available Permissions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/permissions/available",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "permissions",
-                "available"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Role Permissions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/roles/4/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "roles",
-                "4",
-                "permissions"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Assign Permissions to Role",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"permissions\": [\n    \"staff:read\",\n    \"kpi:read\",\n    \"appraisal:read\",\n    \"performance:read\"\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/roles/4/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "roles",
-                "4",
-                "permissions"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Remove Permissions from Role",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"permissions\": [\n    \"staff:create\",\n    \"kpi:create\"\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/roles/4/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "roles",
-                "4",
-                "permissions"
-              ]
-            }
-          },
-          "response": []
         }
       ]
     }
