@@ -109,146 +109,147 @@
 
 ---
 
-## PHASE 3: DYNAMIC FORMS FRAMEWORK (Weeks 6-7)
+## PHASE 3: DYNAMIC FORMS FRAMEWORK (Weeks 6-7) - ✅ COMPLETED
 
 ### 3.1 Form Tables
-- [ ] Create `forms` table (id, name, form_type, description, branch_id, created_by, is_active, created_at)
-- [ ] Create `form_fields` table (id, form_id, field_name, field_label, field_type, is_required, validation_rule, options JSON, field_order)
-- [ ] Create `form_submissions` table (id, form_id, user_id, submission_data JSON, status, reviewed_by, reviewed_at, notes, submitted_at)
-- [ ] Create `form_attachments` table (id, form_submission_id, field_id, file_name, file_path, mime_type, uploaded_at)
+- [x] Create `forms` table (id, name, form_type, description, branch_id, created_by, is_active, created_at)
+- [x] Create `form_fields` table (id, form_id, field_name, field_label, field_type, is_required, validation_rule, options JSON, field_order)
+- [x] Create `form_submissions` table (id, form_id, user_id, submission_data JSON, status, reviewed_by, reviewed_at, notes, submitted_at)
+- [x] Create `form_attachments` table (id, form_submission_id, field_id, file_name, file_path, mime_type, uploaded_at)
 
 ### 3.2 Form Builder APIs
-- [ ] **POST `/api/forms`** — Create form with fields
-- [ ] **GET `/api/forms`** — List all forms
-- [ ] **GET `/api/forms/:id`** — Get form template
-- [ ] **PUT `/api/forms/:id`** — Update form definition
-- [ ] **DELETE `/api/forms/:id`** — Deactivate form
+- [x] **POST `/api/forms`** — Create form with fields
+- [x] **GET `/api/forms`** — List all forms
+- [x] **GET `/api/forms/:id`** — Get form template
+- [x] **PUT `/api/forms/:id`** — Update form definition
+- [x] **DELETE `/api/forms/:id`** — Deactivate form
 
 ### 3.3 Form Submission APIs
-- [ ] **POST `/api/forms/:id/submit`** — Submit form with data + file attachments
+- [x] **POST `/api/forms/:id/submit`** — Submit form with data + file attachments
   - Validate fields against `form_fields` rules (required, type, regex)
   - Handle file uploads (store in cPanel storage or S3)
   - Create `form_submissions` record
   - Send notification to reviewer
-- [ ] **GET `/api/forms/:id/submissions`** — List submissions (paginated, filterable by status)
-- [ ] **GET `/api/forms/submissions/:id`** — Get single submission with attachments
-- [ ] **PATCH `/api/forms/submissions/:id`** — Admin approves/rejects submission
+- [x] **GET `/api/forms/:id/submissions`** — List submissions (paginated, filterable by status)
+- [x] **GET `/api/forms/submissions/:id`** — Get single submission with attachments
+- [x] **PATCH `/api/forms/submissions/:id`** — Admin approves/rejects submission
 
 ### 3.4 File Upload Handling
-- [ ] Implement file upload endpoint: **POST `/api/upload`** (multipart/form-data)
-- [ ] Validate file type and size
-- [ ] Store files on cPanel (or S3 for scale)
-- [ ] Generate signed URLs for secure downloads
-- [ ] Test file upload/download cycle
+- [x] Implement file upload endpoint: **POST `/api/upload`** (multipart/form-data)
+- [x] Validate file type and size
+- [x] Store files on cPanel (or S3 for scale)
+- [x] Generate signed URLs for secure downloads
+- [x] Test file upload/download cycle
 
 ### 3.5 Testing
-- [ ] Test form creation with various field types
-- [ ] Test form submission with validation
-- [ ] Test file upload and retrieval
-- [ ] Test submission approval workflow
+- [x] Test form creation with various field types
+- [x] Test form submission with validation
+- [x] Test file upload and retrieval
+- [x] Test submission approval workflow
 
 ---
 
-## PHASE 4: LEAVE MANAGEMENT (Weeks 8-9) - ⏭️ NEXT
+## PHASE 4: LEAVE MANAGEMENT (Weeks 8-9) - ✅ COMPLETED
 
 ### 4.1 Leave Tables
-- [ ] Create `leave_types` table (id, name, days_per_year, is_paid, allow_carryover, carryover_limit, expiry_rule_id, created_by, is_active)
-- [ ] Create `leave_expiry_rules` table (id, name, expire_after_days, trigger_notification_days, auto_expire_action)
-- [ ] Create `leave_allocations` table (id, user_id, leave_type_id, cycle_start_date, cycle_end_date, allocated_days, used_days, carried_over_days)
-- [ ] Create `leave_requests` (or use form_submissions for leave_request form type)
-- [ ] Create `leave_history` table (id, user_id, leave_type_id, start_date, end_date, days_taken, reason, approved_at)
+- [x] Create `leave_types` table (id, name, days_per_year, is_paid, allow_carryover, carryover_limit, expiry_rule_id, created_by, is_active)
+- [x] Create `leave_expiry_rules` table (id, name, expire_after_days, trigger_notification_days, auto_expire_action)
+- [x] Create `leave_allocations` table (id, user_id, leave_type_id, cycle_start_date, cycle_end_date, allocated_days, used_days, carried_over_days)
+- [x] Create `leave_requests` (or use form_submissions for leave_request form type)
+- [x] Create `leave_history` table (id, user_id, leave_type_id, start_date, end_date, days_taken, reason, approved_at)
 
 ### 4.2 Leave Type Management APIs
-- [ ] **POST `/api/leave-types`** — Create leave type (admin)
-- [ ] **GET `/api/leave-types`** — List leave types
-- [ ] **PUT `/api/leave-types/:id`** — Update leave type
-- [ ] Admin can configure expiry rules per leave type (no code changes)
+- [x] **POST `/api/leave-types`** — Create leave type (admin)
+- [x] **GET `/api/leave-types`** — List leave types
+- [x] **PUT `/api/leave-types/:id`** — Update leave type
+- [x] Admin can configure expiry rules per leave type (no code changes)
 
 ### 4.3 Leave Allocation APIs
-- [ ] **POST `/api/leave-allocations`** — Admin allocates leave to staff (annual or custom)
-- [ ] **GET `/api/leave-allocations`** — List allocations
-- [ ] **GET `/api/leave-allocations/balance`** — Staff views their leave balance
-- [ ] Calculate available days (allocated + carried_over - used)
+- [x] **POST `/api/leave-allocations`** — Admin allocates leave to staff (annual or custom)
+- [x] **GET `/api/leave-allocations`** — List allocations
+- [x] **GET `/api/leave-allocations/balance`** — Staff views their leave balance
+- [x] Calculate available days (allocated + carried_over - used)
 
 ### 4.4 Leave Request Workflow
-- [ ] Create "Leave Request" form via form-builder (dropdown for type, date fields, reason, attachments)
-- [ ] **POST `/api/forms/:id/submit`** — Staff submits leave request (auto-routed to manager)
-- [ ] **PATCH `/api/forms/submissions/:id`** — Manager approves/rejects
-- [ ] On approval: deduct from `leave_allocations.used_days`, create `leave_history` record
-- [ ] Send notifications: staff + manager + HR
+- [x] Create "Leave Request" form via form-builder (dropdown for type, date fields, reason, attachments)
+- [x] **POST `/api/forms/:id/submit`** — Staff submits leave request (auto-routed to manager)
+- [x] **PATCH `/api/forms/submissions/:id`** — Manager approves/rejects
+- [x] On approval: deduct from `leave_allocations.used_days`, create `leave_history` record
+- [x] Send notifications: staff + manager + HR
 
 ### 4.5 Testing
-- [ ] Test leave allocation and balance calculation
-- [ ] Test leave request submission and approval flow
-- [ ] Test remaining balance after approval
-- [ ] Test notification sending
+- [x] Test leave allocation and balance calculation
+- [x] Test leave request submission and approval flow
+- [x] Test remaining balance after approval
+- [x] Test notification sending
 
 ---
 
-## PHASE 5: ATTENDANCE TRACKING (Weeks 10) - ⏭️ NEXT
+## PHASE 5: ATTENDANCE TRACKING (Weeks 10) - ✅ COMPLETED
 
 ### 5.1 Attendance Tables
-- [ ] Create `attendance` table (id, user_id, date, status ENUM(present/absent/late/half_day), check_in_time, check_out_time, location, notes)
-- [ ] Create `shift_timings` table (id, user_id, shift_name, start_time, end_time, effective_from, override_branch_id)
-- [ ] Create `holidays` table (id, holiday_name, date, branch_id, is_mandatory, description)
+- [x] Create `attendance` table (id, user_id, date, status ENUM(present/absent/late/half_day), check_in_time, check_out_time, location, notes)
+- [x] Create `shift_timings` table (id, user_id, shift_name, start_time, end_time, effective_from, override_branch_id)
+- [x] Create `holidays` table (id, holiday_name, date, branch_id, is_mandatory, description)
 
 ### 5.2 Attendance APIs
-- [ ] **POST `/api/attendance`** — Mark attendance (manual or auto from system)
-- [ ] **GET `/api/attendance`** — View attendance records (staff view own, admin view all)
-- [ ] **PATCH `/api/attendance/:id`** — Admin adjusts attendance (creates audit log)
-- [ ] **GET `/api/attendance/summary`** — Monthly attendance report (present days, absent days, attendance %)
+- [x] **POST `/api/attendance`** — Mark attendance (manual or auto from system)
+- [x] **GET `/api/attendance`** — View attendance records (staff view own, admin view all)
+- [x] **PATCH `/api/attendance/:id`** — Admin adjusts attendance (creates audit log)
+- [x] **GET `/api/attendance/summary`** — Monthly attendance report (present days, absent days, attendance %)
 
 ### 5.3 Late/Early Detection Logic
-- [ ] Compare check-in time vs. scheduled start time → mark as late
-- [ ] Compare check-out time vs. scheduled end time → mark as early
-- [ ] Respect staff-specific shift overrides and branch-level holidays
+- [x] Compare check-in time vs. scheduled start time → mark as late
+- [x] Compare check-out time vs. scheduled end time → mark as early
+- [x] Respect staff-specific shift overrides and branch-level holidays
 
 ### 5.4 Testing
-- [ ] Test attendance marking and retrieval
-- [ ] Test late/early detection logic
-- [ ] Test shift override logic
-- [ ] Test attendance adjustment audit trail
+- [x] Test attendance marking and retrieval
+- [x] Test late/early detection logic
+- [x] Test shift override logic
+- [x] Test attendance adjustment audit trail
 
 ---
 
-## PHASE 6: PAYROLL & PAYMENT TYPES (Weeks 11) - ⏭️ NEXT
+## PHASE 6: PAYROLL & PAYMENT TYPES (Weeks 11) - ✅ COMPLETED
 
 ### 6.1 Payment Tables
-- [ ] Create `payment_types` table (id, name, payment_category ENUM(earning/deduction/tax/benefit), calculation_type ENUM(fixed/percentage/formula), formula, applies_to_all, created_by, is_active)
-- [ ] Create `staff_payment_structure` table (id, staff_id, payment_type_id, value, effective_from, override_branch_id)
-- [ ] Create `payroll_runs` table (id, month, year, branch_id, status, run_date, total_amount, created_at)
-- [ ] Create `payroll_records` table (id, payroll_run_id, staff_id, earnings JSON, deductions JSON, net_pay, created_at)
+- [x] Create `payment_types` table (id, name, payment_category ENUM(earning/deduction/tax/benefit), calculation_type ENUM(fixed/percentage/formula), formula, applies_to_all, created_by, is_active)
+- [x] Create `staff_payment_structure` table (id, staff_id, payment_type_id, value, effective_from, override_branch_id)
+- [x] Create `payroll_runs` table (id, month, year, branch_id, status, run_date, total_amount, created_at)
+- [x] Create `payroll_records` table (id, payroll_run_id, staff_id, earnings JSON, deductions JSON, net_pay, created_at)
 
 ### 6.2 Payment Type Management APIs
-- [ ] **POST `/api/payment-types`** — Create payment component (admin, no code needed)
-- [ ] **GET `/api/payment-types`** — List all payment types
-- [ ] **PUT `/api/payment-types/:id`** — Update formula or category
-- [ ] Admin can add: Basic Salary, HRA, Medical Allowance, Performance Bonus, PF Deduction, Income Tax, etc.
+- [x] **POST `/api/payment-types`** — Create payment component (admin, no code needed)
+- [x] **GET `/api/payment-types`** — List all payment types
+- [x] **PUT `/api/payment-types/:id`** — Update formula or category
+- [x] Admin can add: Basic Salary, HRA, Medical Allowance, Performance Bonus, PF Deduction, Income Tax, etc.
 
 ### 6.3 Staff Payment Structure APIs
-- [ ] **POST `/api/staff/:id/payment-structure`** — Assign payment types to staff
-- [ ] **GET `/api/staff/:id/payment-structure`** — View staff payment components
-- [ ] **PUT `/api/staff/:id/payment-structure/:ptId`** — Update value (e.g., adjust bonus for individual)
+- [x] **POST `/api/staff/:id/payment-structure`** — Assign payment types to staff
+- [x] **GET `/api/staff/:id/payment-structure`** — View staff payment components
+- [x] **PUT `/api/staff/:id/payment-structure/:ptId`** — Update value (e.g., adjust bonus for individual)
 
 ### 6.4 Payroll Calculation
-- [ ] Implement payroll engine: iterates over all staff, calculates each payment_type formula
-- [ ] **POST `/api/payroll/run`** — Execute payroll for a month (admin)
+- [x] Implement payroll engine: iterates over all staff, calculates each payment_type formula
+- [x] **POST `/api/payroll/run`** — Execute payroll for a month (admin)
   - Calculate all payment components for each staff
   - Generate payroll records with earnings, deductions, net pay
   - Create audit log with calculation details
   - Send notification to finance
-- [ ] **GET `/api/payroll/records`** — View payroll records (finance/admin only)
-- [ ] **GET `/api/staff/:id/payroll-history`** — Staff views own payroll history
+- [x] **GET `/api/payroll/records`** — View payroll records (finance/admin only)
+- [x] **GET `/api/staff/:id/payroll-history`** — Staff views own payroll history
 
 ### 6.5 Payslip Generation
-- [ ] Generate payslip document (HTML/PDF) from payroll record
-- [ ] **GET `/api/payslips/:id`** — Download payslip
+- [x] Generate payslip document (HTML) from payroll record
+- [x] **GET `/api/payslips/view/:staffId/:payrollRunId`** — View payslip in browser
+- [x] **GET `/api/payslips/download/:staffId/:payrollRunId`** — Download payslip
 - [ ] Send payslip via email on payroll completion
 
 ### 6.6 Testing
-- [ ] Test payment type creation and formula evaluation
-- [ ] Test payroll calculation with various component combinations
-- [ ] Test payroll run and record creation
+- [x] Test payment type creation and formula evaluation
+- [x] Test payroll calculation with various component combinations
+- [x] Test payroll run and record creation
 - [ ] Test payslip generation and email delivery
 
 ---

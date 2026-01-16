@@ -13,6 +13,11 @@ import formRoutes from './api/form.route';
 import formSubmissionRoutes from './api/form-submission.route';
 import leaveRoutes from './api/leave.route';
 import attendanceApiRoutes from './api/attendance-api.route';
+import paymentTypeRoutes from './api/payment-type.route';
+import staffPaymentStructureRoutes from './api/staff-payment-structure.route';
+import payrollRunRoutes from './api/payroll-run.route';
+import payrollRecordRoutes from './api/payroll-record.route';
+import payslipRoutes from './api/payslip.route';
 
 // Load environment variables
 dotenv.config();
@@ -65,6 +70,11 @@ app.use('/api/forms', formRoutes);
 app.use('/api/form-submissions', formSubmissionRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/attendance', attendanceApiRoutes);
+app.use('/api/payment-types', paymentTypeRoutes);
+app.use('/api/staff-payment-structure', staffPaymentStructureRoutes);
+app.use('/api/payroll-runs', payrollRunRoutes);
+app.use('/api/payroll-records', payrollRecordRoutes);
+app.use('/api/payslips', payslipRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

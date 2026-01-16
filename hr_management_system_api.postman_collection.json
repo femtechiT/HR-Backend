@@ -26,8 +26,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
             }
           },
           "event": [
@@ -78,8 +84,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/refresh",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "refresh"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
             }
           },
           "response": []
@@ -96,8 +108,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
             }
           },
           "response": []
@@ -114,8 +132,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "permissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "permissions"
+              ]
             }
           },
           "event": [
@@ -159,8 +183,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/roles",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
             }
           },
           "event": [
@@ -209,8 +238,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/roles/4",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles", "4"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "4"
+              ]
             }
           },
           "response": []
@@ -235,8 +270,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/roles",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
             }
           },
           "response": []
@@ -261,8 +301,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/roles/3",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles", "3"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "3"
+              ]
             }
           },
           "response": []
@@ -279,8 +325,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/roles/3",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles", "3"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "3"
+              ]
             }
           },
           "response": []
@@ -297,8 +349,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/roles/4/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles", "4", "permissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "4",
+                "permissions"
+              ]
             }
           },
           "response": []
@@ -323,8 +382,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/roles/4/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles", "4", "permissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "4",
+                "permissions"
+              ]
             }
           },
           "response": []
@@ -341,8 +407,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/roles/4/permissions/reports.view",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles", "4", "permissions", "reports.view"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "4",
+                "permissions",
+                "reports.view"
+              ]
             }
           },
           "response": []
@@ -364,8 +438,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
             }
           },
           "response": []
@@ -382,8 +461,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/users/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "1"
+              ]
             }
           },
           "response": []
@@ -408,8 +493,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
             }
           },
           "response": []
@@ -434,8 +524,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/users/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "1"
+              ]
             }
           },
           "response": []
@@ -452,8 +548,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/users/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "1"
+              ]
             }
           },
           "response": []
@@ -470,8 +572,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/users/1/terminate",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "1", "terminate"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "1",
+                "terminate"
+              ]
             }
           },
           "response": []
@@ -488,8 +597,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/users/1/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "1", "permissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "1",
+                "permissions"
+              ]
             }
           },
           "response": []
@@ -514,8 +630,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/users/1/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "1", "permissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "1",
+                "permissions"
+              ]
             }
           },
           "response": []
@@ -532,8 +655,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/users/1/permissions/documents.approve",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "1", "permissions", "documents.approve"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "1",
+                "permissions",
+                "documents.approve"
+              ]
             }
           },
           "response": []
@@ -555,8 +686,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/staff",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "staff"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff"
+              ]
             }
           },
           "response": []
@@ -573,8 +709,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/staff/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "staff", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff",
+                "1"
+              ]
             }
           },
           "response": []
@@ -599,8 +741,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/staff",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "staff"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff"
+              ]
             }
           },
           "response": []
@@ -625,8 +772,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/staff/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "staff", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff",
+                "1"
+              ]
             }
           },
           "response": []
@@ -643,8 +796,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/staff/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "staff", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff",
+                "1"
+              ]
             }
           },
           "response": []
@@ -661,8 +820,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/staff/1/terminate",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "staff", "1", "terminate"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff",
+                "1",
+                "terminate"
+              ]
             }
           },
           "response": []
@@ -679,8 +845,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/staff/department/Engineering",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "staff", "department", "Engineering"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff",
+                "department",
+                "Engineering"
+              ]
             }
           },
           "response": []
@@ -702,8 +875,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/forms",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "forms"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms"
+              ]
             }
           },
           "response": []
@@ -720,8 +898,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/forms/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "forms", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "1"
+              ]
             }
           },
           "response": []
@@ -746,8 +930,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/forms",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "forms"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms"
+              ]
             }
           },
           "response": []
@@ -772,8 +961,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/forms/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "forms", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "1"
+              ]
             }
           },
           "response": []
@@ -790,8 +985,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/forms/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "forms", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "1"
+              ]
             }
           },
           "response": []
@@ -808,8 +1009,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/forms/1/fields",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "forms", "1", "fields"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "1",
+                "fields"
+              ]
             }
           },
           "response": []
@@ -831,8 +1039,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/form-submissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "form-submissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "form-submissions"
+              ]
             }
           },
           "response": []
@@ -849,8 +1062,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/form-submissions/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "form-submissions", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "form-submissions",
+                "1"
+              ]
             }
           },
           "response": []
@@ -875,8 +1094,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/form-submissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "form-submissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "form-submissions"
+              ]
             }
           },
           "response": []
@@ -901,8 +1125,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/form-submissions/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "form-submissions", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "form-submissions",
+                "1"
+              ]
             }
           },
           "response": []
@@ -919,8 +1149,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/form-submissions/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "form-submissions", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "form-submissions",
+                "1"
+              ]
             }
           },
           "response": []
@@ -937,8 +1173,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             }
           },
           "event": [
@@ -975,8 +1215,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
             }
           },
           "event": [
@@ -1024,8 +1270,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "permissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "permissions"
+              ]
             }
           },
           "event": [
@@ -1070,8 +1322,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
             }
           },
           "event": [
@@ -1110,8 +1367,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/roles",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "roles"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
             }
           },
           "event": [
@@ -1150,8 +1412,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/staff",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "staff"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff"
+              ]
             }
           },
           "event": [
@@ -1198,8 +1465,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/api/leave/types",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "leave", "types"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "leave",
+                    "types"
+                  ]
                 }
               },
               "event": [
@@ -1238,8 +1511,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/api/leave/types/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "leave", "types", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "leave",
+                    "types",
+                    "1"
+                  ]
                 }
               },
               "response": []
@@ -1264,8 +1544,14 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/leave/types",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "leave", "types"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "leave",
+                    "types"
+                  ]
                 }
               },
               "response": []
@@ -1290,8 +1576,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/leave/types/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "leave", "types", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "leave",
+                    "types",
+                    "1"
+                  ]
                 }
               },
               "response": []
@@ -1308,8 +1601,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/api/leave/types/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "leave", "types", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "leave",
+                    "types",
+                    "1"
+                  ]
                 }
               },
               "response": []
@@ -1333,8 +1633,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/attendance",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "attendance"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance"
+              ]
             }
           },
           "response": []
@@ -1351,8 +1656,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/attendance/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "attendance", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance",
+                "1"
+              ]
             }
           },
           "response": []
@@ -1377,8 +1688,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/attendance",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "attendance"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance"
+              ]
             }
           },
           "response": []
@@ -1403,8 +1719,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/attendance/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "attendance", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance",
+                "1"
+              ]
             }
           },
           "response": []
@@ -1421,8 +1743,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/attendance/summary?userId=1&startDate=2026-01-01&endDate=2026-01-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "attendance", "summary"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance",
+                "summary"
+              ],
               "query": [
                 {
                   "key": "userId",
@@ -1458,8 +1786,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/leave/types",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "leave", "types"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leave",
+                "types"
+              ]
             }
           },
           "response": []
@@ -1476,8 +1810,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/leave/types/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "leave", "types", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leave",
+                "types",
+                "1"
+              ]
             }
           },
           "response": []
@@ -1502,8 +1843,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/leave/types",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "leave", "types"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leave",
+                "types"
+              ]
             }
           },
           "response": []
@@ -1528,8 +1875,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/leave/types/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "leave", "types", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leave",
+                "types",
+                "1"
+              ]
             }
           },
           "response": []
@@ -1546,11 +1900,636 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/leave/types/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "leave", "types", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leave",
+                "types",
+                "1"
+              ]
             }
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payment Types",
+      "item": [
+        {
+          "name": "Get All Payment Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payment-types"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Type by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-types/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payment-types",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Payment Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Basic Salary\",\n  \"payment_category\": \"earning\",\n  \"calculation_type\": \"fixed\",\n  \"formula\": null,\n  \"applies_to_all\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payment-types"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Payment Type",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Basic Salary\",\n  \"payment_category\": \"earning\",\n  \"calculation_type\": \"fixed\",\n  \"formula\": null,\n  \"applies_to_all\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-types/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payment-types",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Payment Type",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-types/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payment-types",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Activate Payment Type",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-types/1/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payment-types",
+                "1",
+                "activate"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staff Payment Structure",
+      "item": [
+        {
+          "name": "Get Staff Payment Structure",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/staff-payment-structure/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff-payment-structure",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Payment to Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_type_id\": 1,\n  \"value\": 50000,\n  \"effective_from\": \"2026-01-01\",\n  \"effective_to\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/staff-payment-structure/1/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff-payment-structure",
+                "1",
+                "payment"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Staff Payment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 55000,\n  \"effective_from\": \"2026-01-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/staff-payment-structure/1/payment/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff-payment-structure",
+                "1",
+                "payment",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Payment from Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/staff-payment-structure/1/payment/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff-payment-structure",
+                "1",
+                "payment",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payroll Runs",
+      "item": [
+        {
+          "name": "Get All Payroll Runs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-runs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payroll Run by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-runs/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-runs",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Payroll Run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": 1,\n  \"year\": 2026,\n  \"branch_id\": 1,\n  \"notes\": \"January 2026 payroll run\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-runs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Payroll Run",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"draft\",\n  \"notes\": \"Updated January 2026 payroll run\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-runs/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-runs",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Execute Payroll Run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-runs/1/execute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-runs",
+                "1",
+                "execute"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Payroll Run",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-runs/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-runs",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payroll Records",
+      "item": [
+        {
+          "name": "Get All Payroll Records",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-records",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-records"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payroll Record by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-records/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-records",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Staff Payroll History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-records/staff/1/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-records",
+                "staff",
+                "1",
+                "history"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Payroll Record",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"earnings\": {\n    \"Basic Salary\": 50000,\n    \"HRA\": 15000\n  },\n  \"deductions\": {\n    \"PF\": 6000,\n    \"Tax\": 3000\n  },\n  \"gross_pay\": 65000,\n  \"total_deductions\": 9000,\n  \"net_pay\": 56000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-records/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-records",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Payroll Record",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll-records/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payroll-records",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payslips",
+      "item": [
+        {
+          "name": "View Payslip",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payslips/view/1/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payslips",
+                "view",
+                "1",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Payslip",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payslips/download/1/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payslips",
+                "download",
+                "1",
+                "1"
+              ]
+            }
+          }
         }
       ]
     }
