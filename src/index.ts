@@ -37,6 +37,9 @@ import completeSystemInitRoutes from './api/complete-system-init.route';
 import branchManagementRoutes from './api/branch-management.route';
 import departmentManagementRoutes from './api/department-management.route';
 import notificationRoutes from './api/notification.route';
+import jobPostingRoutes from './api/job-posting.route';
+import applicationSubmissionRoutes from './api/application-submission.route';
+import applicationManagementRoutes from './api/application-management.route';
 
 // Load environment variables
 dotenv.config();
@@ -113,6 +116,9 @@ app.use('/api/system-complete', completeSystemInitRoutes);
 app.use('/api/branches', branchManagementRoutes);
 app.use('/api/departments', departmentManagementRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/job-postings', jobPostingRoutes);
+app.use('/api/job-applications', applicationSubmissionRoutes);
+app.use('/api/job-application-management', applicationManagementRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
