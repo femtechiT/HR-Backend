@@ -40,6 +40,9 @@ import notificationRoutes from './api/notification.route';
 import jobPostingRoutes from './api/job-posting.route';
 import applicationSubmissionRoutes from './api/application-submission.route';
 import applicationManagementRoutes from './api/application-management.route';
+import shiftSchedulingRoutes from './api/shift-scheduling.route';
+import reportingAnalyticsRoutes from './api/reporting-analytics.route';
+import { SchedulerService } from './services/scheduler.service';
 
 // Load environment variables
 dotenv.config();
@@ -119,6 +122,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/job-postings', jobPostingRoutes);
 app.use('/api/job-applications', applicationSubmissionRoutes);
 app.use('/api/job-application-management', applicationManagementRoutes);
+app.use('/api/shift-scheduling', shiftSchedulingRoutes);
+app.use('/api/reports', reportingAnalyticsRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -156,6 +161,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     error: process.env.NODE_ENV === 'development' ? err.message : {}
   });
 });
+
+// Initialize scheduled workers
+SchedulerService.initializeWorkers();
 
 app.listen(PORT, () => {
   console.log(`HR Management System server is running on port ${PORT}`);

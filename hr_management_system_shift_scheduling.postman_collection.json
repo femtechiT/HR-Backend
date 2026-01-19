@@ -1,0 +1,624 @@
+{
+  "info": {
+    "_postman_id": "hr-management-system-shift-scheduling",
+    "name": "HR Management System - Shift Scheduling",
+    "description": "API collection for the shift scheduling module of the HR Management System, including shift templates, employee assignments, schedule requests, and time off banks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Shift Templates",
+      "item": [
+        {
+          "name": "Get All Shift Templates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/shift-templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "shift-templates"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Shift Template by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/shift-templates/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "shift-templates",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Shift Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Standard Office Hours\",\n  \"description\": \"Standard office hours for most employees\",\n  \"start_time\": \"09:00:00\",\n  \"end_time\": \"17:00:00\",\n  \"break_duration_minutes\": 60,\n  \"effective_from\": \"2023-01-01\",\n  \"effective_to\": \"2024-12-31\",\n  \"recurrence_pattern\": \"weekly\",\n  \"recurrence_days\": [\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/shift-templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "shift-templates"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Shift Template",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Standard Office Hours\",\n  \"start_time\": \"08:30:00\",\n  \"end_time\": \"16:30:00\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/shift-templates/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "shift-templates",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Shift Template",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/shift-templates/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "shift-templates",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employee Shift Assignments",
+      "item": [
+        {
+          "name": "Get All Employee Shift Assignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/employee-shift-assignments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "employee-shift-assignments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee Shift Assignment by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/employee-shift-assignments/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "employee-shift-assignments",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Shift to Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"shift_template_id\": 1,\n  \"custom_start_time\": \"08:00:00\",\n  \"custom_end_time\": \"16:00:00\",\n  \"custom_break_duration_minutes\": 45,\n  \"effective_from\": \"2023-01-01\",\n  \"effective_to\": \"2023-12-31\",\n  \"assignment_type\": \"temporary\",\n  \"notes\": \"Special assignment for project work\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/employee-shift-assignments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "employee-shift-assignments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee Shift Assignment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"custom_start_time\": \"08:30:00\",\n  \"custom_end_time\": \"16:30:00\",\n  \"effective_to\": \"2024-06-30\",\n  \"notes\": \"Extended assignment period\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/employee-shift-assignments/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "employee-shift-assignments",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Assign Shifts to Multiple Employees",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_ids\": [1, 2, 3],\n  \"shift_template_id\": 1,\n  \"custom_start_time\": \"08:00:00\",\n  \"custom_end_time\": \"16:00:00\",\n  \"custom_break_duration_minutes\": 60,\n  \"effective_from\": \"2023-01-01\",\n  \"effective_to\": \"2023-12-31\",\n  \"assignment_type\": \"permanent\",\n  \"notes\": \"Bulk assignment for new team\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/employee-shift-assignments/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "employee-shift-assignments",
+                "bulk"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Schedule Requests",
+      "item": [
+        {
+          "name": "Get All Schedule Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/schedule-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "schedule-requests"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Schedule Request by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/schedule-requests/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "schedule-requests",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Schedule Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_type\": \"time_off_request\",\n  \"request_subtype\": \"day_off_choice\",\n  \"requested_date\": \"2023-06-15\",\n  \"reason\": \"Personal appointment\",\n  \"scheduled_for\": \"2023-06-15\",\n  \"expires_on\": \"2023-06-30\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/schedule-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "schedule-requests"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Schedule Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Updated personal appointment\",\n  \"scheduled_for\": \"2023-06-16\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/schedule-requests/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "schedule-requests",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Schedule Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/schedule-requests/1/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "schedule-requests",
+                "1",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Schedule Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/schedule-requests/1/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "schedule-requests",
+                "1",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Schedule Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejection_reason\": \"Insufficient coverage\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/schedule-requests/1/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "schedule-requests",
+                "1",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Time Off Banks",
+      "item": [
+        {
+          "name": "Get All Time Off Banks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/time-off-banks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "time-off-banks"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Time Off Bank Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/time-off-banks/my-balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "time-off-banks",
+                "my-balance"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Time Off Bank",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"program_name\": \"Compensatory Time Program\",\n  \"description\": \"Time off earned for weekend work\",\n  \"total_entitled_days\": 5,\n  \"valid_from\": \"2023-01-01\",\n  \"valid_to\": \"2023-12-31\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shift-scheduling/time-off-banks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shift-scheduling",
+                "time-off-banks"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    }
+  ]
+}
