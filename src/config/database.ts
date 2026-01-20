@@ -15,6 +15,8 @@ const dbConfig = {
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  // Ensure proper result format
+  namedPlaceholders: true,
 };
 
 // Create a connection pool

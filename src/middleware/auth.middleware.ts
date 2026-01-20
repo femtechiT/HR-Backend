@@ -2,11 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import JwtUtil from '../utils/jwt.util';
 import UserModel from '../models/user.model';
 import PermissionService from '../services/permission.service';
+// import ApiKeyModel from '../models/api-key.model';  // API Keys temporarily disabled
 
 declare global {
   namespace Express {
     interface Request {
       currentUser?: any;
+      // apiKey?: any; // API key information when authenticated via API key (disabled)
     }
   }
 }
@@ -14,36 +16,52 @@ declare global {
 export const authenticateJWT = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-    if (!token) {
+    if (!authHeader) {
       return res.status(401).json({
         success: false,
         message: 'Access token is required'
       });
     }
 
-    const decoded = JwtUtil.verifyAccessToken(token);
+    // Check if it's a JWT token (starts with "Bearer ")
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1]; // Get the token part after "Bearer "
 
-    // Fetch user from database to ensure they exist and are active
-    const user = await UserModel.findById(decoded.userId);
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          message: 'Access token is required'
+        });
+      }
 
-    if (!user || user.status !== 'active') {
+      const decoded = JwtUtil.verifyAccessToken(token);
+
+      // Fetch user from database to ensure they exist and are active
+      const user = await UserModel.findById(decoded.userId);
+
+      if (!user || user.status !== 'active') {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid or inactive user'
+        });
+      }
+
+      // Attach user info to request object
+      req.currentUser = {
+        id: user.id,
+        email: user.email,
+        role_id: user.role_id,
+        branch_id: user.branch_id
+      };
+
+      return next();
+    } else {
       return res.status(401).json({
         success: false,
-        message: 'Invalid or inactive user'
+        message: 'Invalid authentication header format. Use "Bearer <token>" for JWT authentication.'
       });
     }
-
-    // Attach user info to request object
-    req.currentUser = {
-      id: user.id,
-      email: user.email,
-      role_id: user.role_id,
-      branch_id: user.branch_id
-    };
-
-    return next();
   } catch (error) {
     console.error('Authentication error:', error);
     return res.status(403).json({
@@ -57,26 +75,28 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
 export const checkPermission = (permission: string) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.currentUser) {
+      // Check JWT authentication
+      if (req.currentUser) {
+        // Check if the user has the required permission
+        const permissionResult = await PermissionService.hasPermission(req.currentUser.id, permission);
+
+        if (!permissionResult.hasPermission) {
+          return res.status(403).json({
+            success: false,
+            message: `Insufficient permissions. Required: ${permission}`,
+            requiredPermission: permission,
+            permissionSource: permissionResult.source
+          });
+        }
+
+        return next();
+      }
+      else {
         return res.status(401).json({
           success: false,
           message: 'Authentication required'
         });
       }
-
-      // Check if the user has the required permission
-      const permissionResult = await PermissionService.hasPermission(req.currentUser.id, permission);
-
-      if (!permissionResult.hasPermission) {
-        return res.status(403).json({
-          success: false,
-          message: `Insufficient permissions. Required: ${permission}`,
-          requiredPermission: permission,
-          permissionSource: permissionResult.source
-        });
-      }
-
-      return next();
     } catch (error) {
       console.error('Permission check error:', error);
       return res.status(500).json({

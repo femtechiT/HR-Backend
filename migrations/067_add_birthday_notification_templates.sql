@@ -46,7 +46,7 @@ VALUES (
   @template_body,
   'Birthday Reminder: {{employee_name}} - Tomorrow ({{tomorrow_date}})',
   'email',
-  '["employee_name", "employee_id", "designation", "department", "branch", "tomorrow_date", "company_name"]',
+  JSON_ARRAY('employee_name', 'employee_id', 'designation', 'department', 'branch', 'tomorrow_date', 'company_name'),
   TRUE
 )
 ON DUPLICATE KEY UPDATE
@@ -65,7 +65,7 @@ VALUES (
   @summary_body,
   'Birthday Summary for Tomorrow ({{date}}) - {{company_name}}',
   'email',
-  '["date", "birthday_list", "company_name"]',
+  JSON_ARRAY('date', 'birthday_list', 'company_name'),
   TRUE
 )
 ON DUPLICATE KEY UPDATE
