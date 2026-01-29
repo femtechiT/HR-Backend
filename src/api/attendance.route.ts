@@ -65,8 +65,47 @@ router.get('/', authenticateJWT, checkPermission('attendance:read'), async (req:
   }
 });
 
+// GET /api/attendance/my - Get current user's attendance records (self-access without specific permission)
+router.get('/my', authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    const { date, startDate, endDate, status } = req.query;
+    const currentUserId = req.currentUser?.id;
+
+    let attendanceRecords: any[];
+
+    if (date) {
+      // Get attendance for specific date
+      const singleAttendance = await AttendanceModel.findByUserIdAndDate(currentUserId!, new Date(date as string));
+      attendanceRecords = singleAttendance ? [singleAttendance] : [];
+    } else if (startDate && endDate) {
+      // Get attendance for date range
+      attendanceRecords = await AttendanceModel.findByDateRange(currentUserId!, new Date(startDate as string), new Date(endDate as string));
+    } else {
+      // Get all attendance for user
+      attendanceRecords = await AttendanceModel.findByUserId(currentUserId!);
+    }
+
+    // Filter by status if provided
+    if (status) {
+      attendanceRecords = attendanceRecords.filter(record => record.status === status);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Your attendance records retrieved successfully',
+      data: { attendance: attendanceRecords }
+    });
+  } catch (error) {
+    console.error('Get my attendance error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // GET /api/attendance/summary - Get attendance summary
-router.get('/summary', authenticateJWT, async (req: Request, res: Response) => {
+router.get('/summary', authenticateJWT, checkPermission('attendance:read'), async (req: Request, res: Response) => {
   try {
     const { userId, startDate, endDate } = req.query;
     const currentUserId = req.currentUser?.id;
@@ -118,6 +157,50 @@ router.get('/summary', authenticateJWT, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Get attendance summary error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET /api/attendance/my/summary - Get current user's attendance summary (self-access without specific permission)
+router.get('/my/summary', authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const currentUserId = req.currentUser?.id;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'startDate and endDate are required for summary'
+      });
+    }
+
+    const summary = await AttendanceModel.getAttendanceSummary(
+      currentUserId!,
+      new Date(startDate as string),
+      new Date(endDate as string)
+    );
+
+    const percentage = await AttendanceModel.getAttendancePercentage(
+      currentUserId!,
+      new Date(startDate as string),
+      new Date(endDate as string)
+    );
+
+    return res.json({
+      success: true,
+      message: 'Your attendance summary retrieved successfully',
+      data: {
+        summary: {
+          ...summary,
+          attendance_percentage: percentage
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get my attendance summary error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -209,6 +292,51 @@ router.get('/:id', authenticateJWT, checkPermission('attendance:read'), async (r
     });
   } catch (error) {
     console.error('Get attendance by ID error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET /api/attendance/my/:id - Get current user's specific attendance record (self-access without specific permission)
+router.get('/my/:id', authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+    const attendanceId = parseInt(idStr as string);
+
+    if (isNaN(attendanceId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid attendance ID'
+      });
+    }
+
+    const attendanceRecord = await AttendanceModel.findById(attendanceId);
+    if (!attendanceRecord) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attendance record not found'
+      });
+    }
+
+    // Check if this record belongs to the current user
+    const currentUserId = req.currentUser?.id;
+    if (attendanceRecord.user_id !== currentUserId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot access other users\' attendance records'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Your attendance record retrieved successfully',
+      data: { attendance: attendanceRecord }
+    });
+  } catch (error) {
+    console.error('Get my attendance by ID error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error'

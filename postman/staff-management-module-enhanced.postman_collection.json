@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "staff-management-module-collection",
-    "name": "HR Management System - Staff Management Module",
-    "description": "API endpoints for staff management module with comprehensive fields and dynamic capabilities",
+    "_postman_id": "staff-management-module-collection-enhanced",
+    "name": "HR Management System - Staff Management Module (Enhanced)",
+    "description": "API endpoints for enhanced staff management module with comprehensive fields and dynamic capabilities",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "1.0.0"
   },

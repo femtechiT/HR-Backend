@@ -33,8 +33,8 @@ const Layout: React.FC<LayoutProps> = ({ children, title = 'HR Management System
                 <a href="/leave-requests" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                   My Leave
                 </a>
-                <a href="/attendance" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                  Attendance
+                <a href="/attendance/my" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                  My Attendance
                 </a>
                 {isAuthenticated && user?.permissions?.includes('staff:read') && (
                   <a href="/employees" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">

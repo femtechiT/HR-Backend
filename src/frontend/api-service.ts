@@ -183,20 +183,69 @@ class ApiService {
   async getAttendanceRecords(params?: {
     userId?: number;
     date?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
     limit?: number;
     page?: number;
   }): Promise<ApiResponse> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.userId) queryParams.append('userId', params.userId.toString());
     if (params?.date) queryParams.append('date', params.date);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.status) queryParams.append('status', params.status);
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.page) queryParams.append('page', params.page.toString());
 
     const queryString = queryParams.toString();
     const endpoint = queryString ? `/attendance?${queryString}` : '/attendance';
-    
+
     return this.request(endpoint);
+  }
+
+  // MY ATTENDANCE METHODS (for self-access)
+  async getMyAttendanceRecords(params?: {
+    date?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    limit?: number;
+    page?: number;
+  }): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+
+    if (params?.date) queryParams.append('date', params.date);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.page) queryParams.append('page', params.page.toString());
+
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/attendance/my?${queryString}` : '/attendance/my';
+
+    return this.request(endpoint);
+  }
+
+  async getMyAttendanceSummary(params: {
+    startDate: string;
+    endDate: string;
+  }): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+
+    const queryString = queryParams.toString();
+    const endpoint = `/attendance/my/summary?${queryString}`;
+
+    return this.request(endpoint);
+  }
+
+  async getMyAttendanceRecordById(id: number): Promise<ApiResponse> {
+    return this.request(`/attendance/my/${id}`);
   }
 
   // PAYROLL METHODS

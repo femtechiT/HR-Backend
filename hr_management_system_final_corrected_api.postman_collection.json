@@ -667,7 +667,7 @@
       "name": "Attendance Management",
       "item": [
         {
-          "name": "Get All Attendance Records",
+          "name": "Get All Attendance Records (Requires attendance:read permission)",
           "request": {
             "method": "GET",
             "header": [
@@ -684,6 +684,154 @@
               "path": [
                 "api",
                 "attendance"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Own Attendance Records (Self-access, no permission required)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance",
+                "my"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Own Attendance Records with Date Filter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my?date=2026-01-20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-01-20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Own Attendance Records with Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my?startDate=2026-01-01&endDate=2026-01-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Own Attendance Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my/summary?startDate=2026-01-01&endDate=2026-01-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance",
+                "my",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Own Specific Attendance Record",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attendance",
+                "my",
+                "1"
               ]
             }
           },
@@ -748,30 +896,6 @@
                 "api",
                 "attendance",
                 "check-out"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Own Attendance Records",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{staff_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/attendance/my-records",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "attendance",
-                "my-records"
               ]
             }
           },
