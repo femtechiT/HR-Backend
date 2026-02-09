@@ -1,0 +1,48 @@
+# HR App Attendance API - cURL Commands
+
+# Login to get admin token
+curl -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"oluwarotimiadewumi@gmail.com","password":"admin123"}'
+
+# Login to get staff token
+curl -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"oluwarotimi.adewumi@tripa.com.ng","password":"7eM0xWOsZKe"}'
+
+# Using admin token (replace {{ADMIN_TOKEN}} with actual token):
+# Get attendance history for user ID 1
+curl -X GET http://localhost:3000/api/attendance/history/user/1 -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get monthly attendance report
+curl -X GET 'http://localhost:3000/api/attendance/reports/monthly?year=2023&month=10' -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get all attendance records with pagination
+curl -X GET 'http://localhost:3000/api/attendance/records?page=1&limit=10' -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get specific attendance record by ID
+curl -X GET http://localhost:3000/api/attendance/records/1 -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get attendance records with filters (Admin)
+curl -X GET 'http://localhost:3000/api/attendance?userId=1&startDate=2023-01-01&endDate=2023-12-31' -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get attendance summary for user ID 1
+curl -X GET 'http://localhost:3000/api/attendance/summary?userId=1&startDate=2023-01-01&endDate=2023-12-31' -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get specific attendance record by ID (Admin)
+curl -X GET http://localhost:3000/api/attendance/1 -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json'
+
+# Update attendance record (Admin only)
+curl -X PUT http://localhost:3000/api/attendance/1 -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json' -d '{"status":"present","check_in_time":"09:00:00","check_out_time":"17:00:00","location_verified":true}'
+
+# Create manual attendance record (Admin only)
+curl -X POST http://localhost:3000/api/attendance/manual -H 'Authorization: Bearer {{ADMIN_TOKEN}}' -H 'Content-Type: application/json' -d '{"date":"2023-10-15","check_in_time":"09:00:00","check_out_time":"17:00:00","status":"present","location_coordinates":{"latitude":-1.286389,"longitude":36.817223},"location_address":"Nairobi Office","user_id":1}'
+
+# Using staff token (replace {{STAFF_TOKEN}} with actual token):
+# Get attendance records with filters (Staff - limited to own)
+curl -X GET 'http://localhost:3000/api/attendance?startDate=2023-01-01&endDate=2023-12-31' -H 'Authorization: Bearer {{STAFF_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get current user's attendance records
+curl -X GET http://localhost:3000/api/attendance/my -H 'Authorization: Bearer {{STAFF_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get current user's attendance summary
+curl -X GET 'http://localhost:3000/api/attendance/my/summary?startDate=2023-01-01&endDate=2023-12-31' -H 'Authorization: Bearer {{STAFF_TOKEN}}' -H 'Content-Type: application/json'
+
+# Get current user's specific attendance record by ID
+curl -X GET http://localhost:3000/api/attendance/my/1 -H 'Authorization: Bearer {{STAFF_TOKEN}}' -H 'Content-Type: application/json'

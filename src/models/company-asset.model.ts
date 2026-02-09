@@ -250,7 +250,7 @@ class CompanyAssetModel {
   static async returnFromStaff(assetId: number, returnedDate?: Date): Promise<CompanyAsset | null> {
     const updateData: CompanyAssetUpdate = {
       asset_status: 'available',
-      assigned_to_staff_id: null,
+      assigned_to_staff_id: undefined,
       returned_date: returnedDate || new Date()
     };
 

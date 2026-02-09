@@ -7,7 +7,13 @@ const router = Router();
 // GET /api/leave-types - List all leave types
 router.get('/', authenticateJWT, checkPermission('leave_type:read'), async (req: Request, res: Response) => {
   try {
+    console.log('GET /api/leave-types - Starting request');
+    console.log('User info:', req.currentUser);
+    
+    console.log('Attempting to fetch all leave types...');
     const leaveTypes = await LeaveTypeModel.findAll();
+    console.log('Successfully fetched leave types:', leaveTypes.length);
+    
     return res.json({
       success: true,
       message: 'Leave types retrieved successfully',
@@ -15,6 +21,11 @@ router.get('/', authenticateJWT, checkPermission('leave_type:read'), async (req:
     });
   } catch (error) {
     console.error('Get leave types error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return res.status(500).json({
       success: false,
       message: 'Internal server error'

@@ -17,12 +17,22 @@ import {
 } from '../controllers/staff.controller';
 import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
 
+// Extend the Express Request type to include numericId
+declare global {
+  namespace Express {
+    interface Request {
+      numericId?: number;
+    }
+  }
+}
+
 const router = express.Router();
 
 // Middleware to validate that the id parameter is numeric
 const validateNumericId = (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.id;
-  const numericId = parseInt(id);
+  const idString = Array.isArray(id) ? id[0] : id;
+  const numericId = parseInt(idString);
 
   if (isNaN(numericId)) {
     return res.status(400).json({
@@ -32,14 +42,15 @@ const validateNumericId = (req: Request, res: Response, next: NextFunction) => {
   }
 
   req.numericId = numericId;
-  next();
+  return next();
 };
 
 // Middleware to validate numeric IDs for dynamic fields
 const validateNumericIdParam = (paramName: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const id = req.params[paramName];
-    const numericId = parseInt(id);
+    const idString = Array.isArray(id) ? id[0] : id;
+    const numericId = parseInt(idString);
 
     if (isNaN(numericId)) {
       return res.status(400).json({
@@ -49,7 +60,7 @@ const validateNumericIdParam = (paramName: string) => {
     }
 
     req.numericId = numericId;
-    next();
+    return next();
   };
 };
 

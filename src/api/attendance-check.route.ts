@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticateJWT } from '../middleware/auth.middleware';
-import AttendanceModel from '../models/attendance.model';
+import AttendanceModel, { AttendanceUpdate } from '../models/attendance.model';
 import ShiftTimingModel from '../models/shift-timing.model';
 import HolidayModel from '../models/holiday.model';
 import BranchModel from '../models/branch.model';
@@ -105,7 +105,7 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
         }
       }
 
-      const updateData = {
+      const updateData: Partial<AttendanceUpdate> = {
         check_in_time: new Date(`1970-01-01T${check_in_time}`),
         location_coordinates: location_coordinates ?
           `POINT(${location_coordinates.longitude} ${location_coordinates.latitude})` : null,
@@ -114,7 +114,7 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
       };
 
       if (providedStatus) {
-        updateData['status'] = providedStatus;
+        updateData.status = providedStatus;
       }
 
       const updatedAttendance = await AttendanceModel.update(attendanceRecord.id, updateData);

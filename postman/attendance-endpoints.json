@@ -1,0 +1,443 @@
+{
+  "info": {
+    "_postman_id": "attendance-collection-v1",
+    "name": "HR App - Attendance Endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection for all attendance-related API endpoints in the HR Management System"
+  },
+  "item": [
+    {
+      "name": "Attendance History for User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/history/user/{{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "history", "user", "{{userId}}"]
+        },
+        "description": "As an HR manager or admin, I want to view the attendance history for a specific employee so that I can track their attendance patterns and compliance with company policies.\n\nUser Story: HR personnel need to access individual employee attendance records for performance reviews, disciplinary actions, or attendance-related inquiries."
+      },
+      "response": []
+    },
+    {
+      "name": "Monthly Attendance Report",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/reports/monthly?year={{year}}&month={{month}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "reports", "monthly"],
+          "query": [
+            {
+              "key": "year",
+              "value": "{{year}}"
+            },
+            {
+              "key": "month",
+              "value": "{{month}}"
+            }
+          ]
+        },
+        "description": "As an HR manager or admin, I want to generate monthly attendance reports for employees so that I can analyze attendance trends, identify patterns, and prepare reports for management.\n\nUser Story: HR personnel need to generate comprehensive monthly attendance reports to assess team productivity, identify attendance issues, and support payroll processing."
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Attendance Records",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/records?page={{page}}&limit={{limit}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "records"],
+          "query": [
+            {
+              "key": "page",
+              "value": "{{page}}"
+            },
+            {
+              "key": "limit",
+              "value": "{{limit}}"
+            }
+          ]
+        },
+        "description": "As an HR administrator, I want to retrieve all attendance records with pagination so that I can manage large datasets efficiently and avoid performance issues.\n\nUser Story: HR administrators need to access all attendance records for auditing purposes, compliance reporting, and system maintenance while managing large volumes of data efficiently."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Specific Attendance Record by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/records/{{recordId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "records", "{{recordId}}"]
+        },
+        "description": "As an HR manager or employee, I want to retrieve a specific attendance record by its unique identifier so that I can view detailed information about a particular attendance entry.\n\nUser Story: HR personnel and employees need to access individual attendance records for verification, dispute resolution, or detailed examination of specific attendance events."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Attendance Records (General)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance"]
+        },
+        "description": "As an employee or HR manager, I want to retrieve attendance records with flexible filtering options so that I can focus on relevant data based on date ranges, user IDs, or attendance status.\n\nUser Story: Users need flexible access to attendance data to meet various business requirements, from personal attendance tracking to comprehensive team oversight."
+      },
+      "response": []
+    },
+    {
+      "name": "Get My Attendance Records",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/my",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "my"]
+        },
+        "description": "As an employee, I want to view my own attendance records so that I can track my punctuality, verify my attendance entries, and ensure accuracy for payroll purposes.\n\nUser Story: Employees need self-service access to their attendance data to monitor their work schedule compliance, verify hours worked, and identify any discrepancies."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Attendance Summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/summary?startDate={{startDate}}&endDate={{endDate}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "summary"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "{{startDate}}"
+            },
+            {
+              "key": "endDate",
+              "value": "{{endDate}}"
+            }
+          ]
+        },
+        "description": "As an HR manager or supervisor, I want to retrieve attendance summaries for employees within a specific date range so that I can quickly assess attendance patterns and identify areas of concern.\n\nUser Story: Management needs quick access to attendance summaries to make informed decisions about workforce management, identify attendance trends, and address potential issues proactively."
+      },
+      "response": []
+    },
+    {
+      "name": "Get My Attendance Summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/my/summary?startDate={{startDate}}&endDate={{endDate}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "my", "summary"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "{{startDate}}"
+            },
+            {
+              "key": "endDate",
+              "value": "{{endDate}}"
+            }
+          ]
+        },
+        "description": "As an employee, I want to view my attendance summary for a specific period so that I can understand my overall attendance performance and compliance with company policies.\n\nUser Story: Employees need access to their attendance summaries to understand their performance metrics, verify accuracy of attendance tracking, and prepare for performance reviews."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Attendance Record by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/{{recordId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "{{recordId}}"]
+        },
+        "description": "As an HR manager or authorized personnel, I want to retrieve a specific attendance record by its ID so that I can access detailed information for administrative purposes or verification.\n\nUser Story: Authorized personnel need to access individual attendance records by ID for administrative tasks, audit trails, and detailed verification of specific attendance events."
+      },
+      "response": []
+    },
+    {
+      "name": "Get My Attendance Record by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/my/{{recordId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "my", "{{recordId}}"]
+        },
+        "description": "As an employee, I want to retrieve my specific attendance record by its ID so that I can verify details of a particular attendance entry.\n\nUser Story: Employees need to access their individual attendance records by ID to verify specific entries, resolve discrepancies, or for personal record keeping."
+      },
+      "response": []
+    },
+    {
+      "name": "Update Attendance Record",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"present\",\n  \"check_in_time\": \"09:00:00\",\n  \"check_out_time\": \"17:00:00\",\n  \"location_verified\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/{{recordId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "{{recordId}}"]
+        },
+        "description": "As an HR administrator, I want to update attendance records so that I can correct errors, adjust statuses, or modify check-in/check-out times when necessary.\n\nUser Story: HR administrators need the ability to update attendance records to correct system errors, accommodate special circumstances, or adjust records based on additional information."
+      },
+      "response": []
+    },
+    {
+      "name": "Manual Attendance Creation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2023-10-15\",\n  \"check_in_time\": \"09:00:00\",\n  \"check_out_time\": \"17:00:00\",\n  \"status\": \"present\",\n  \"location_coordinates\": {\n    \"latitude\": -1.286389,\n    \"longitude\": 36.817223\n  },\n  \"location_address\": \"Nairobi Office\",\n  \"user_id\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance/manual",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance", "manual"]
+        },
+        "description": "As an HR administrator, I want to manually create attendance records so that I can account for special situations where automatic check-in/check-out didn't occur properly.\n\nUser Story: HR administrators need to manually create attendance records for situations like system outages, forgotten check-ins, or special work arrangements that weren't captured automatically."
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request Script",
+          "// Set default values if not defined"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Tests",
+          "pm.test(\"Status code is 200\", function () {",
+          "    pm.response.to.have.status(200);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "JWT token for authentication"
+    },
+    {
+      "key": "userId",
+      "value": "1",
+      "description": "User ID for attendance queries"
+    },
+    {
+      "key": "recordId",
+      "value": "1",
+      "description": "Attendance record ID"
+    },
+    {
+      "key": "year",
+      "value": "2023",
+      "description": "Year for monthly reports"
+    },
+    {
+      "key": "month",
+      "value": "10",
+      "description": "Month for monthly reports (1-12)"
+    },
+    {
+      "key": "page",
+      "value": "1",
+      "description": "Page number for pagination"
+    },
+    {
+      "key": "limit",
+      "value": "20",
+      "description": "Items per page for pagination"
+    },
+    {
+      "key": "startDate",
+      "value": "2023-01-01",
+      "description": "Start date for date range queries"
+    },
+    {
+      "key": "endDate",
+      "value": "2023-01-31",
+      "description": "End date for date range queries"
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 -- Migration: Enhance staff table with additional fields
 -- Description: Adds comprehensive fields for professional, payroll, personal, and asset tracking
 
-ALTER TABLE staff 
+-- Add the new columns first (excluding updated_at which needs separate handling)
+ALTER TABLE staff
 ADD COLUMN reporting_manager_id INT NULL,
 ADD COLUMN work_mode ENUM('onsite', 'remote', 'hybrid') DEFAULT 'onsite',
 ADD COLUMN bank_name VARCHAR(255),
@@ -53,12 +54,14 @@ ADD COLUMN resignation_date DATE,
 ADD COLUMN last_working_date DATE,
 ADD COLUMN reason_for_leaving TEXT,
 ADD COLUMN reference_check_status ENUM('pending', 'cleared', 'failed') DEFAULT 'pending',
-ADD COLUMN background_verification_status ENUM('pending', 'cleared', 'failed') DEFAULT 'pending',
-ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+ADD COLUMN background_verification_status ENUM('pending', 'cleared', 'failed') DEFAULT 'pending';
 
--- Add foreign key constraint for reporting manager
-ALTER TABLE staff 
-ADD CONSTRAINT fk_reporting_manager 
+-- Modify the updated_at column separately to preserve its trigger behavior if any
+ALTER TABLE staff MODIFY COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+-- Add foreign key constraint for reporting manager (after the column exists)
+ALTER TABLE staff
+ADD CONSTRAINT fk_reporting_manager
 FOREIGN KEY (reporting_manager_id) REFERENCES staff(id) ON DELETE SET NULL;
 
 -- Add foreign key constraints for address references

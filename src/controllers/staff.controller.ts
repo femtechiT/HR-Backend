@@ -655,7 +655,7 @@ export const createDynamicField = async (req: Request, res: Response) => {
     const { field_name, field_label, field_type, field_options, required }: {
       field_name: string;
       field_label: string;
-      field_type: string;
+      field_type: 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox' | 'radio' | 'textarea' | 'file' | 'email' | 'phone';
       field_options?: any;
       required?: boolean;
     } = req.body;
@@ -704,7 +704,9 @@ export const createDynamicField = async (req: Request, res: Response) => {
 
 export const updateDynamicField = async (req: Request, res: Response) => {
   try {
-    const fieldId = parseInt(req.params.id);
+    const idParam = req.params.id;
+    const idString = Array.isArray(idParam) ? idParam[0] : idParam;
+    const fieldId = parseInt(idString);
     if (isNaN(fieldId)) {
       return res.status(400).json({
         success: false,
@@ -714,7 +716,7 @@ export const updateDynamicField = async (req: Request, res: Response) => {
 
     const { field_label, field_type, field_options, required, is_active }: {
       field_label?: string;
-      field_type?: string;
+      field_type?: 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox' | 'radio' | 'textarea' | 'file' | 'email' | 'phone';
       field_options?: any;
       required?: boolean;
       is_active?: boolean;
@@ -756,7 +758,9 @@ export const updateDynamicField = async (req: Request, res: Response) => {
 
 export const deleteDynamicField = async (req: Request, res: Response) => {
   try {
-    const fieldId = parseInt(req.params.id);
+    const idParam = req.params.id;
+    const idString = Array.isArray(idParam) ? idParam[0] : idParam;
+    const fieldId = parseInt(idString);
     if (isNaN(fieldId)) {
       return res.status(400).json({
         success: false,
@@ -787,7 +791,9 @@ export const deleteDynamicField = async (req: Request, res: Response) => {
 
 export const getStaffDynamicValues = async (req: Request, res: Response) => {
   try {
-    const staffId = parseInt(req.params.staffId);
+    const staffIdParam = req.params.staffId;
+    const staffIdString = Array.isArray(staffIdParam) ? staffIdParam[0] : staffIdParam;
+    const staffId = parseInt(staffIdString);
     if (isNaN(staffId)) {
       return res.status(400).json({
         success: false,
@@ -813,7 +819,9 @@ export const getStaffDynamicValues = async (req: Request, res: Response) => {
 
 export const setStaffDynamicValues = async (req: Request, res: Response) => {
   try {
-    const staffId = parseInt(req.params.staffId);
+    const staffIdParam = req.params.staffId;
+    const staffIdString = Array.isArray(staffIdParam) ? staffIdParam[0] : staffIdParam;
+    const staffId = parseInt(staffIdString);
     if (isNaN(staffId)) {
       return res.status(400).json({
         success: false,

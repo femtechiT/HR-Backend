@@ -5,6 +5,9 @@ import { Request, Response, NextFunction } from 'express';
  * This enforces that only emails ending with the configured company domain can be used
  */
 export const companyEmailOnly: (req: Request, res: Response, next: NextFunction) => void = (req, res, next) => {
+  // Company domain restriction removed - allowing all email domains for login
+  // Original functionality commented out below for reference
+  /*
   // For login endpoint specifically
   if (req.path === '/api/auth/login' && req.method === 'POST') {
     const { email } = req.body;
@@ -23,6 +26,7 @@ export const companyEmailOnly: (req: Request, res: Response, next: NextFunction)
       }
     }
   }
+  */
 
   next();
 };
