@@ -6,6 +6,7 @@ import HolidayModel from '../models/holiday.model';
 import BranchModel from '../models/branch.model';
 import StaffModel from '../models/staff.model';
 import AttendanceLocationModel from '../models/attendance-location.model';
+import { pool } from '../config/database';
 
 const router = Router();
 
@@ -128,9 +129,54 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
       // Check if it's a holiday
       const isHoliday = await HolidayModel.isHoliday(new Date(date));
       if (isHoliday) {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot mark attendance on a holiday'
+        // Mark as holiday attendance
+        const attendanceData = {
+          user_id: userId,
+          date: new Date(date),
+          status: 'holiday' as const,
+          check_in_time: null,
+          check_out_time: null,
+          location_coordinates: null,
+          location_verified: false,
+          location_address: null,
+          notes: 'Holiday - no attendance required'
+        };
+
+        const newAttendance = await AttendanceModel.create(attendanceData);
+
+        return res.status(201).json({
+          success: true,
+          message: 'Holiday attendance recorded successfully',
+          data: { attendance: newAttendance }
+        });
+      }
+
+      // Check if user has approved leave on this date
+      const leaveHistory = await pool.execute(
+        `SELECT id, start_date, end_date FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`,
+        [userId, new Date(date)]
+      );
+      
+      if (leaveHistory[0].length > 0) {
+        // Mark as on leave attendance
+        const attendanceData = {
+          user_id: userId,
+          date: new Date(date),
+          status: 'leave' as const,
+          check_in_time: null,
+          check_out_time: null,
+          location_coordinates: null,
+          location_verified: false,
+          location_address: null,
+          notes: 'On approved leave'
+        };
+
+        const newAttendance = await AttendanceModel.create(attendanceData);
+
+        return res.status(201).json({
+          success: true,
+          message: 'Leave attendance recorded successfully',
+          data: { attendance: newAttendance }
         });
       }
 
@@ -156,6 +202,26 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
         return res.status(404).json({
           success: false,
           message: 'Branch not found for staff'
+        });
+      }
+
+      // Get attendance settings for this branch
+      const [branchSettings] = await pool.execute(
+        `SELECT * FROM attendance_settings WHERE branch_id = ?`,
+        [branchId]
+      ) as [any[], any];
+      
+      const settings = branchSettings[0] || {
+        require_check_in: true,
+        require_check_out: true,
+        grace_period_minutes: 0
+      };
+
+      // Check if check-in is required for this branch
+      if (settings.require_check_in === false) {
+        return res.status(400).json({
+          success: false,
+          message: 'Check-in is not required for this branch'
         });
       }
 
@@ -204,12 +270,17 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
         const shiftStartTime = new Date(`1970-01-01T${shift.start_time}`);
         const checkInTime = new Date(`1970-01-01T${check_in_time}`);
 
-        if (checkInTime.getTime() > shiftStartTime.getTime()) {
+        // Apply grace period if configured
+        const gracePeriodMs = (settings.grace_period_minutes || 0) * 60 * 1000;
+        const adjustedShiftStartTime = new Date(shiftStartTime.getTime() + gracePeriodMs);
+
+        if (checkInTime.getTime() > adjustedShiftStartTime.getTime()) {
           status = 'late';
         } else {
           status = 'present';
         }
       } else {
+        // If no specific shift is defined, use branch default or provided status
         status = providedStatus || 'present';
       }
 
@@ -283,34 +354,54 @@ router.post('/check-out', authenticateJWT, async (req: Request, res: Response) =
       });
     }
 
+    // Get user's branch to determine attendance mode
+    const staffRecord = await StaffModel.findByUserId(userId);
+    if (!staffRecord) {
+      return res.status(404).json({
+        success: false,
+        message: 'Staff record not found for user'
+      });
+    }
+
+    const branchId = staffRecord.branch_id;
+    if (!branchId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Staff record does not have a branch assigned'
+      });
+    }
+
+    // Get attendance settings for this branch
+    const [branchSettings] = await pool.execute(
+      `SELECT * FROM attendance_settings WHERE branch_id = ?`,
+      [branchId]
+    ) as [any[], any];
+    
+    const settings = branchSettings[0] || {
+      require_check_in: true,
+      require_check_out: true,
+      grace_period_minutes: 0
+    };
+
+    // Check if check-out is required for this branch
+    if (settings.require_check_out === false) {
+      return res.status(400).json({
+        success: false,
+        message: 'Check-out is not required for this branch'
+      });
+    }
+
+    const branch = await BranchModel.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({
+        success: false,
+        message: 'Branch not found for staff'
+      });
+    }
+
     // Verify location if provided
     let locationVerified = attendanceRecord.location_verified; // Keep the original verification status
     if (location_coordinates) {
-      // Get user's branch to determine attendance mode
-      const staffRecord = await StaffModel.findByUserId(userId);
-      if (!staffRecord) {
-        return res.status(404).json({
-          success: false,
-          message: 'Staff record not found for user'
-        });
-      }
-
-      const branchId = staffRecord.branch_id;
-      if (!branchId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Staff record does not have a branch assigned'
-        });
-      }
-
-      const branch = await BranchModel.findById(branchId);
-      if (!branch) {
-        return res.status(404).json({
-          success: false,
-          message: 'Branch not found for staff'
-        });
-      }
-
       // Handle location verification based on attendance mode
       if (branch.attendance_mode === 'branch_based' && location_coordinates) {
         // Verify user is at their assigned branch

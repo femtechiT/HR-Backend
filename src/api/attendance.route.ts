@@ -6,6 +6,9 @@ import HolidayModel from '../models/holiday.model';
 import AttendanceLocationModel from '../models/attendance-location.model';
 import BranchModel from '../models/branch.model';
 import StaffModel from '../models/staff.model';
+import LeaveHistoryModel from '../models/leave-history.model';
+import attendanceProcessRoutes from './attendance-process.route';
+import attendanceSettingsRoutes from './attendance-settings.route';
 import { pool } from '../config/database';
 
 const router = Router();
@@ -599,5 +602,269 @@ router.get('/my/:id', authenticateJWT, async (req: Request, res: Response) => {
     });
   }
 });
+
+// GET /api/attendance/holidays - Get holidays that affect attendance
+router.get('/holidays', authenticateJWT, checkPermission('attendance:view'), async (req: Request, res: Response) => {
+  try {
+    const { branchId, date, startDate, endDate } = req.query;
+
+    let holidays;
+    if (startDate && endDate) {
+      // Get holidays in date range
+      const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
+      const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
+      
+      if (typeof startDateStr !== 'string' || typeof endDateStr !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'startDate and endDate must be valid date strings'
+        });
+      }
+
+      const branchIdStr = Array.isArray(branchId) ? branchId[0] : branchId;
+      const branchIdNum = branchIdStr ? parseInt(branchIdStr as string) : undefined;
+
+      holidays = await HolidayModel.getHolidaysInRange(
+        new Date(startDateStr),
+        new Date(endDateStr),
+        branchIdNum
+      );
+    } else if (branchId) {
+      // Get holidays for specific branch
+      const branchIdStr = Array.isArray(branchId) ? branchId[0] : branchId;
+      const branchIdNum = parseInt(branchIdStr as string);
+      
+      if (isNaN(branchIdNum)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid branch ID'
+        });
+      }
+      
+      holidays = await HolidayModel.findByBranch(branchIdNum);
+    } else if (date) {
+      // Get holidays for specific date
+      const dateStr = Array.isArray(date) ? date[0] : date;
+      
+      if (typeof dateStr !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'date must be a valid date string'
+        });
+      }
+      
+      holidays = await HolidayModel.findByDate(new Date(dateStr));
+    } else {
+      // Get all holidays
+      holidays = await HolidayModel.findAll();
+    }
+
+    return res.json({
+      success: true,
+      message: 'Holidays retrieved successfully',
+      data: { holidays }
+    });
+  } catch (error) {
+    console.error('Get holidays error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET /api/attendance/holidays/:id - Get specific holiday that affects attendance
+router.get('/holidays/:id', authenticateJWT, checkPermission('attendance:view'), async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+    const holidayId = parseInt(idStr as string);
+
+    if (isNaN(holidayId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid holiday ID'
+      });
+    }
+
+    const holiday = await HolidayModel.findById(holidayId);
+    if (!holiday) {
+      return res.status(404).json({
+        success: false,
+        message: 'Holiday not found'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Holiday retrieved successfully',
+      data: { holiday }
+    });
+  } catch (error) {
+    console.error('Get holiday error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// POST /api/attendance/process-daily - Process attendance for all users for a specific date (typically called by scheduler)
+router.post('/process-daily', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
+  try {
+    const { date } = req.body;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date is required'
+      });
+    }
+
+    // Get all active staff members
+    const [staffResults] = await pool.execute(
+      `SELECT s.user_id FROM staff s 
+       JOIN users u ON s.user_id = u.id 
+       WHERE s.status = 'active' AND u.status = 'active'`
+    ) as [any[], any];
+
+    const userIds = staffResults.map((staff: any) => staff.user_id);
+
+    // Check if it's a holiday
+    const isHoliday = await HolidayModel.isHoliday(new Date(date));
+    if (isHoliday) {
+      // Process attendance for all users as holiday
+      const results = [];
+      for (const userId of userIds) {
+        // Check if attendance already exists
+        const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+        if (existingAttendance) {
+          results.push({
+            user_id: userId,
+            status: 'skipped',
+            message: 'Attendance already exists for this date'
+          });
+          continue;
+        }
+
+        const attendanceData = {
+          user_id: userId,
+          date: new Date(date),
+          status: 'holiday' as const,
+          check_in_time: null,
+          check_out_time: null,
+          location_coordinates: null,
+          location_verified: false,
+          location_address: null,
+          notes: 'Public holiday - no attendance required'
+        };
+
+        const newAttendance = await AttendanceModel.create(attendanceData);
+        results.push({
+          user_id: userId,
+          status: 'success',
+          attendance: newAttendance
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: 'Holiday attendance processed for all active staff',
+        data: { results }
+      });
+    }
+
+    // Process attendance for each user individually
+    const results = [];
+    for (const userId of userIds) {
+      // Check if attendance already exists
+      const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+      if (existingAttendance) {
+        results.push({
+          user_id: userId,
+          status: 'skipped',
+          message: 'Attendance already exists for this date'
+        });
+        continue;
+      }
+
+      // Check if user has approved leave on this date
+      const leaveHistory = await LeaveHistoryModel.findByUserIdAndDateRange(userId, new Date(date), new Date(date));
+      if (leaveHistory.length > 0) {
+        const attendanceData = {
+          user_id: userId,
+          date: new Date(date),
+          status: 'leave' as const,
+          check_in_time: null,
+          check_out_time: null,
+          location_coordinates: null,
+          location_verified: false,
+          location_address: null,
+          notes: 'On approved leave'
+        };
+
+        const newAttendance = await AttendanceModel.create(attendanceData);
+        results.push({
+          user_id: userId,
+          status: 'success',
+          attendance: newAttendance
+        });
+        continue;
+      }
+
+      // Get user's shift for this date
+      const shift = await ShiftTimingModel.findCurrentShiftForUser(userId, new Date(date));
+      
+      // If no shift is defined for this user on this date, don't mark attendance (they're not scheduled)
+      if (!shift) {
+        results.push({
+          user_id: userId,
+          status: 'skipped',
+          message: 'No shift assigned for this date'
+        });
+        continue;
+      }
+
+      // If shift exists but no check-in time was recorded, mark as absent
+      const attendanceData = {
+        user_id: userId,
+        date: new Date(date),
+        status: 'absent' as const,
+        check_in_time: null,
+        check_out_time: null,
+        location_coordinates: null,
+        location_verified: false,
+        location_address: null,
+        notes: 'Scheduled shift but no check-in recorded'
+      };
+
+      const newAttendance = await AttendanceModel.create(attendanceData);
+      results.push({
+        user_id: userId,
+        status: 'success',
+        attendance: newAttendance
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Daily attendance processing completed for all active staff',
+      data: { results }
+    });
+
+  } catch (error) {
+    console.error('Process daily attendance error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Mount attendance process routes
+router.use('/process', attendanceProcessRoutes);
+
+// Mount attendance settings routes
+router.use('/settings', attendanceSettingsRoutes);
 
 export default router;

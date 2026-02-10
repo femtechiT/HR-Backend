@@ -50,9 +50,7 @@ router.put('/schedule-requests/:id/cancel', authenticateJWT, cancelScheduleReque
 router.put('/schedule-requests/:id/approve', authenticateJWT, checkPermission('schedule_request:approve'), approveScheduleRequest);
 router.put('/schedule-requests/:id/reject', authenticateJWT, checkPermission('schedule_request:reject'), rejectScheduleRequest);
 
-// Time Off Banks Routes
-router.get('/time-off-banks', authenticateJWT, getAllTimeOffBanks);
-router.get('/time-off-banks/my-balance', authenticateJWT, getTimeOffBankBalance);
-router.post('/time-off-banks', authenticateJWT, checkPermission('time_off_bank:create'), createTimeOffBank);
+// Time Off Banks Routes are now in their own dedicated route file at /api/time-off-banks
+// See /api/time-off-banks for all time off bank functionality
 
 export default router;

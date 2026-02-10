@@ -43,9 +43,54 @@ router.post('/manual', authenticateJWT, async (req: Request, res: Response) => {
     // Check if it's a holiday
     const isHoliday = await HolidayModel.isHoliday(new Date(date));
     if (isHoliday) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot mark attendance on a holiday'
+      // For holidays, mark attendance as holiday regardless
+      const attendanceData = {
+        user_id: requestingUserId,
+        date: new Date(date),
+        status: 'holiday' as const,
+        check_in_time: null,
+        check_out_time: null,
+        location_coordinates: null,
+        location_verified: false,
+        location_address: null,
+        notes: 'Holiday - no attendance required'
+      };
+
+      const newAttendance = await AttendanceModel.create(attendanceData);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Holiday attendance recorded successfully',
+        data: { attendance: newAttendance }
+      });
+    }
+
+    // Check if user has approved leave on this date
+    const leaveHistory = await pool.execute(
+      `SELECT id, start_date, end_date FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`,
+      [requestingUserId, new Date(date)]
+    );
+    
+    if (leaveHistory[0].length > 0) {
+      // For approved leave, mark attendance as leave regardless
+      const attendanceData = {
+        user_id: requestingUserId,
+        date: new Date(date),
+        status: 'leave' as const,
+        check_in_time: null,
+        check_out_time: null,
+        location_coordinates: null,
+        location_verified: false,
+        location_address: null,
+        notes: 'On approved leave'
+      };
+
+      const newAttendance = await AttendanceModel.create(attendanceData);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Leave attendance recorded successfully',
+        data: { attendance: newAttendance }
       });
     }
 
