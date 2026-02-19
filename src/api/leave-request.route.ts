@@ -118,8 +118,177 @@ router.get('/', authenticateJWT, checkPermission('leave:read'), async (req: Requ
   }
 });
 
+// GET /api/leave/my-requests - Get current user's own leave requests (no special permission needed)
+router.get('/my-requests', authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    const {
+      status,
+      limit = 20,
+      page = 1
+    } = req.query;
+
+    // Validate pagination parameters
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 20;
+
+    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pagination parameters'
+      });
+    }
+
+    const userId = req.currentUser?.id;
+
+    // Find the "Leave Request" form to get its ID
+    const [leaveRequestForms]: any = await pool.execute(
+      `SELECT id FROM forms WHERE name = 'Leave Request' OR form_type = 'leave_request' LIMIT 1`
+    );
+
+    if (leaveRequestForms.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Leave requests retrieved successfully',
+        data: {
+          leaveRequests: [],
+          pagination: {
+            currentPage: pageNum,
+            totalPages: 0,
+            totalItems: 0,
+            itemsPerPage: limitNum
+          }
+        }
+      });
+    }
+
+    const leaveFormId = leaveRequestForms[0].id;
+
+    // Build query for current user's submissions only
+    let query = `SELECT fs.*, u.full_name as user_name, f.name as form_name
+                 FROM form_submissions fs
+                 JOIN users u ON fs.user_id = u.id
+                 JOIN forms f ON fs.form_id = f.id
+                 WHERE fs.form_id = ? AND fs.user_id = ?`;
+    const params: any[] = [leaveFormId, userId];
+
+    if (status) {
+      query += ' AND fs.status = ?';
+      params.push(status as string);
+    }
+
+    query += ' ORDER BY fs.submitted_at DESC';
+
+    // Add pagination
+    const offset = (pageNum - 1) * limitNum;
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limitNum, offset);
+
+    // Get the submissions
+    const [rows]: any = await pool.execute(query, params);
+
+    // Get total count for pagination
+    let countQuery = `SELECT COUNT(*) as total FROM form_submissions fs WHERE fs.form_id = ? AND fs.user_id = ?`;
+    const countParams = [leaveFormId, userId];
+
+    if (status) {
+      countQuery += ' AND fs.status = ?';
+      countParams.push(status as string);
+    }
+
+    const [countRows]: any = await pool.execute(countQuery, countParams);
+
+    return res.json({
+      success: true,
+      message: 'Your leave requests retrieved successfully',
+      data: {
+        leaveRequests: rows,
+        pagination: {
+          currentPage: pageNum,
+          totalPages: Math.ceil(countRows[0].total / limitNum),
+          totalItems: countRows[0].total,
+          itemsPerPage: limitNum
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get my leave requests error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET /api/leave/balance - Get current user's leave balances by leave type (no special permission needed)
+router.get('/balance', authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    const userId = req.currentUser?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User ID not found'
+      });
+    }
+
+    // Get all active leave types
+    const leaveTypes = await LeaveTypeModel.findAll();
+
+    // Get all allocations for this user
+    const allocations = await LeaveAllocationModel.findByUserId(userId);
+
+    // Calculate balance for each leave type
+    const balances = leaveTypes.map((leaveType) => {
+      // Find allocations for this leave type
+      const typeAllocations = allocations.filter(
+        (alloc) => alloc.leave_type_id === leaveType.id && new Date(alloc.cycle_end_date) >= new Date()
+      );
+
+      // Use the most recent allocation (first one since it's ordered by cycle_start_date DESC)
+      const allocation = typeAllocations[0];
+
+      if (allocation) {
+        const remainingDays = allocation.allocated_days - allocation.used_days + allocation.carried_over_days;
+        return {
+          leave_type_id: leaveType.id,
+          leave_type_name: leaveType.name,
+          allocated_days: allocation.allocated_days,
+          used_days: allocation.used_days,
+          carried_over_days: allocation.carried_over_days,
+          remaining_days: remainingDays,
+          cycle_start_date: allocation.cycle_start_date,
+          cycle_end_date: allocation.cycle_end_date
+        };
+      } else {
+        return {
+          leave_type_id: leaveType.id,
+          leave_type_name: leaveType.name,
+          allocated_days: 0,
+          used_days: 0,
+          carried_over_days: 0,
+          remaining_days: 0,
+          cycle_start_date: null,
+          cycle_end_date: null
+        };
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Leave balances retrieved successfully',
+      data: { balances }
+    });
+  } catch (error) {
+    console.error('Get leave balance error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // GET /api/leave/:id - Get specific leave request
-router.get('/:id', authenticateJWT, checkPermission('leave:read'), async (req: Request, res: Response) => {
+router.get('/:id', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const idParam = req.params.id;
     const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -138,6 +307,21 @@ router.get('/:id', authenticateJWT, checkPermission('leave:read'), async (req: R
       return res.status(404).json({
         success: false,
         message: 'Leave request not found'
+      });
+    }
+
+    // Check if user can access this leave request (owner or has admin permission)
+    const currentUserId = req.currentUser?.id;
+    const currentUserRole = req.currentUser?.role_id;
+
+    // Allow access if: user is the owner, or user is admin (role 1 or 2)
+    const isOwner = leaveRequest.user_id === currentUserId;
+    const isAdmin = currentUserRole === 1 || currentUserRole === 2;
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view this leave request'
       });
     }
 

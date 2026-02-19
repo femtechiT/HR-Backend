@@ -4,22 +4,22 @@ import LeaveTypeModel from '../models/leave-type.model';
 
 const router = Router();
 
-// GET /api/leave-types - List all leave types
-router.get('/', authenticateJWT, checkPermission('leave_type:read'), async (req: Request, res: Response) => {
+// GET /api/leave-types - List all leave types (no special permission needed, just authentication)
+router.get('/', authenticateJWT, async (req: Request, res: Response) => {
   try {
     console.log('GET /api/leave-types - Starting request');
     console.log('User info:', req.currentUser);
-    
+
     console.log('Attempting to fetch all leave types...');
     const leaveTypes = await LeaveTypeModel.findAll();
     console.log('Successfully fetched leave types:', leaveTypes.length);
-    
+
     return res.json({
       success: true,
       message: 'Leave types retrieved successfully',
       data: { leaveTypes }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get leave types error:', error);
     console.error('Error details:', {
       message: error.message,
@@ -33,8 +33,8 @@ router.get('/', authenticateJWT, checkPermission('leave_type:read'), async (req:
   }
 });
 
-// GET /api/leave-types/:id - Get leave type by ID
-router.get('/:id', authenticateJWT, checkPermission('leave_type:read'), async (req: Request, res: Response) => {
+// GET /api/leave-types/:id - Get leave type by ID (no special permission needed, just authentication)
+router.get('/:id', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const idParam = req.params.id;
     const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -60,7 +60,7 @@ router.get('/:id', authenticateJWT, checkPermission('leave_type:read'), async (r
       message: 'Leave type retrieved successfully',
       data: { leaveType }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get leave type error:', error);
     return res.status(500).json({
       success: false,

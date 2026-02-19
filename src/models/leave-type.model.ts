@@ -42,7 +42,8 @@ class LeaveTypeModel {
     try {
       console.log(`Executing query: SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
       const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
-      console.log(`Query successful, found ${rows.length} leave types`);
+      const rowCount = Array.isArray(rows) ? rows.length : 0;
+      console.log(`Query successful, found ${rowCount} leave types`);
       return rows as LeaveType[];
     } catch (error) {
       console.error(`Error executing query on ${this.tableName}:`, error);

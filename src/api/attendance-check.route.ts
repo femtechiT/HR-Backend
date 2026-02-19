@@ -35,11 +35,11 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
     let attendanceRecord = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
 
     if (attendanceRecord) {
-      // If attendance exists, update only the check-in time if it's not already set
+      // If attendance exists, check if check-in time is already recorded
       if (attendanceRecord.check_in_time) {
         return res.status(409).json({
           success: false,
-          message: 'Check-in time already recorded for this date'
+          message: 'You have already checked in today. Multiple check-ins are not allowed.'
         });
       }
 
@@ -359,7 +359,7 @@ router.post('/check-out', authenticateJWT, async (req: Request, res: Response) =
     if (attendanceRecord.check_out_time) {
       return res.status(409).json({
         success: false,
-        message: 'Check-out time already recorded for this date'
+        message: 'You have already checked out today. Multiple check-outs are not allowed.'
       });
     }
 

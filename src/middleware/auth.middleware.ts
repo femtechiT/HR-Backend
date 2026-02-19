@@ -86,7 +86,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
         message: 'Invalid authentication header format. Use "Bearer <token>" for JWT authentication.'
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Authentication error:', error);
     console.error('Error details:', {
       message: error.message,
@@ -106,11 +106,11 @@ export const checkPermission = (permission: string) => {
     try {
       console.log('Permission check middleware called for:', permission);
       console.log('Current user:', req.currentUser);
-      
+
       // Check JWT authentication
       if (req.currentUser) {
         console.log('Checking permission:', permission, 'for user ID:', req.currentUser.id);
-        
+
         // Check if the user has the required permission
         const permissionResult = await PermissionService.hasPermission(req.currentUser.id, permission);
         console.log('Permission check result:', permissionResult);
@@ -135,7 +135,7 @@ export const checkPermission = (permission: string) => {
           message: 'Authentication required'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Permission check error:', error);
       console.error('Error details:', {
         message: error.message,

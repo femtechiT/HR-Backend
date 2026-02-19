@@ -52,9 +52,19 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   { key: 'leave:request', category: 'Leave Management', description: 'Request leave' },
   { key: 'leave:view', category: 'Leave Management', description: 'View leave records' },
   { key: 'leave:approve', category: 'Leave Management', description: 'Approve/reject leave requests' },
+  { key: 'leave:read', category: 'Leave Management', description: 'View all leave requests (admin)' },
+  { key: 'leave:create', category: 'Leave Management', description: 'Create leave requests' },
+  { key: 'leave:update', category: 'Leave Management', description: 'Update leave requests' },
+  { key: 'leave:delete', category: 'Leave Management', description: 'Delete leave requests' },
 
   // Leave Type Management Permissions
   { key: 'leave_type:read', category: 'Leave Management', description: 'View leave types' },
+
+  // Leave Allocation Permissions
+  { key: 'leave_allocation:read', category: 'Leave Management', description: 'View leave allocations' },
+  { key: 'leave_allocation:create', category: 'Leave Management', description: 'Create leave allocations' },
+  { key: 'leave_allocation:update', category: 'Leave Management', description: 'Update leave allocations' },
+  { key: 'leave_allocation:delete', category: 'Leave Management', description: 'Delete leave allocations' },
 
   // Payroll Management Permissions
   { key: 'payroll:manage', category: 'Payroll Management', description: 'Manage payroll' },

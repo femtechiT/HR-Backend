@@ -6,6 +6,47 @@ import UserModel from '../models/user.model';
 
 const router = Router();
 
+// GET /api/leave/allocations/my-allocations - Get current user's own leave allocations (no special permission needed)
+router.get('/my-allocations', authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    const userId = req.currentUser?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User ID not found'
+      });
+    }
+
+    // Get all allocations for the current user
+    const allocations = await LeaveAllocationModel.findByUserId(userId);
+
+    // Format the response with leave type names
+    const allocationsWithDetails = await Promise.all(
+      allocations.map(async (allocation) => {
+        const leaveType = await LeaveTypeModel.findById(allocation.leave_type_id);
+        return {
+          ...allocation,
+          leave_type_name: leaveType ? leaveType.name : 'Unknown',
+          remaining_days: allocation.allocated_days - allocation.used_days + allocation.carried_over_days
+        };
+      })
+    );
+
+    return res.json({
+      success: true,
+      message: 'Your leave allocations retrieved successfully',
+      data: { allocations: allocationsWithDetails }
+    });
+  } catch (error) {
+    console.error('Get my leave allocations error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // GET /api/leave/allocations - Get all leave allocations (with filters)
 router.get('/', authenticateJWT, checkPermission('leave_allocation:read'), async (req: Request, res: Response) => {
   try {
@@ -137,16 +178,16 @@ router.post('/', authenticateJWT, checkPermission('leave_allocation:create'), as
       user_id,
       leave_type_id,
       allocated_days,
-      valid_from,
-      valid_to,
+      cycle_start_date,
+      cycle_end_date,
       carried_over_days = 0
     } = req.body;
 
     // Validate required fields
-    if (!user_id || !leave_type_id || allocated_days === undefined || !valid_from || !valid_to) {
+    if (!user_id || !leave_type_id || allocated_days === undefined || !cycle_start_date || !cycle_end_date) {
       return res.status(400).json({
         success: false,
-        message: 'User ID, leave type ID, allocated days, valid from, and valid to are required'
+        message: 'User ID, leave type ID, allocated days, cycle start date, and cycle end date are required'
       });
     }
 
@@ -169,13 +210,13 @@ router.post('/', authenticateJWT, checkPermission('leave_allocation:create'), as
     }
 
     // Validate dates
-    const fromDate = new Date(valid_from);
-    const toDate = new Date(valid_to);
+    const fromDate = new Date(cycle_start_date);
+    const toDate = new Date(cycle_end_date);
 
     if (fromDate > toDate) {
       return res.status(400).json({
         success: false,
-        message: 'Valid from date cannot be after valid to date'
+        message: 'Cycle start date cannot be after cycle end date'
       });
     }
 
@@ -186,9 +227,8 @@ router.post('/', authenticateJWT, checkPermission('leave_allocation:create'), as
       allocated_days,
       used_days: 0, // Initially no days used
       carried_over_days: carried_over_days || 0,
-      valid_from: valid_from,
-      valid_to: valid_to,
-      created_by: req.currentUser?.id || null
+      cycle_start_date: cycle_start_date,
+      cycle_end_date: cycle_end_date
     };
 
     const newAllocation = await LeaveAllocationModel.create(allocationData);
@@ -213,7 +253,7 @@ router.put('/:id', authenticateJWT, checkPermission('leave_allocation:update'), 
     const idParam = req.params.id;
     const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
     const allocationId = parseInt(idStr as string);
-    const { allocated_days, used_days, carried_over_days, valid_from, valid_to, status } = req.body;
+    const { allocated_days, used_days, carried_over_days, cycle_start_date, cycle_end_date } = req.body;
 
     if (isNaN(allocationId)) {
       return res.status(400).json({
@@ -237,9 +277,8 @@ router.put('/:id', authenticateJWT, checkPermission('leave_allocation:update'), 
     if (allocated_days !== undefined) updateData.allocated_days = allocated_days;
     if (used_days !== undefined) updateData.used_days = used_days;
     if (carried_over_days !== undefined) updateData.carried_over_days = carried_over_days;
-    if (valid_from !== undefined) updateData.valid_from = valid_from;
-    if (valid_to !== undefined) updateData.valid_to = valid_to;
-    if (status !== undefined) updateData.status = status;
+    if (cycle_start_date !== undefined) updateData.cycle_start_date = cycle_start_date;
+    if (cycle_end_date !== undefined) updateData.cycle_end_date = cycle_end_date;
 
     // Validate that used days don't exceed allocated days
     if (updateData.used_days !== undefined && updateData.allocated_days !== undefined) {
@@ -299,12 +338,12 @@ router.delete('/:id', authenticateJWT, checkPermission('leave_allocation:delete'
       });
     }
 
-    // Instead of hard deleting, we'll mark it as inactive by updating status
-    await LeaveAllocationModel.update(allocationId, { status: 'inactive' });
+    // Delete the allocation
+    await LeaveAllocationModel.delete(allocationId);
 
     return res.json({
       success: true,
-      message: 'Leave allocation deactivated successfully'
+      message: 'Leave allocation deleted successfully'
     });
   } catch (error) {
     console.error('Delete leave allocation error:', error);

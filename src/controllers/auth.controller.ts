@@ -85,7 +85,7 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
         tokens: {
           accessToken,
           refreshToken,
-          expiresIn: process.env.JWT_EXPIRES_IN || '15m'
+          expiresIn: process.env.JWT_EXPIRES_IN || '2h'
         }
       }
     });
@@ -157,7 +157,7 @@ export const refreshToken = async (req: Request<{}, {}, RefreshTokenRequestBody>
           tokens: {
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
-            expiresIn: process.env.JWT_EXPIRES_IN || '15m'
+            expiresIn: process.env.JWT_EXPIRES_IN || '2h'
           }
         }
       });
