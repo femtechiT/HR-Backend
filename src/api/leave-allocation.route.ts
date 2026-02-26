@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
+import { pool } from '../config/database';
 import LeaveAllocationModel from '../models/leave-allocation.model';
 import LeaveTypeModel from '../models/leave-type.model';
 import UserModel from '../models/user.model';
@@ -94,7 +95,7 @@ router.get('/', authenticateJWT, checkPermission('leave_allocation:read'), async
     params.push(limitNum, offset);
 
     // Get the allocations
-    const [rows]: any = await (LeaveAllocationModel as any).pool.execute(query, params);
+    const [rows]: any = await pool.execute(query, params);
 
     // Get total count for pagination
     let countQuery = `SELECT COUNT(*) as total FROM leave_allocations la WHERE 1=1`;
@@ -110,7 +111,7 @@ router.get('/', authenticateJWT, checkPermission('leave_allocation:read'), async
       countParams.push(parseInt(leaveTypeId as string));
     }
 
-    const [countRows]: any = await (LeaveAllocationModel as any).pool.execute(countQuery, countParams);
+    const [countRows]: any = await pool.execute(countQuery, countParams);
 
     return res.json({
       success: true,
@@ -403,7 +404,7 @@ router.post('/bulk', authenticateJWT, checkPermission('leave_allocation:create')
 
     // Validate that all users exist and are active
     const placeholders = user_ids.map(() => '?').join(',');
-    const [users]: any = await (LeaveAllocationModel as any).pool.execute(
+    const [users]: any = await pool.execute(
       `SELECT id, full_name, email FROM users WHERE id IN (${placeholders}) AND status = 'active'`,
       user_ids
     );

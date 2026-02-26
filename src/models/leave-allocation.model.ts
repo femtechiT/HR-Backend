@@ -276,9 +276,11 @@ class LeaveAllocationModel {
     // Fetch and return the created allocations
     const userIds = allocationsData.map(a => a.user_id);
     const leaveTypeId = allocationsData[0].leave_type_id;
+    const inPlaceholders = userIds.map(() => '?').join(',');
+    const selectValues = [...userIds, leaveTypeId];
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE user_id IN (?) AND leave_type_id = ? ORDER BY created_at DESC`,
-      [userIds, leaveTypeId]
+      `SELECT * FROM ${this.tableName} WHERE user_id IN (${inPlaceholders}) AND leave_type_id = ? ORDER BY created_at DESC`,
+      selectValues
     );
 
     return rows as LeaveAllocation[];

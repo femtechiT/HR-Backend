@@ -468,13 +468,68 @@ router.put('/:id', authenticateJWT, checkPermission('leave:update'), async (req:
       });
     }
 
+    // Check if status is changing to approved
+    const isApproving = status === 'approved' && existingRequest.status !== 'approved';
+
+    // Check if status is changing from approved to cancelled/rejected (refund days)
+    const isRefunding = existingRequest.status === 'approved' && (status === 'cancelled' || status === 'rejected');
+
     // Update the leave request
-    const updatedRequest = await LeaveRequestModel.update(leaveRequestId, { 
-      status: status as any, 
+    const updatedRequest = await LeaveRequestModel.update(leaveRequestId, {
+      status: status as any,
       notes: reason,
       reviewed_by: status ? req.currentUser?.id : undefined,
       reviewed_at: status ? new Date() : undefined
     });
+
+    // If approved, update the allocation's used_days (deduct days)
+    if (isApproving) {
+      // Find the user's allocation for this leave type
+      const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(
+        existingRequest.user_id,
+        existingRequest.leave_type_id
+      );
+
+      // Find active allocation (cycle_end_date is in the future)
+      const activeAllocation = allocations.find(
+        alloc => new Date(alloc.cycle_end_date) >= new Date()
+      );
+
+      if (activeAllocation) {
+        await LeaveAllocationModel.updateUsedDays(activeAllocation.id, existingRequest.days_requested);
+        console.log(
+          `Updated used_days for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id} by +${existingRequest.days_requested} days (approved)`
+        );
+      } else {
+        console.warn(
+          `No active allocation found for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id}. Cannot deduct days.`
+        );
+      }
+    }
+
+    // If refunding (approved -> cancelled/rejected), refund the days
+    if (isRefunding) {
+      const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(
+        existingRequest.user_id,
+        existingRequest.leave_type_id
+      );
+
+      const activeAllocation = allocations.find(
+        alloc => new Date(alloc.cycle_end_date) >= new Date()
+      );
+
+      if (activeAllocation) {
+        // Subtract the days (negative value to refund)
+        await LeaveAllocationModel.updateUsedDays(activeAllocation.id, -existingRequest.days_requested);
+        console.log(
+          `Updated used_days for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id} by -${existingRequest.days_requested} days (refunded)`
+        );
+      } else {
+        console.warn(
+          `No active allocation found for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id}. Cannot refund days.`
+        );
+      }
+    }
 
     return res.json({
       success: true,
@@ -520,16 +575,53 @@ router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (r
       });
     }
 
-    // Only allow cancellation if status is submitted/pending
-    if (existingRequest.status !== 'submitted') {
+    // Only allow cancellation if status is submitted or approved
+    if (!['submitted', 'approved'].includes(existingRequest.status)) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot cancel leave request that is already approved or rejected'
+        message: 'Cannot cancel leave request that is already rejected'
+      });
+    }
+
+    // Check if leave start date has already passed
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(existingRequest.start_date);
+    startDate.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel leave request for dates that have already passed'
       });
     }
 
     // Update status to cancelled
     await LeaveRequestModel.update(leaveRequestId, { status: 'cancelled', notes: 'Cancelled by user' });
+
+    // If the leave was approved, refund the days
+    if (existingRequest.status === 'approved') {
+      const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(
+        existingRequest.user_id,
+        existingRequest.leave_type_id
+      );
+
+      const activeAllocation = allocations.find(
+        alloc => new Date(alloc.cycle_end_date) >= new Date()
+      );
+
+      if (activeAllocation) {
+        // Subtract the days (negative value to refund)
+        await LeaveAllocationModel.updateUsedDays(activeAllocation.id, -existingRequest.days_requested);
+        console.log(
+          `Refunded ${existingRequest.days_requested} days for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id} (approved leave cancelled)`
+        );
+      } else {
+        console.warn(
+          `No active allocation found for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id}. Cannot refund days.`
+        );
+      }
+    }
 
     return res.json({
       success: true,
