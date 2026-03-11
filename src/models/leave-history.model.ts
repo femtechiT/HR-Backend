@@ -8,6 +8,7 @@ export interface LeaveHistory {
   end_date: Date;
   days_taken: number;
   reason: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   approved_at: Date | null;
   created_at: Date;
 }

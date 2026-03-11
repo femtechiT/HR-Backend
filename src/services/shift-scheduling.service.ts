@@ -99,7 +99,8 @@ export class ShiftSchedulingService {
     userId: number,
     date: Date,
     checkInTime: string | null,
-    checkOutTime: string | null
+    checkOutTime: string | null,
+    gracePeriodMinutes: number = 0
   ): Promise<{
     is_late: boolean | null;
     is_early_departure: boolean | null;
@@ -107,11 +108,12 @@ export class ShiftSchedulingService {
     scheduled_start_time: string | null;
     scheduled_end_time: string | null;
     scheduled_break_duration_minutes: number;
+    status: 'present' | 'late' | null;
   }> {
     try {
       // Get the effective schedule for this date
       const schedule = await this.getEffectiveScheduleForDate(userId, date);
-      
+
       if (!schedule || !schedule.start_time || !schedule.end_time) {
         // If no schedule exists for this date, the employee is not expected to work
         return {
@@ -120,29 +122,37 @@ export class ShiftSchedulingService {
           actual_working_hours: null,
           scheduled_start_time: null,
           scheduled_end_time: null,
-          scheduled_break_duration_minutes: 0
+          scheduled_break_duration_minutes: 0,
+          status: null
         };
       }
 
       // Parse the scheduled times
       const [schedStartHours, schedStartMinutes] = schedule.start_time.split(':').map(Number);
       const [schedEndHours, schedEndMinutes] = schedule.end_time.split(':').map(Number);
-      
+
       const scheduledStartTime = new Date(date);
       scheduledStartTime.setHours(schedStartHours, schedStartMinutes, 0, 0);
-      
+
       const scheduledEndTime = new Date(date);
       scheduledEndTime.setHours(schedEndHours, schedEndMinutes, 0, 0);
 
       // Calculate late arrival
       let isLate = false;
+      let status: 'present' | 'late' = 'present';
+      
       if (checkInTime) {
         const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
         const checkInDateTime = new Date(date);
         checkInDateTime.setHours(checkInHours, checkInMinutes, 0, 0);
-        
-        // Consider late if arrived after scheduled start time
-        isLate = checkInDateTime.getTime() > scheduledStartTime.getTime();
+
+        // Apply grace period - late only if after grace period
+        const gracePeriodMs = gracePeriodMinutes * 60 * 1000;
+        const adjustedStartTime = new Date(scheduledStartTime.getTime() + gracePeriodMs);
+
+        // Consider late if arrived after scheduled start time (with grace period)
+        isLate = checkInDateTime.getTime() > adjustedStartTime.getTime();
+        status = isLate ? 'late' : 'present';
       }
 
       // Calculate early departure
@@ -151,7 +161,7 @@ export class ShiftSchedulingService {
         const [checkOutHours, checkOutMinutes] = checkOutTime.split(':').map(Number);
         const checkOutDateTime = new Date(date);
         checkOutDateTime.setHours(checkOutHours, checkOutMinutes, 0, 0);
-        
+
         // Consider early departure if left before scheduled end time
         isEarlyDeparture = checkOutDateTime.getTime() < scheduledEndTime.getTime();
       }
@@ -161,20 +171,20 @@ export class ShiftSchedulingService {
       if (checkInTime && checkOutTime) {
         const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
         const [checkOutHours, checkOutMinutes] = checkOutTime.split(':').map(Number);
-        
+
         const checkInDateTime = new Date(date);
         checkInDateTime.setHours(checkInHours, checkInMinutes, 0, 0);
-        
+
         const checkOutDateTime = new Date(date);
         checkOutDateTime.setHours(checkOutHours, checkOutMinutes, 0, 0);
-        
+
         // Calculate difference in milliseconds, then convert to hours
         const diffMs = checkOutDateTime.getTime() - checkInDateTime.getTime();
         let diffHours = diffMs / (1000 * 60 * 60);
-        
+
         // Subtract break time
         diffHours -= (schedule.break_duration_minutes / 60);
-        
+
         // Ensure we don't have negative working hours
         actualWorkingHours = Math.max(0, parseFloat(diffHours.toFixed(2)));
       }
@@ -185,7 +195,8 @@ export class ShiftSchedulingService {
         actual_working_hours: actualWorkingHours,
         scheduled_start_time: schedule.start_time,
         scheduled_end_time: schedule.end_time,
-        scheduled_break_duration_minutes: schedule.break_duration_minutes
+        scheduled_break_duration_minutes: schedule.break_duration_minutes,
+        status
       };
     } catch (error) {
       console.error('Error calculating attendance metrics:', error);
@@ -200,19 +211,39 @@ export class ShiftSchedulingService {
     attendanceId: number,
     userId: number,
     date: Date,
-    checkInTime: string | null,
-    checkOutTime: string | null
+    gracePeriodMinutes: number = 0
   ): Promise<boolean> {
     try {
+      // Get the attendance record to get check-in/out times
+      const [attendanceRecords]: any = await pool.execute(
+        `SELECT check_in_time, check_out_time FROM attendance WHERE id = ?`,
+        [attendanceId]
+      );
+
+      if (attendanceRecords.length === 0) {
+        throw new Error('Attendance record not found');
+      }
+
+      const record = attendanceRecords[0];
+      const checkInTime = record.check_in_time;
+      const checkOutTime = record.check_out_time;
+
       // Calculate attendance metrics based on the effective schedule
-      const metrics = await this.calculateAttendanceMetrics(userId, date, checkInTime, checkOutTime);
+      const metrics = await this.calculateAttendanceMetrics(
+        userId,
+        date,
+        checkInTime,
+        checkOutTime,
+        gracePeriodMinutes
+      );
 
       // Update the attendance record with schedule information
       const [result]: any = await pool.execute(
-        `UPDATE attendance 
-         SET scheduled_start_time = ?, scheduled_end_time = ?, 
-             scheduled_break_duration_minutes = ?, is_late = ?, 
-             is_early_departure = ?, actual_working_hours = ?
+        `UPDATE attendance
+         SET scheduled_start_time = ?, scheduled_end_time = ?,
+             scheduled_break_duration_minutes = ?, is_late = ?,
+             is_early_departure = ?, actual_working_hours = ?,
+             status = COALESCE(?, status)
          WHERE id = ?`,
         [
           metrics.scheduled_start_time,
@@ -221,6 +252,7 @@ export class ShiftSchedulingService {
           metrics.is_late,
           metrics.is_early_departure,
           metrics.actual_working_hours,
+          metrics.status,
           attendanceId
         ]
       );
@@ -247,14 +279,13 @@ export class ShiftSchedulingService {
 
       if (attendanceRecords.length > 0) {
         const record = attendanceRecords[0];
-        
-        // Update the attendance record with schedule information
+
+        // Update the attendance record with schedule information (no grace period for batch processing)
         await this.updateAttendanceWithScheduleInfo(
           record.id,
           userId,
           date,
-          record.check_in_time,
-          record.check_out_time
+          0 // Default grace period for batch processing
         );
       }
     } catch (error) {

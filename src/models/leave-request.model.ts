@@ -14,6 +14,9 @@ export interface LeaveRequest {
   reviewed_by?: number;
   reviewed_at?: Date;
   notes?: string;
+  cancelled_by?: number | null;
+  cancelled_at?: Date | null;
+  cancellation_reason?: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -35,6 +38,9 @@ export interface LeaveRequestUpdate {
   reviewed_by?: number;
   reviewed_at?: Date;
   notes?: string;
+  cancelled_by?: number;
+  cancelled_at?: Date;
+  cancellation_reason?: string;
 }
 
 class LeaveRequestModel {
@@ -164,6 +170,21 @@ class LeaveRequestModel {
     if (leaveData.notes !== undefined) {
       updates.push('notes = ?');
       values.push(leaveData.notes);
+    }
+
+    if (leaveData.cancelled_by !== undefined) {
+      updates.push('cancelled_by = ?');
+      values.push(leaveData.cancelled_by);
+    }
+
+    if (leaveData.cancelled_at !== undefined) {
+      updates.push('cancelled_at = ?');
+      values.push(leaveData.cancelled_at);
+    }
+
+    if (leaveData.cancellation_reason !== undefined) {
+      updates.push('cancellation_reason = ?');
+      values.push(leaveData.cancellation_reason);
     }
 
     if (updates.length === 0) {

@@ -1,0 +1,114 @@
+ Perfect! Now I have a complete picture. Let me create a simple explanation for you.
+
+    ---
+
+    Attendance Module - Simple Explanation (PM-Friendly)
+
+    📋 Overview
+    The attendance system tracks when employees check in and out of work. It automatically determines if someone is present, late, absent, or on leave based on their scheduled shift time.
+
+    ---
+
+    ⏰ How Attendance Status is Determined
+
+    1. Check-In Process
+    When an employee checks in:
+     - They submit their check-in time and location (GPS coordinates)
+     - The system compares their check-in time against their scheduled shift start time
+     - Status is determined:
+       - ✅ Present = Checked in at or before the shift start time
+       - 🐌 Late = Checked in after the shift start time
+       - 🏖️ Leave = Has approved leave for that date (overrides everything)
+       - 🎉 Holiday = It's a company holiday (no attendance needed)
+
+    2. Grace Period
+     - Each branch can configure a grace period (e.g., 15 minutes)
+     - If configured, employees can check in within this window without being marked late
+     - Example: Shift starts at 9:00 AM + 15 min grace = Can check in until 9:15 AM without being late
+
+    ---
+
+    📅 When Does the System Mark Someone ABSENT?
+
+    The system runs an automated worker every day (at 12:05 AM) that processes attendance for the previous day. Here's the logic:
+
+    Absent is marked when:
+     1. ✅ Employee has a shift scheduled for that day (from the shift module)
+     2. ❌ Employee did NOT check in at all
+     3. ❌ Employee does NOT have approved leave for that day
+     4. ❌ It's NOT a holiday
+
+    In simple terms: If you're supposed to work (have a shift) but you didn't check in and you're not on leave → Marked Absent
+
+    ---
+
+    🔄 How It Works With Shift Module
+
+    The Shift Module defines:
+     - Shift Templates: Pre-defined shift patterns (e.g., "Morning Shift" = 9 AM - 5 PM, "Resume Late" = 11 AM - 7 PM)
+     - Shift Assignments: Which employee works which shift, on which days, and for what period
+     - Recurring Shifts: Pattern-based schedules (e.g., "Staff A works Monday-Wednesday-Friday")
+
+    The Connection:
+     1. When an employee checks in, the system looks up their assigned shift for that specific date
+     2. The shift's start time is used as the benchmark to determine if they're late
+     3. The shift's end time is used to determine if they left early
+     4. The system calculates actual working hours = (Check-out time - Check-in time) - Break duration
+
+    ---
+
+    🏖️ How It Works With Leave Module
+
+    The Leave Module manages approved time off:
+
+    When leave is approved:
+     1. A record is created in leave_history table with start and end dates
+     2. During attendance processing, the system checks: "Does this employee have approved leave today?"
+     3. If YES → Attendance is marked as "leave" automatically (no check-in required)
+     4. If NO → Normal attendance rules apply
+
+    Priority Order:
+
+     1 Holiday > Approved Leave > Shift Schedule > Absent
+
+    This means:
+     - If it's a holiday → Mark as holiday (ignore shift)
+     - If on approved leave → Mark as leave (ignore shift)
+     - If has a shift but no check-in → Mark as absent
+     - If has a shift and checked in → Mark as present/late based on time
+
+    ---
+
+    📊 Summary Flow
+
+     1 Employee checks in → System checks:
+     2   ├─ Is it a holiday? → Mark as "holiday" ✅
+     3   ├─ Is employee on approved leave? → Mark as "leave" ✅
+     4   ├─ Does employee have a shift today?
+     5   │   ├─ NO → Can still check in as "present" (unscheduled work)
+     6   │   └─ YES → Compare check-in time vs shift start time
+     7   │       ├─ Checked in on time → "present" ✅
+     8   │       └─ Checked in late → "late" 🐌
+     9   └─ End of day: If no check-in recorded → "absent" ❌
+
+    ---
+
+    🔧 Key Settings (Per Branch)
+
+
+    ┌────────────────────┬───────────────────────────────────────────────────────────────────────────────┐
+    │ Setting            │ What It Does                                                                  │
+    ├────────────────────┼───────────────────────────────────────────────────────────────────────────────┤
+    │ require_check_in     │ Whether employees must check in                                               │
+    │ require_check_out    │ Whether employees must check out                                              │
+    │ grace_period_minutes │ How many minutes late before being marked "late"                              │
+    │ attendance_mode    │ branch_based (one location) or multiple_locations (multiple approved locations) │
+    └────────────────────┴───────────────────────────────────────────────────────────────────────────────┘
+
+    ---
+
+    📍 Location Verification
+     - Employees check in from GPS coordinates
+     - System verifies they're at the correct branch or approved location
+     - If within the allowed radius → location_verified = true
+     - If outside → location_verified = false (but attendance still recorded)

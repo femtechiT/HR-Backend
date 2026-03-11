@@ -130,26 +130,56 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
       // Check if it's a holiday
       const isHoliday = await HolidayModel.isHoliday(new Date(date));
       if (isHoliday) {
-        // Mark as holiday attendance
-        const attendanceData = {
-          user_id: userId,
-          date: new Date(date),
-          status: 'holiday' as const,
-          check_in_time: null,
-          check_out_time: null,
-          location_coordinates: null,
-          location_verified: false,
-          location_address: null,
-          notes: 'Holiday - no attendance required'
-        };
+        // Check if user is on holiday duty roster
+        const [dutyRoster] = await pool.execute(
+          `SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`,
+          [new Date(date), userId]
+        ) as [any[], any];
 
-        const newAttendance = await AttendanceModel.create(attendanceData);
+        if (dutyRoster.length > 0) {
+          // User is on holiday duty - mark as holiday-working
+          const roster = dutyRoster[0];
+          const attendanceData = {
+            user_id: userId,
+            date: new Date(date),
+            status: 'holiday-working' as any,
+            check_in_time: null,
+            check_out_time: null,
+            location_coordinates: null,
+            location_verified: false,
+            location_address: null,
+            notes: `Holiday duty: ${roster.shift_start_time} - ${roster.shift_end_time}`
+          };
 
-        return res.status(201).json({
-          success: true,
-          message: 'Holiday attendance recorded successfully',
-          data: { attendance: newAttendance }
-        });
+          const newAttendance = await AttendanceModel.create(attendanceData);
+
+          return res.status(201).json({
+            success: true,
+            message: 'Holiday duty attendance recorded successfully',
+            data: { attendance: newAttendance }
+          });
+        } else {
+          // User is not on duty - mark as holiday
+          const attendanceData = {
+            user_id: userId,
+            date: new Date(date),
+            status: 'holiday' as const,
+            check_in_time: null,
+            check_out_time: null,
+            location_coordinates: null,
+            location_verified: false,
+            location_address: null,
+            notes: 'Holiday - no attendance required'
+          };
+
+          const newAttendance = await AttendanceModel.create(attendanceData);
+
+          return res.status(201).json({
+            success: true,
+            message: 'Holiday attendance recorded successfully',
+            data: { attendance: newAttendance }
+          });
+        }
       }
 
       // Check if user has approved leave on this date
@@ -274,31 +304,12 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
         }
       }
 
-      // Determine status based on check-in time vs shift time
-      const shift = await ShiftTimingModel.findCurrentShiftForUser(userId, new Date(date));
-      if (shift) {
-        const shiftStartTime = new Date(`1970-01-01T${shift.start_time}`);
-        const checkInTime = new Date(`1970-01-01T${check_in_time}`);
-
-        // Apply grace period if configured
-        const gracePeriodMs = (settings.grace_period_minutes || 0) * 60 * 1000;
-        const adjustedShiftStartTime = new Date(shiftStartTime.getTime() + gracePeriodMs);
-
-        if (checkInTime.getTime() > adjustedShiftStartTime.getTime()) {
-          status = 'late';
-        } else {
-          status = 'present';
-        }
-      } else {
-        // If no specific shift is defined, use branch default or provided status
-        status = providedStatus || 'present';
-      }
-
       // Create attendance record with check-in time
+      // Status will be updated by ShiftSchedulingService based on actual schedule
       const attendanceData = {
         user_id: userId,
         date: new Date(date),
-        status,
+        status: 'present' as const, // Default to present, will be updated by ShiftSchedulingService
         check_in_time: new Date(`1970-01-01T${check_in_time}`),
         check_out_time: null, // Check-out will be added later
         location_coordinates: location_coordinates ?
@@ -310,9 +321,15 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
 
       const newAttendance = await AttendanceModel.create(attendanceData);
 
-      // Update attendance with shift schedule information
+      // Update attendance with shift schedule information (determines if late, working hours, etc.)
+      // Pass grace period from branch settings
       try {
-        await ShiftSchedulingService.updateAttendanceWithScheduleInfo(userId, new Date(date));
+        await ShiftSchedulingService.updateAttendanceWithScheduleInfo(
+          newAttendance.id,
+          userId,
+          new Date(date),
+          settings.grace_period_minutes || 0
+        );
       } catch (shiftError) {
         console.error('Failed to update attendance with shift info:', shiftError);
         // Don't fail the check-in if shift update fails
@@ -476,8 +493,14 @@ router.post('/check-out', authenticateJWT, async (req: Request, res: Response) =
     const updatedAttendance = await AttendanceModel.update(attendanceRecord.id, updateData);
 
     // Update attendance with shift schedule information (recalculates working hours)
+    // Pass grace period from branch settings
     try {
-      await ShiftSchedulingService.updateAttendanceWithScheduleInfo(userId, new Date(date));
+      await ShiftSchedulingService.updateAttendanceWithScheduleInfo(
+        attendanceRecord.id,
+        userId,
+        new Date(date),
+        settings.grace_period_minutes || 0
+      );
     } catch (shiftError) {
       console.error('Failed to update attendance with shift info:', shiftError);
       // Don't fail the check-out if shift update fails

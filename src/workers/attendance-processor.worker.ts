@@ -1,8 +1,8 @@
 import { pool } from '../config/database';
 import AttendanceModel from '../models/attendance.model';
-import ShiftTimingModel from '../models/shift-timing.model';
 import HolidayModel from '../models/holiday.model';
 import LeaveHistoryModel from '../models/leave-history.model';
+import { ShiftSchedulingService } from '../services/shift-scheduling.service';
 
 /**
  * Attendance Processor Worker
@@ -31,9 +31,11 @@ class AttendanceProcessorWorker {
       // Check if it's a holiday
       const isHoliday = await HolidayModel.isHoliday(date);
       if (isHoliday) {
-        console.log(`Date ${date.toISOString().split('T')[0]} is a holiday, marking all eligible staff as on holiday`);
-        
+        console.log(`Date ${date.toISOString().split('T')[0]} is a holiday, marking staff as holiday or holiday-working`);
+
         let holidayProcessedCount = 0;
+        let holidayWorkingCount = 0;
+
         for (const userId of userIds) {
           // Check if attendance already exists
           const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, date);
@@ -42,23 +44,50 @@ class AttendanceProcessorWorker {
             continue;
           }
 
-          const attendanceData = {
-            user_id: userId,
-            date: date,
-            status: 'holiday' as const,
-            check_in_time: null,
-            check_out_time: null,
-            location_coordinates: null,
-            location_verified: false,
-            location_address: null,
-            notes: 'Public holiday - no attendance required'
-          };
+          // Check if user is on holiday duty roster
+          const [dutyRoster] = await pool.execute(
+            `SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`,
+            [date, userId]
+          ) as [any[], any];
 
-          await AttendanceModel.create(attendanceData);
-          holidayProcessedCount++;
+          if (dutyRoster.length > 0) {
+            // User is on holiday duty - mark as holiday-working
+            const roster = dutyRoster[0];
+            const attendanceData = {
+              user_id: userId,
+              date: date,
+              status: 'holiday-working' as any,
+              check_in_time: null,
+              check_out_time: null,
+              location_coordinates: null,
+              location_verified: false,
+              location_address: null,
+              notes: `Scheduled for holiday duty: ${roster.shift_start_time} - ${roster.shift_end_time}`
+            };
+
+            await AttendanceModel.create(attendanceData);
+            holidayWorkingCount++;
+            console.log(`Holiday-working attendance processed for user ${userId}`);
+          } else {
+            // User is not on duty - mark as holiday
+            const attendanceData = {
+              user_id: userId,
+              date: date,
+              status: 'holiday' as const,
+              check_in_time: null,
+              check_out_time: null,
+              location_coordinates: null,
+              location_verified: false,
+              location_address: null,
+              notes: 'Public holiday - no attendance required'
+            };
+
+            await AttendanceModel.create(attendanceData);
+            holidayProcessedCount++;
+          }
         }
-        
-        console.log(`Holiday attendance processed for ${holidayProcessedCount} staff members`);
+
+        console.log(`Holiday attendance processed: ${holidayProcessedCount} on holiday, ${holidayWorkingCount} on duty`);
         return;
       }
 
@@ -79,6 +108,42 @@ class AttendanceProcessorWorker {
         // Check if user has approved leave on this date
         const leaveHistory = await LeaveHistoryModel.findByUserIdAndDateRange(userId, date, date);
         if (leaveHistory.length > 0) {
+          // Check for approved leave that hasn't been cancelled
+          const activeApprovedLeave = leaveHistory.filter(
+            leave => leave.status === 'approved' && leave.status !== 'cancelled'
+          );
+
+          if (activeApprovedLeave.length > 0) {
+            const attendanceData = {
+              user_id: userId,
+              date: date,
+              status: 'leave' as const,
+              check_in_time: null,
+              check_out_time: null,
+              location_coordinates: null,
+              location_verified: false,
+              location_address: null,
+              notes: 'On approved leave'
+            };
+
+            await AttendanceModel.create(attendanceData);
+            leaveProcessedCount++;
+            console.log(`Leave attendance processed for user ${userId}`);
+            continue;
+          }
+        }
+
+        // Also check leave_requests table for approved but not cancelled leave
+        const [leaveRequests]: any = await pool.execute(
+          `SELECT * FROM leave_requests
+           WHERE user_id = ?
+             AND ? BETWEEN start_date AND end_date
+             AND status = 'approved'
+             AND (cancelled_by IS NULL OR cancelled_at IS NULL)`,
+          [userId, date]
+        );
+
+        if (leaveRequests.length > 0) {
           const attendanceData = {
             user_id: userId,
             date: date,
@@ -93,15 +158,15 @@ class AttendanceProcessorWorker {
 
           await AttendanceModel.create(attendanceData);
           leaveProcessedCount++;
-          console.log(`Leave attendance processed for user ${userId}`);
+          console.log(`Leave attendance processed for user ${userId} from leave_requests`);
           continue;
         }
 
-        // Get user's shift for this date
-        const shift = await ShiftTimingModel.findCurrentShiftForUser(userId, date);
-        
-        // If no shift is defined for this user on this date, don't mark attendance (they're not scheduled)
-        if (!shift) {
+        // Get user's effective schedule for this date using the new shift scheduling system
+        const effectiveSchedule = await ShiftSchedulingService.getEffectiveScheduleForDate(userId, date);
+
+        // If no schedule is defined for this user on this date, don't mark attendance (they're not scheduled)
+        if (!effectiveSchedule || !effectiveSchedule.start_time || !effectiveSchedule.end_time) {
           skippedCount++;
           console.log(`No shift assigned for user ${userId} on ${date.toISOString().split('T')[0]}, skipping`);
           continue;

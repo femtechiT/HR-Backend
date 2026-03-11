@@ -338,9 +338,10 @@ router.get('/records', authenticateJWT, checkPermission('attendance:read'), asyn
     const offset = (currentPage - 1) * perPage;
 
     // Build query conditions
-    let query = `SELECT a.*, s.first_name, s.last_name, s.employee_id
+    let query = `SELECT a.*, u.first_name, u.last_name, s.employee_id
                  FROM attendance a
                  LEFT JOIN staff s ON a.user_id = s.user_id
+                 LEFT JOIN users u ON a.user_id = u.id
                  WHERE 1=1`;
     const params: any[] = [];
 
@@ -432,17 +433,17 @@ router.get('/staff-data', authenticateJWT, checkPermission('attendance:read'), a
       SELECT
         s.id,
         s.user_id,
-        s.first_name,
-        s.last_name,
+        u.first_name,
+        u.last_name,
         s.employee_id,
         d.name as department,
         b.name as branch,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present,
-        COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late,
-        COUNT(CASE WHEN a.status = 'early' THEN 1 END) as early,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent,
-        COUNT(CASE WHEN a.status = 'leave' THEN 1 END) as leave,
-        COUNT(CASE WHEN a.status = 'holiday' THEN 1 END) as holiday
+        COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_count,
+        COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late_count,
+        COUNT(CASE WHEN a.status = 'early' THEN 1 END) as early_count,
+        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_count,
+        COUNT(CASE WHEN a.status = 'leave' THEN 1 END) as leave_count,
+        COUNT(CASE WHEN a.status = 'holiday' THEN 1 END) as holiday_count
       FROM staff s
       LEFT JOIN users u ON s.user_id = u.id
       LEFT JOIN departments d ON s.department_id = d.id
@@ -469,8 +470,8 @@ router.get('/staff-data', authenticateJWT, checkPermission('attendance:read'), a
     }
 
     query += `
-      GROUP BY s.id, s.user_id, s.first_name, s.last_name, s.employee_id, d.name, b.name
-      ORDER BY s.first_name, s.last_name
+      GROUP BY s.id, s.user_id, u.first_name, u.last_name, s.employee_id, d.name, b.name
+      ORDER BY u.first_name, u.last_name
     `;
 
     const [results] = await pool.execute(query, params);

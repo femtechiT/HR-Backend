@@ -1497,11 +1497,11 @@ export const bulkAssignRecurringShiftsByBranch = async (req: Request, res: Respo
           days_per_user: normalizedDays.length,
           total_assignments_created: successCount * normalizedDays.length
         },
-        shift_template: {
-          id: shift_template.id,
-          name: shift_template.name,
-          start_time: shift_template.start_time,
-          end_time: shift_template.end_time
+        shiftTemplate: {
+          id: shiftTemplate.id,
+          name: shiftTemplate.name,
+          start_time: shiftTemplate.start_time,
+          end_time: shiftTemplate.end_time
         },
         days_of_week: normalizedDays,
         effective_from,

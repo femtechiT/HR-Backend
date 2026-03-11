@@ -691,6 +691,139 @@ router.put('/:id', authenticateJWT, checkPermission('leave:update'), async (req:
   }
 });
 
+// GET /api/leave/:id/cancellation-eligibility - Check if leave can be cancelled and what will happen
+router.get('/:id/cancellation-eligibility', authenticateJWT, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const idParam = req.params.id;
+    const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+
+    // Only process if this is a numeric ID
+    if (!/^\d+$/.test(idStr)) {
+      return next();
+    }
+
+    const leaveRequestId = parseInt(idStr);
+
+    if (isNaN(leaveRequestId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid leave request ID'
+      });
+    }
+
+    // Check if leave request exists
+    const existingRequest = await LeaveRequestModel.findById(leaveRequestId);
+
+    if (!existingRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave request not found'
+      });
+    }
+
+    // Check if user has permission to view this request
+    const currentUserId = req.currentUser?.id;
+    const currentUserRole = req.currentUser?.role_id;
+    const isOwner = existingRequest.user_id === currentUserId;
+    const isAdmin = currentUserRole === 1 || currentUserRole === 2;
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view this leave request'
+      });
+    }
+
+    // Check cancellation eligibility
+    const canCancel = ['submitted', 'approved'].includes(existingRequest.status);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(existingRequest.start_date);
+    startDate.setHours(0, 0, 0, 0);
+    const isPastDate = startDate < today;
+
+    // Build eligibility response
+    const eligibility = {
+      can_cancel: canCancel && !isPastDate,
+      reasons: [] as string[],
+      impact: {
+        days_will_be_refunded: 0,
+        attendance_will_be_updated: false,
+        attendance_records_affected: 0,
+        notification_will_be_sent: false
+      }
+    };
+
+    // Check reasons why it cannot be cancelled
+    if (!canCancel) {
+      eligibility.reasons.push(`Cannot cancel leave request with status "${existingRequest.status}"`);
+    }
+
+    if (isPastDate) {
+      eligibility.reasons.push('Cannot cancel leave request for dates that have already passed');
+    }
+
+    // Calculate impact if can cancel
+    if (eligibility.can_cancel) {
+      // Check if days will be refunded
+      if (existingRequest.status === 'approved') {
+        const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(
+          existingRequest.user_id,
+          existingRequest.leave_type_id
+        );
+
+        const activeAllocation = allocations.find(
+          alloc => new Date(alloc.cycle_end_date) >= new Date()
+        );
+
+        if (activeAllocation) {
+          eligibility.impact.days_will_be_refunded = existingRequest.days_requested;
+        }
+
+        // Count attendance records that will be updated
+        const [attendanceRecords]: any = await pool.execute(
+          `SELECT COUNT(*) as count FROM attendance
+           WHERE user_id = ?
+             AND date BETWEEN ? AND ?
+             AND status = 'leave'`,
+          [existingRequest.user_id, existingRequest.start_date, existingRequest.end_date]
+        );
+
+        eligibility.impact.attendance_will_be_updated = attendanceRecords[0].count > 0;
+        eligibility.impact.attendance_records_affected = attendanceRecords[0].count;
+        eligibility.impact.notification_will_be_sent = true;
+
+        eligibility.reasons.push('Cancelling approved leave will update attendance records and send notifications');
+      } else {
+        eligibility.impact.notification_will_be_sent = false;
+        eligibility.reasons.push('Leave request is still pending approval');
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: 'Cancellation eligibility retrieved successfully',
+      data: {
+        leave_request: {
+          id: existingRequest.id,
+          leave_type: existingRequest.leave_type_name,
+          start_date: existingRequest.start_date,
+          end_date: existingRequest.end_date,
+          days_requested: existingRequest.days_requested,
+          current_status: existingRequest.status
+        },
+        eligibility
+      }
+    });
+  } catch (error) {
+    console.error('Get cancellation eligibility error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // DELETE /api/leave/:id - Delete/cancel leave request
 router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -742,37 +875,154 @@ router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (r
       });
     }
 
-    // Update status to cancelled
-    await LeaveRequestModel.update(leaveRequestId, { status: 'cancelled', notes: 'Cancelled by user' });
+    // Get the cancellation reason from request body
+    const { cancellation_reason } = req.body;
 
-    // If the leave was approved, refund the days
-    if (existingRequest.status === 'approved') {
-      const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(
-        existingRequest.user_id,
-        existingRequest.leave_type_id
+    // Start a transaction for atomic cancellation
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      // Update status to cancelled with audit trail
+      await LeaveRequestModel.update(
+        leaveRequestId,
+        {
+          status: 'cancelled',
+          notes: cancellation_reason || 'Cancelled by user',
+          cancelled_by: req.currentUser?.id,
+          cancelled_at: new Date(),
+          cancellation_reason: cancellation_reason || null
+        },
+        connection
       );
 
-      const activeAllocation = allocations.find(
-        alloc => new Date(alloc.cycle_end_date) >= new Date()
-      );
+      // If the leave was approved, refund the days
+      if (existingRequest.status === 'approved') {
+        const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(
+          existingRequest.user_id,
+          existingRequest.leave_type_id,
+          connection
+        );
 
-      if (activeAllocation) {
-        // Subtract the days (negative value to refund)
-        await LeaveAllocationModel.updateUsedDays(activeAllocation.id, -existingRequest.days_requested);
-        console.log(
-          `Refunded ${existingRequest.days_requested} days for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id} (approved leave cancelled)`
+        const activeAllocation = allocations.find(
+          alloc => new Date(alloc.cycle_end_date) >= new Date()
         );
-      } else {
-        console.warn(
-          `No active allocation found for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id}. Cannot refund days.`
-        );
+
+        if (activeAllocation) {
+          // Subtract the days (negative value to refund)
+          await LeaveAllocationModel.updateUsedDays(activeAllocation.id, -existingRequest.days_requested, connection);
+          console.log(
+            `Refunded ${existingRequest.days_requested} days for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id} (approved leave cancelled)`
+          );
+        } else {
+          console.warn(
+            `No active allocation found for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id}. Cannot refund days.`
+          );
+        }
       }
-    }
 
-    return res.json({
-      success: true,
-      message: 'Leave request cancelled successfully'
-    });
+      // Update attendance records if leave was approved
+      if (existingRequest.status === 'approved') {
+        // Get all attendance records in the leave period that were marked as 'leave'
+        const [attendanceRecords]: any = await connection.execute(
+          `SELECT id, date FROM attendance
+           WHERE user_id = ?
+             AND date BETWEEN ? AND ?
+             AND status = 'leave'`,
+          [existingRequest.user_id, existingRequest.start_date, existingRequest.end_date]
+        );
+
+        // Update each attendance record based on the day type
+        for (const record of attendanceRecords) {
+          const attendanceDate = new Date(record.date);
+          const dayOfWeek = attendanceDate.getDay(); // 0 = Sunday, 6 = Saturday
+
+          // Check if it's a weekend
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+          // Check if it's a holiday
+          const [holidayRows]: any = await connection.execute(
+            `SELECT id FROM holidays
+             WHERE date = ? AND (branch_id IS NULL OR branch_id = (SELECT branch_id FROM users WHERE id = ?))`,
+            [attendanceDate.toISOString().split('T')[0], existingRequest.user_id]
+          );
+          const isHoliday = holidayRows.length > 0;
+
+          // Determine new status
+          let newStatus: string;
+          if (isHoliday) {
+            newStatus = 'holiday';
+          } else if (isWeekend) {
+            // Check if employee works on weekends based on shift assignment
+            const [shiftRows]: any = await connection.execute(
+              `SELECT esa.id FROM employee_shift_assignments esa
+               WHERE esa.user_id = ? AND esa.status = 'active'
+                 AND esa.recurrence_day_of_week = ?`,
+              [existingRequest.user_id, ['sunday', 'saturday'][dayOfWeek === 0 ? 0 : 1]]
+            );
+            newStatus = shiftRows.length > 0 ? 'absent' : 'holiday';
+          } else {
+            // Weekday - should be marked as absent since leave is cancelled
+            newStatus = 'absent';
+          }
+
+          await connection.execute(
+            `UPDATE attendance SET status = ?, notes = CONCAT(COALESCE(notes, ''), ' - Leave cancelled on ', NOW())
+             WHERE id = ?`,
+            [newStatus, record.id]
+          );
+        }
+
+        console.log(`Updated ${attendanceRecords.length} attendance record(s) for cancelled leave`);
+      }
+
+      await connection.commit();
+
+      // Send cancellation notification to employee
+      if (existingRequest.status === 'approved') {
+        try {
+          const { NotificationService } = await import('../services/notification.service');
+          const notificationService = new NotificationService();
+
+          await notificationService.queueNotification(
+            existingRequest.user_id,
+            'leave_request_cancelled',
+            {
+              staff_name: existingRequest.user_name || 'Employee',
+              leave_type: existingRequest.leave_type_name || 'Leave',
+              start_date: existingRequest.start_date,
+              end_date: existingRequest.end_date,
+              days: existingRequest.days_requested,
+              rejection_reason: cancellation_reason || 'Cancelled by user',
+              company_name: process.env.APP_NAME || 'Our Company'
+            }
+          );
+
+          console.log(`Cancellation notification sent to user ${existingRequest.user_id}`);
+        } catch (notificationError) {
+          console.error('Error sending cancellation notification:', notificationError);
+          // Don't fail the request if notification fails
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: 'Leave request cancelled successfully',
+        data: {
+          leave_request_id: leaveRequestId,
+          status: 'cancelled',
+          days_refunded: existingRequest.status === 'approved' ? existingRequest.days_requested : 0,
+          attendance_updated: existingRequest.status === 'approved'
+        }
+      });
+    } catch (transactionError) {
+      await connection.rollback();
+      console.error('Transaction error during leave cancellation:', transactionError);
+      throw transactionError;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('Cancel leave request error:', error);
     return res.status(500).json({

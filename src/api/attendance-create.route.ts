@@ -121,6 +121,22 @@ router.post('/manual', authenticateJWT, async (req: Request, res: Response) => {
       });
     }
 
+    // Get attendance settings for this branch
+    let gracePeriodMinutes = 0;
+    try {
+      const [branchSettings] = await pool.execute(
+        `SELECT * FROM attendance_settings WHERE branch_id = ?`,
+        [branchId]
+      ) as [any[], any];
+
+      if (branchSettings && branchSettings.length > 0) {
+        gracePeriodMinutes = branchSettings[0].grace_period_minutes || 0;
+      }
+    } catch (error) {
+      // Table may not exist yet, use defaults
+      console.log('Using default attendance settings (table may not exist)');
+    }
+
     let locationVerified = false;
     let attendanceStatus: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' = status || 'absent';
 
@@ -196,7 +212,12 @@ router.post('/manual', authenticateJWT, async (req: Request, res: Response) => {
 
     // Update attendance with shift schedule information
     try {
-      await ShiftSchedulingService.updateAttendanceWithScheduleInfo(requestingUserId, new Date(date));
+      await ShiftSchedulingService.updateAttendanceWithScheduleInfo(
+        newAttendance.id,
+        requestingUserId,
+        new Date(date),
+        gracePeriodMinutes
+      );
     } catch (shiftError) {
       console.error('Failed to update attendance with shift info:', shiftError);
       // Don't fail the attendance creation if shift update fails

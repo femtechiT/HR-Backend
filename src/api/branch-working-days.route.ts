@@ -20,7 +20,7 @@ const DAYS_OF_WEEK = [
  */
 router.get('/:branchId/working-days', authenticateJWT, async (req: Request, res: Response) => {
   try {
-    const branchId = parseInt(req.params.branchId);
+    const branchId = parseInt(req.params.branchId as string);
 
     if (isNaN(branchId)) {
       return res.status(400).json({
@@ -36,7 +36,7 @@ router.get('/:branchId/working-days', authenticateJWT, async (req: Request, res:
       message: 'Working days retrieved successfully',
       data: {
         branch_id: branchId,
-        working_days: workingDays
+        workingDays
       }
     });
   } catch (error) {
@@ -54,8 +54,8 @@ router.get('/:branchId/working-days', authenticateJWT, async (req: Request, res:
  */
 router.get('/:branchId/working-days/:dayOfWeek', authenticateJWT, async (req: Request, res: Response) => {
   try {
-    const branchId = parseInt(req.params.branchId);
-    const dayOfWeek = req.params.dayOfWeek.toLowerCase();
+    const branchId = parseInt(req.params.branchId as string);
+    const dayOfWeek = (req.params.dayOfWeek as string).toLowerCase();
 
     if (isNaN(branchId)) {
       return res.status(400).json({
@@ -83,7 +83,7 @@ router.get('/:branchId/working-days/:dayOfWeek', authenticateJWT, async (req: Re
     return res.json({
       success: true,
       data: {
-        working_day: workingDay
+        workingDay
       }
     });
   } catch (error) {
@@ -101,7 +101,7 @@ router.get('/:branchId/working-days/:dayOfWeek', authenticateJWT, async (req: Re
  */
 router.put('/:branchId/working-days', authenticateJWT, checkPermission('branches:update'), async (req: Request, res: Response) => {
   try {
-    const branchId = parseInt(req.params.branchId);
+    const branchId = parseInt(req.params.branchId as string);
 
     if (isNaN(branchId)) {
       return res.status(400).json({
@@ -110,17 +110,17 @@ router.put('/:branchId/working-days', authenticateJWT, checkPermission('branches
       });
     }
 
-    const { working_days } = req.body;
+    const { workingDays } = req.body;
 
-    if (!working_days || !Array.isArray(working_days)) {
+    if (!workingDays || !Array.isArray(workingDays)) {
       return res.status(400).json({
         success: false,
-        message: 'working_days array is required'
+        message: 'workingDays array is required'
       });
     }
 
     // Validate input
-    for (const day of working_days) {
+    for (const day of workingDays) {
       if (!day.day_of_week || !DAYS_OF_WEEK.includes(day.day_of_week.toLowerCase())) {
         return res.status(400).json({
           success: false,
@@ -137,7 +137,7 @@ router.put('/:branchId/working-days', authenticateJWT, checkPermission('branches
     }
 
     // Normalize day names to lowercase
-    const normalizedDays = working_days.map((day: any) => ({
+    const normalizedDays = workingDays.map((day: any) => ({
       ...day,
       day_of_week: day.day_of_week.toLowerCase()
     }));
@@ -148,7 +148,7 @@ router.put('/:branchId/working-days', authenticateJWT, checkPermission('branches
       success: true,
       message: 'Working days updated successfully',
       data: {
-        working_days: updatedWorkingDays
+        workingDays: updatedWorkingDays
       }
     });
   } catch (error) {
@@ -166,8 +166,8 @@ router.put('/:branchId/working-days', authenticateJWT, checkPermission('branches
  */
 router.post('/:branchId/working-days/:dayOfWeek', authenticateJWT, checkPermission('branches:update'), async (req: Request, res: Response) => {
   try {
-    const branchId = parseInt(req.params.branchId);
-    const dayOfWeek = req.params.dayOfWeek.toLowerCase();
+    const branchId = parseInt(req.params.branchId as string);
+    const dayOfWeek = (req.params.dayOfWeek as string).toLowerCase();
 
     if (isNaN(branchId)) {
       return res.status(400).json({
@@ -198,7 +198,7 @@ router.post('/:branchId/working-days/:dayOfWeek', authenticateJWT, checkPermissi
       success: true,
       message: 'Working day updated successfully',
       data: {
-        working_day
+        workingDay
       }
     });
   } catch (error) {

@@ -229,6 +229,19 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   { key: 'attendance_location:update', category: 'Attendance Management', description: 'Update attendance locations' },
   { key: 'attendance_location:delete', category: 'Attendance Management', description: 'Delete attendance locations' },
 
+  // Holiday Duty Roster Permissions
+  { key: 'holiday-duty-roster:read', category: 'Attendance Management', description: 'View holiday duty rosters' },
+  { key: 'holiday-duty-roster:create', category: 'Attendance Management', description: 'Create holiday duty rosters' },
+  { key: 'holiday-duty-roster:update', category: 'Attendance Management', description: 'Update holiday duty rosters' },
+  { key: 'holiday-duty-roster:delete', category: 'Attendance Management', description: 'Delete holiday duty rosters' },
+
+  // Shift Exception Permissions
+  { key: 'shift-exception:read', category: 'Attendance Management', description: 'View shift exceptions' },
+  { key: 'shift-exception:create', category: 'Attendance Management', description: 'Create shift exceptions' },
+  { key: 'shift-exception:update', category: 'Attendance Management', description: 'Update shift exceptions' },
+  { key: 'shift-exception:delete', category: 'Attendance Management', description: 'Delete shift exceptions' },
+  { key: 'shift-exception:approve', category: 'Attendance Management', description: 'Approve/reject shift exceptions' },
+
   // API Key Permissions
   { key: 'api_key:read', category: 'System Management', description: 'View API keys' },
   { key: 'api_key:create', category: 'System Management', description: 'Create API keys' },

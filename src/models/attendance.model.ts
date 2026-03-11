@@ -4,7 +4,7 @@ export interface Attendance {
   id: number;
   user_id: number;
   date: Date;
-  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday';
+  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working';
   check_in_time: Date | null;
   check_out_time: Date | null;
   location_coordinates: string | null; // POINT data stored as string
@@ -18,7 +18,7 @@ export interface Attendance {
 export interface AttendanceInput {
   user_id: number;
   date: Date;
-  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday';
+  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working';
   check_in_time?: Date | null;
   check_out_time?: Date | null;
   location_coordinates?: string | null; // WKT format: "POINT(longitude latitude)"
