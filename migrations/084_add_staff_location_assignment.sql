@@ -3,18 +3,18 @@
 -- Date: March 1, 2026
 
 -- Add assigned_location_id column for primary location assignment
-ALTER TABLE staff 
+ALTER TABLE staff
 ADD COLUMN assigned_location_id INT NULL COMMENT 'Primary attendance location ID for this employee',
 ADD FOREIGN KEY (assigned_location_id) REFERENCES attendance_locations(id) ON DELETE SET NULL,
 ADD INDEX idx_assigned_location (assigned_location_id);
 
 -- Add JSON field for multiple location assignments (optional, for advanced use cases)
-ALTER TABLE staff 
-ADD COLUMN location_assignments JSON NULL COMMENT 'JSON: {"primary_location": 1, "secondary_locations": [2,3]}',
-ADD INDEX idx_location_assignments ((CAST(location_assignments->>'$.primary_location' AS UNSIGNED)));
+-- Note: Functional index removed for MariaDB compatibility
+ALTER TABLE staff
+ADD COLUMN location_assignments JSON NULL COMMENT 'JSON: {"primary_location": 1, "secondary_locations": [2,3]}';
 
 -- Add notes field for location-related comments (if not already exists)
-ALTER TABLE staff 
+ALTER TABLE staff
 ADD COLUMN location_notes TEXT NULL COMMENT 'Notes about employee location assignment';
 
 -- Migrate existing staff to default location (their branch's main location)
@@ -28,7 +28,7 @@ LIMIT 100; -- Limit to avoid locking table for too long
 
 -- Create view for easy location assignment lookup
 CREATE OR REPLACE VIEW staff_location_assignments AS
-SELECT 
+SELECT
   s.user_id,
   s.employee_id,
   u.full_name,

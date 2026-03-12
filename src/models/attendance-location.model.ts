@@ -63,12 +63,38 @@ class AttendanceLocationModel {
   }
 
   static async create(locationData: AttendanceLocationInput): Promise<AttendanceLocation> {
+    console.log('📍 Creating attendance location:', locationData);
+    
+    // Convert coordinates to MySQL POINT format
+    // Expected format: "POINT(longitude latitude)" or use ST_GeomFromText
+    let coordinatesValue = locationData.location_coordinates;
+    
+    console.log('📍 Original coordinates:', coordinatesValue, typeof coordinatesValue);
+    
+    // If coordinates are sent as "lat,lng" or "lng,lat" format, convert to POINT
+    if (typeof coordinatesValue === 'string' && !coordinatesValue.includes('POINT')) {
+      // Assume format is "latitude,longitude" or "longitude latitude"
+      const parts = coordinatesValue.split(/[,\s]+/).filter(p => p.trim());
+      console.log('📍 Split parts:', parts);
+      if (parts.length === 2) {
+        const [lng, lat] = parts.map(p => parseFloat(p));
+        coordinatesValue = `POINT(${lng} ${lat})`;
+        console.log('📍 Converted to:', coordinatesValue);
+      }
+    } else if (typeof coordinatesValue === 'string' && coordinatesValue.includes('POINT')) {
+      // Already in POINT format, use as-is
+      console.log('📍 Already in POINT format');
+    } else {
+      console.error('📍 Invalid coordinates format:', coordinatesValue);
+      throw new Error('Invalid coordinates format. Expected: "POINT(lng lat)" or "lng,lat"');
+    }
+
     const [result]: any = await pool.execute(
       `INSERT INTO ${this.tableName} (name, location_coordinates, location_radius_meters, branch_id, is_active, created_by)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ST_GeomFromText(?), ?, ?, ?, ?)`,
       [
         locationData.name,
-        locationData.location_coordinates,
+        coordinatesValue,
         locationData.location_radius_meters || 100,
         locationData.branch_id || null,
         locationData.is_active ?? true,
@@ -96,8 +122,17 @@ class AttendanceLocationModel {
     }
 
     if (locationData.location_coordinates !== undefined) {
-      updates.push('location_coordinates = ?');
-      values.push(locationData.location_coordinates);
+      // Convert coordinates to MySQL POINT format
+      let coordinatesValue = locationData.location_coordinates;
+      if (typeof coordinatesValue === 'string' && !coordinatesValue.includes('POINT')) {
+        const parts = coordinatesValue.split(/[,\s]+/).filter(p => p.trim());
+        if (parts.length === 2) {
+          const [lng, lat] = parts.map(p => parseFloat(p));
+          coordinatesValue = `POINT(${lng} ${lat})`;
+        }
+      }
+      updates.push('location_coordinates = ST_GeomFromText(?)');
+      values.push(coordinatesValue);
     }
 
     if (locationData.location_radius_meters !== undefined) {

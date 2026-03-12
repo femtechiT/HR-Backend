@@ -66,6 +66,10 @@ export interface Staff {
   background_verification_status?: 'pending' | 'cleared' | 'failed';
   created_at: Date;
   updated_at: Date;
+  // Location assignment fields (Migration 084)
+  assigned_location_id?: number;
+  location_assignments?: any; // JSON: {primary_location: number, secondary_locations: number[]}
+  location_notes?: string;
 }
 
 export interface StaffInput {
@@ -128,6 +132,10 @@ export interface StaffInput {
   reason_for_leaving?: string;
   reference_check_status?: 'pending' | 'cleared' | 'failed';
   background_verification_status?: 'pending' | 'cleared' | 'failed';
+  // Location assignment fields (Migration 084)
+  assigned_location_id?: number;
+  location_assignments?: any; // JSON: {primary_location: number, secondary_locations: number[]}
+  location_notes?: string;
 }
 
 export interface StaffUpdate {
@@ -190,6 +198,10 @@ export interface StaffUpdate {
   reason_for_leaving?: string;
   reference_check_status?: 'pending' | 'cleared' | 'failed';
   background_verification_status?: 'pending' | 'cleared' | 'failed';
+  // Location assignment fields (Migration 084)
+  assigned_location_id?: number;
+  location_assignments?: any;
+  location_notes?: string;
 }
 
 class StaffModel {

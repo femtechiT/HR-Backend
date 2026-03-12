@@ -208,8 +208,17 @@ router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'),
       const updateFields = [];
       const updateValues = [];
       
+      const allowedKeys = [
+        'require_check_in', 'require_check_out', 'grace_period_minutes',
+        'auto_checkout_enabled', 'auto_checkout_minutes_after_close',
+        'enable_location_verification', 'allow_manual_attendance_entry',
+        'enable_weekend_attendance', 'notify_absent_employees',
+        'notify_supervisors_daily_summary', 'enable_face_recognition',
+        'enable_biometric_verification', 'enable_holiday_attendance'
+      ];
+
       for (const [key, value] of Object.entries(settings)) {
-        if (typeof value !== 'undefined') {
+        if (allowedKeys.includes(key) && typeof value !== 'undefined') {
           updateFields.push(`${key} = ?`);
           updateValues.push(value);
         }
@@ -232,8 +241,17 @@ router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'),
       values.push(targetBranchId);
       placeholders.push('?');
       
+      const allowedKeys = [
+        'require_check_in', 'require_check_out', 'grace_period_minutes',
+        'auto_checkout_enabled', 'auto_checkout_minutes_after_close',
+        'enable_location_verification', 'allow_manual_attendance_entry',
+        'enable_weekend_attendance', 'notify_absent_employees',
+        'notify_supervisors_daily_summary', 'enable_face_recognition',
+        'enable_biometric_verification', 'enable_holiday_attendance'
+      ];
+
       for (const [key, value] of Object.entries(settings)) {
-        if (typeof value !== 'undefined') {
+        if (allowedKeys.includes(key) && typeof value !== 'undefined') {
           columns.push(key);
           values.push(value);
           placeholders.push('?');

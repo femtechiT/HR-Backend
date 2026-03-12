@@ -17,6 +17,8 @@ export interface LeaveRequest {
   cancelled_by?: number | null;
   cancelled_at?: Date | null;
   cancellation_reason?: string | null;
+  user_name?: string;
+  leave_type_name?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -97,7 +99,7 @@ class LeaveRequestModel {
     };
   }
 
-  static async findById(id: number, connection?: Pool): Promise<LeaveRequest | null> {
+  static async findById(id: number, connection?: any): Promise<LeaveRequest | null> {
     const db = connection || pool;
     const [rows] = await db.execute(
       `SELECT lr.*, u.full_name as user_name, lt.name as leave_type_name
@@ -118,7 +120,7 @@ class LeaveRequestModel {
     return rows as LeaveRequest[];
   }
 
-  static async create(leaveData: LeaveRequestInput, connection?: Pool): Promise<LeaveRequest> {
+  static async create(leaveData: LeaveRequestInput, connection?: any): Promise<LeaveRequest> {
     const db = connection || pool;
     const [result]: any = await db.execute(
       `INSERT INTO ${this.tableName}
@@ -147,7 +149,7 @@ class LeaveRequestModel {
     return createdItem;
   }
 
-  static async update(id: number, leaveData: LeaveRequestUpdate, connection?: Pool): Promise<LeaveRequest | null> {
+  static async update(id: number, leaveData: LeaveRequestUpdate, connection?: any): Promise<LeaveRequest | null> {
     const db = connection || pool;
     const updates: string[] = [];
     const values: any[] = [];

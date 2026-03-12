@@ -3,11 +3,11 @@
  *
  * Populates the database with realistic test data including:
  * - Branches (5 branches across Kenya)
- * - Users & Staff (50+ employees)
+ * - Users & Staff (100+ employees)
  * - Departments
- * - Shift Timings
- * - Holidays (Kenyan public holidays)
- * - Attendance Records (2024-01-01 to 2026-02-28)
+ * - Shift Timings & Recurring Shift Assignments
+ * - Holidays (Kenyan public holidays 2025-2026)
+ * - Attendance Records (2025-01-01 to current date)
  * - Leave History & Requests
  * - Leave Allocations
  * - Forms & Form Submissions with Attachments
@@ -24,10 +24,10 @@ import fs from 'fs';
 
 // Configuration
 const CONFIG = {
-  startDate: '2024-01-01', // Start of 2024
-  endDate: '2026-02-28',   // Current date
+  startDate: '2025-01-01', // Start of 2025
+  endDate: new Date().toISOString().split('T')[0], // Current date (dynamic)
   numBranches: 5,
-  numEmployees: 100,        // Increased to 100 employees
+  numEmployees: 100,        // 100 employees
   numDepartments: 6,
   sundayWorkers: 30,        // Number of employees who work on Sundays
 };
@@ -41,20 +41,8 @@ const BRANCH_DATA = [
   { name: 'Eldoret Branch', code: 'ELD', city: 'Eldoret', coords: { lng: 35.2698, lat: 0.5143 } },
 ];
 
-// Kenyan Public Holidays (2024-2026)
+// Kenyan Public Holidays (2025-2026)
 const KENYAN_HOLIDAYS = [
-  // 2024
-  { date: '2024-01-01', name: 'New Year\'s Day' },
-  { date: '2024-03-29', name: 'Good Friday' },
-  { date: '2024-04-01', name: 'Easter Monday' },
-  { date: '2024-05-01', name: 'Labour Day' },
-  { date: '2024-06-01', name: 'Madaraka Day' },
-  { date: '2024-08-12', name: 'Huduma Day' },
-  { date: '2024-10-10', name: 'Mashujaa Day' },
-  { date: '2024-10-21', name: 'Diwali' },
-  { date: '2024-12-12', name: 'Jamhuri Day' },
-  { date: '2024-12-25', name: 'Christmas Day' },
-  { date: '2024-12-26', name: 'Boxing Day' },
   // 2025
   { date: '2025-01-01', name: 'New Year\'s Day' },
   { date: '2025-04-18', name: 'Good Friday' },
@@ -136,17 +124,89 @@ async function hashPassword(password) {
   return bcrypt.hash(password, 10);
 }
 
+async function ensureLeaveRequestCancellationFields() {
+  console.log('🔧 Ensuring leave_requests table has cancellation fields...');
+
+  try {
+    // Check if columns exist
+    const [columns]: any = await pool.execute(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'leave_requests'
+        AND COLUMN_NAME IN ('cancelled_by', 'cancelled_at', 'cancellation_reason')
+    `);
+
+    if (columns.length === 3) {
+      console.log('   ✓ Cancellation fields already exist\n');
+      return;
+    }
+
+    console.log('   Adding missing cancellation fields...');
+
+    // Add cancelled_by column if missing
+    if (!columns.some((c: any) => c.COLUMN_NAME === 'cancelled_by')) {
+      await pool.execute(`
+        ALTER TABLE leave_requests
+        ADD COLUMN cancelled_by INT NULL AFTER reviewed_by,
+        ADD CONSTRAINT fk_leave_requests_cancelled_by
+          FOREIGN KEY (cancelled_by) REFERENCES users(id)
+          ON DELETE SET NULL
+      `);
+      console.log('   ✓ Added cancelled_by column');
+    }
+
+    // Add cancelled_at column if missing
+    if (!columns.some((c: any) => c.COLUMN_NAME === 'cancelled_at')) {
+      await pool.execute(`
+        ALTER TABLE leave_requests
+        ADD COLUMN cancelled_at DATETIME NULL AFTER cancelled_by
+      `);
+      console.log('   ✓ Added cancelled_at column');
+    }
+
+    // Add cancellation_reason column if missing
+    if (!columns.some((c: any) => c.COLUMN_NAME === 'cancellation_reason')) {
+      await pool.execute(`
+        ALTER TABLE leave_requests
+        ADD COLUMN cancellation_reason TEXT NULL AFTER cancelled_at
+      `);
+      console.log('   ✓ Added cancellation_reason column');
+    }
+
+    console.log('✅ Cancellation fields added successfully\n');
+  } catch (error: any) {
+    console.error('⚠️  Warning: Could not ensure cancellation fields:', error.message);
+    console.log('   Continuing with seed process...\n');
+  }
+}
+
 async function clearExistingData() {
-  console.log('🗑️  Clearing existing transactional data (preserving users & staff)...');
+  console.log('🗑️  Clearing existing transactional data (preserving users, staff, roles, branches)...');
 
   await pool.execute('SET FOREIGN_KEY_CHECKS = 0');
 
-  // Only clear transactional data, NOT users, staff, roles, or branches
+  // Clear ALL transactional data tables
   const tablesToClear = [
     'attendance',
     'leave_history',
+    'leave_requests',
+    'leave_allocations',
     'shift_timings',
     'holidays',
+    'holiday_duty_roster',
+    'form_submissions',
+    'employee_shift_assignments',
+    'shift_templates',
+    'branch_working_days',
+    'notifications',
+    'payroll_records',
+    'payroll_runs',
+    'payslips',
+    'appraisals',
+    'kpi_scores',
+    'kpi_assignments',
+    'performance_reviews',
   ];
 
   for (const table of tablesToClear) {
@@ -158,6 +218,7 @@ async function clearExistingData() {
     }
   }
 
+  // Reset auto-increment counters
   for (const table of tablesToClear) {
     try {
       await pool.execute(`ALTER TABLE ${table} AUTO_INCREMENT = 1`);
@@ -167,7 +228,7 @@ async function clearExistingData() {
   }
 
   await pool.execute('SET FOREIGN_KEY_CHECKS = 1');
-  console.log('✅ Transactional data cleared (users, staff, roles, branches preserved)\n');
+  console.log('✅ All transactional data cleared (users, staff, roles, branches preserved)\n');
 }
 
 async function seedRoles() {
@@ -893,11 +954,11 @@ async function seedLeaveAllocations() {
 
   let allocationCount = 0;
 
-  // Create allocations for 2024, 2025, and 2026
-  for (const year of [2024, 2025, 2026]) {
+  // Create allocations for 2025 and 2026
+  for (const year of [2025, 2026]) {
     for (const employee of staff) {
       const joinDate = new Date(employee.joining_date);
-      
+
       // Only create allocations if employee was employed during this year
       if (joinDate.getFullYear() > year) {
         continue;
@@ -915,7 +976,7 @@ async function seedLeaveAllocations() {
         }
 
         // Add some carried over days for previous year (random 0-5)
-        if (year > 2024 && joinDate.getFullYear() < year) {
+        if (year > 2025 && joinDate.getFullYear() < year) {
           carriedOverDays = Math.floor(Math.random() * 5);
         }
 
@@ -928,20 +989,28 @@ async function seedLeaveAllocations() {
           [employee.user_id, leaveType.id, year]
         );
 
-        const usedDays = Math.floor(parseFloat(usedRows[0].used_days));
+        const calculatedUsedDays = Math.floor(parseFloat(usedRows[0].used_days));
+        const totalAvailableDays = allocatedDays + carriedOverDays;
+        
+        // Cap used days at total available to satisfy chk_used_days constraint
+        const usedDays = Math.min(calculatedUsedDays, totalAvailableDays);
+
+        // Use cycle_start_date and cycle_end_date instead of year
+        const cycleStartDate = `${year}-01-01`;
+        const cycleEndDate = `${year}-12-31`;
 
         await pool.execute(
           `INSERT INTO leave_allocations
-           (user_id, leave_type_id, year, allocated_days, carried_over_days, used_days, expiry_date)
+           (user_id, leave_type_id, cycle_start_date, cycle_end_date, allocated_days, carried_over_days, used_days)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             employee.user_id,
             leaveType.id,
-            year,
+            cycleStartDate,
+            cycleEndDate,
             allocatedDays,
             carriedOverDays,
-            usedDays,
-            `${year + 1}-03-31` // Leave expires end of Q1 next year
+            usedDays
           ]
         );
 
@@ -950,7 +1019,7 @@ async function seedLeaveAllocations() {
     }
   }
 
-  console.log(`✅ Leave allocations seeded (${allocationCount} records for ${staff.length} employees across 3 years)\n`);
+  console.log(`✅ Leave allocations seeded (${allocationCount} records for ${staff.length} employees across 2 years)\n`);
 }
 
 async function seedForms() {
@@ -962,7 +1031,7 @@ async function seedForms() {
       type: 'feedback',
       description: 'Submit feedback about workplace, management, or colleagues',
       fields: [
-        { label: 'Feedback Category', type: 'select', options: ['Work Environment', 'Management', 'Colleague', 'Process', 'Other'], required: true },
+        { label: 'Feedback Category', type: 'dropdown', options: ['Work Environment', 'Management', 'Colleague', 'Process', 'Other'], required: true },
         { label: 'Subject', type: 'text', required: true },
         { label: 'Description', type: 'textarea', required: true },
         { label: 'Attachments', type: 'file', required: false },
@@ -973,8 +1042,8 @@ async function seedForms() {
       type: 'application',
       description: 'Request IT support for hardware, software, or network issues',
       fields: [
-        { label: 'Issue Type', type: 'select', options: ['Hardware', 'Software', 'Network', 'Access', 'Other'], required: true },
-        { label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'], required: true },
+        { label: 'Issue Type', type: 'dropdown', options: ['Hardware', 'Software', 'Network', 'Access', 'Other'], required: true },
+        { label: 'Priority', type: 'dropdown', options: ['Low', 'Medium', 'High', 'Critical'], required: true },
         { label: 'Description', type: 'textarea', required: true },
         { label: 'Screenshots', type: 'file', required: false },
       ]
@@ -984,7 +1053,7 @@ async function seedForms() {
       type: 'application',
       description: 'Request approval for training, workshops, or conferences',
       fields: [
-        { label: 'Training Type', type: 'select', options: ['Technical', 'Soft Skills', 'Leadership', 'Compliance', 'Certification'], required: true },
+        { label: 'Training Type', type: 'dropdown', options: ['Technical', 'Soft Skills', 'Leadership', 'Compliance', 'Certification'], required: true },
         { label: 'Training Name', type: 'text', required: true },
         { label: 'Provider', type: 'text', required: true },
         { label: 'Start Date', type: 'date', required: true },
@@ -1015,7 +1084,7 @@ async function seedForms() {
         { label: 'Key Achievements', type: 'textarea', required: true },
         { label: 'Areas for Improvement', type: 'textarea', required: true },
         { label: 'Goals for Next Period', type: 'textarea', required: true },
-        { label: 'Self Rating', type: 'select', options: ['1', '2', '3', '4', '5'], required: true },
+        { label: 'Self Rating', type: 'dropdown', options: ['1', '2', '3', '4', '5'], required: true },
         { label: 'Supporting Documents', type: 'file', required: false },
       ]
     },
@@ -1038,15 +1107,18 @@ async function seedForms() {
     for (let i = 0; i < formConfig.fields.length; i++) {
       const field = formConfig.fields[i];
       await pool.execute(
-        `INSERT INTO form_fields (form_id, field_label, field_type, field_options, is_required, display_order)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO form_fields (form_id, field_name, field_label, field_type, options, is_required, field_order, placeholder, help_text)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           formId,
+          field.label.toLowerCase().replace(/\s+/g, '_'), // Generate field_name from label
           field.label,
           field.type,
           field.options ? JSON.stringify(field.options) : null,
           field.required ? 1 : 0,
-          i + 1
+          i + 1,
+          field.type === 'textarea' ? 'Enter details...' : null,
+          field.type === 'file' ? 'Upload supporting documents' : null
         ]
       );
     }
@@ -1060,7 +1132,7 @@ async function seedForms() {
 async function seedFormSubmissions() {
   console.log('📝 Seeding form submissions...');
 
-  const [forms]: any = await pool.execute('SELECT id, form_type FROM forms WHERE is_active = TRUE');
+  const [forms]: any = await pool.execute('SELECT id, name, form_type FROM forms WHERE is_active = TRUE');
   const [staff]: any = await pool.execute('SELECT user_id, joining_date FROM staff WHERE status = \'active\'');
 
   if (forms.length === 0) {
@@ -1089,13 +1161,13 @@ async function seedFormSubmissions() {
           subject: `Feedback submission ${i + 1}`,
           description: 'This is sample feedback content for testing purposes.',
         };
-      } else if (form.form_type === 'application' && form.name.includes('IT Support')) {
+      } else if (form.form_type === 'application' && form.name && form.name.includes('IT Support')) {
         submissionData = {
           issue_type: randomElement(['Hardware', 'Software', 'Network', 'Access', 'Other']),
           priority: randomElement(['Low', 'Medium', 'High', 'Critical']),
           description: 'Sample IT support request description.',
         };
-      } else if (form.form_type === 'application' && form.name.includes('Training')) {
+      } else if (form.form_type === 'application' && form.name && form.name.includes('Training')) {
         submissionData = {
           training_type: randomElement(['Technical', 'Soft Skills', 'Leadership', 'Compliance', 'Certification']),
           training_name: 'Sample Training Course',
@@ -1105,7 +1177,7 @@ async function seedFormSubmissions() {
           estimated_cost: (Math.random() * 500 + 100).toFixed(2),
           justification: 'This training will help improve my skills.',
         };
-      } else if (form.form_type === 'application' && form.name.includes('Remote')) {
+      } else if (form.form_type === 'application' && form.name && form.name.includes('Remote')) {
         submissionData = {
           start_date: submitDate.toISOString().split('T')[0],
           end_date: new Date(submitDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -1223,19 +1295,48 @@ async function printSummary() {
   console.log('📈 Database Summary:\n');
 
   const tables = [
-    'branches', 'users', 'staff', 'departments', 'holidays',
-    'shift_timings', 'attendance', 'leave_types', 'leave_allocations',
-    'leave_requests', 'leave_history', 'forms', 'form_submissions',
-    'form_attachments'
+    'branches', 'users', 'staff', 'departments', 'roles',
+    'holidays', 'shift_timings', 'attendance', 'leave_types', 
+    'leave_allocations', 'leave_requests', 'leave_history', 
+    'forms', 'form_submissions', 'form_attachments',
+    'employee_shift_assignments', 'shift_templates', 'branch_working_days',
+    'notifications', 'payroll_records', 'payroll_runs', 'payslips'
   ];
 
   for (const table of tables) {
     try {
       const [result] = await pool.execute(`SELECT COUNT(*) as count FROM ${table}`);
-      console.log(`   ${table.padEnd(25)}: ${result[0].count.toLocaleString()} records`);
+      console.log(`   ${table.padEnd(30)}: ${result[0].count.toLocaleString()} records`);
     } catch (e) {
-      console.log(`   ${table.padEnd(25)}: Table not found`);
+      console.log(`   ${table.padEnd(30)}: Table not found`);
     }
+  }
+
+  // Get attendance date range
+  try {
+    const [minDate]: any = await pool.execute(`SELECT MIN(date) as min_date, MAX(date) as max_date FROM attendance`);
+    if (minDate[0].min_date) {
+      console.log(`\n   Attendance Date Range      : ${minDate[0].min_date} to ${minDate[0].max_date}`);
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  // Get leave requests summary
+  try {
+    const [leaveStats]: any = await pool.execute(`
+      SELECT status, COUNT(*) as count 
+      FROM leave_requests 
+      GROUP BY status
+    `);
+    if (leaveStats.length > 0) {
+      console.log('\n   Leave Requests by Status:');
+      for (const stat of leaveStats) {
+        console.log(`      ${stat.status.padEnd(15)}: ${stat.count}`);
+      }
+    }
+  } catch (e) {
+    // Ignore
   }
 
   console.log('\n✅ Seeding complete!\n');
@@ -1243,10 +1344,13 @@ async function printSummary() {
   console.log('   All employees use the same password: Password123!');
   console.log('   Create admin user manually through signup after seeding.\n');
   console.log('📊 Data Coverage:');
-  console.log(`   Date Range: ${CONFIG.startDate} to ${CONFIG.endDate}`);
-  console.log('   Leave Allocations: 2024, 2025, 2026');
+  console.log(`   Date Range: ${CONFIG.startDate} to ${CONFIG.endDate} (${Math.floor((new Date(CONFIG.endDate).getTime() - new Date(CONFIG.startDate).getTime()) / (1000 * 60 * 60 * 24))} days)`);
+  console.log('   Leave Allocations: 2025, 2026 (cycle-based)');
   console.log('   Forms: Feedback, IT Support, Training, Remote Work, Appraisal');
-  console.log('   Attachments: Form submissions and leave requests\n');
+  console.log('   Attachments: Form submissions and leave requests (100% coverage)');
+  console.log('   Shifts: Standard hours (Mon-Sat), Sunday workers, Fasting period');
+  console.log('   Holidays: Kenyan public holidays (2025-2026)');
+  console.log('   Migration: Leave request cancellation fields auto-applied\n');
 }
 
 async function seedDatabase() {
@@ -1258,7 +1362,13 @@ async function seedDatabase() {
   console.log('');
 
   try {
+    // First: Ensure all required migrations are applied
+    await ensureLeaveRequestCancellationFields();
+    
+    // Clear existing transactional data
     await clearExistingData();
+    
+    // Seed all data
     await seedRoles();
     await seedBranches();
     await seedUsersAndStaff();

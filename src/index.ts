@@ -48,6 +48,9 @@ import shiftExceptionRoutes from './api/shift-exception.route';
 import holidayDutyRosterRoutes from './api/holiday-duty-roster.route';
 import reportingAnalyticsRoutes from './api/reporting-analytics.route';
 import branchWorkingDaysRoutes from './api/branch-working-days.route';
+import shiftTimingRoutes from './api/shift-timing.route';
+import attendanceLocationRoutes from './api/attendance-location.route';
+import staffLocationAssignmentRoutes from './api/staff-location-assignment.route';
 // import apiKeyRoutes from './api/api-key.route';
 import healthRoutes from './api/health.route';  // API Keys temporarily disabled
 import { SchedulerService } from './services/scheduler.service';
@@ -139,6 +142,7 @@ app.use('/api/role-management', roleManagementRoutes);
 app.use('/api/system-complete', completeSystemInitRoutes);
 app.use('/api/departments', departmentManagementRoutes);
 app.use('/api/branch-working-days', branchWorkingDaysRoutes);
+app.use('/api/shift-timings', shiftTimingRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/job-postings', jobPostingRoutes);
 app.use('/api/job-applications', applicationSubmissionRoutes);
@@ -147,6 +151,8 @@ app.use('/api/shift-scheduling', shiftSchedulingRoutes);
 app.use('/api/shift-scheduling/exceptions', shiftExceptionRoutes);
 app.use('/api/holiday-duty-roster', holidayDutyRosterRoutes);
 app.use('/api/reports', reportingAnalyticsRoutes);
+app.use('/api/attendance-locations', attendanceLocationRoutes);
+app.use('/api/staff-location-assignments', staffLocationAssignmentRoutes);
 // app.use('/api/api-keys', apiKeyRoutes);  // API Keys temporarily disabled
 app.use('/api/health', healthRoutes);
 

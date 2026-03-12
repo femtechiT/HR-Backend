@@ -110,7 +110,7 @@ class AttendanceProcessorWorker {
         if (leaveHistory.length > 0) {
           // Check for approved leave that hasn't been cancelled
           const activeApprovedLeave = leaveHistory.filter(
-            leave => leave.status === 'approved' && leave.status !== 'cancelled'
+            leave => leave.status === 'approved'
           );
 
           if (activeApprovedLeave.length > 0) {

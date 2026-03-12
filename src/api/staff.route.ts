@@ -68,7 +68,16 @@ const validateNumericIdParam = (paramName: string) => {
 // More specific routes first
 router.get('/me', authenticateJWT, getCurrentUserStaffDetails);
 router.get('/', authenticateJWT, checkPermission('staff:read'), getAllStaff);
-router.get('/:id', authenticateJWT, checkPermission('staff:read'), validateNumericId, getStaffById);
+
+// GET /:id - Allow self-access, otherwise require 'staff:read' permission
+router.get('/:id', authenticateJWT, validateNumericId, (req: Request, res: Response, next: NextFunction) => {
+  if (req.currentUser?.id === req.numericId) {
+    return next(); // Allow self-access
+  }
+  // Otherwise, fallback to the checkPermission middleware
+  return checkPermission('staff:read')(req, res, next);
+}, getStaffById);
+
 router.post('/', authenticateJWT, checkPermission('staff.create'), createStaff);
 router.put('/:id', authenticateJWT, checkPermission('staff.update'), validateNumericId, updateStaff);
 router.delete('/:id', authenticateJWT, checkPermission('staff.delete'), validateNumericId, deleteStaff);

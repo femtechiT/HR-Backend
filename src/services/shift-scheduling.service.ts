@@ -50,41 +50,75 @@ export class ShiftSchedulingService {
       );
 
       if (assignments.length > 0) {
-        const assignment = assignments[0];
-        
-        // Check if this date falls within the recurrence pattern
-        if (assignment.recurrence_pattern) {
-          const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-          const dayName = dayNames[dayOfWeek];
-          
-          // If recurrence_days is set, check if this day is included
-          if (assignment.recurrence_days) {
-            const recurrenceDays = JSON.parse(assignment.recurrence_days);
-            if (!recurrenceDays.includes(dayName) && !recurrenceDays.includes(dayOfWeek)) {
-              // This day is not part of the recurring schedule
-              return {
-                start_time: null,
-                end_time: null,
-                break_duration_minutes: 0,
-                schedule_type: 'non_working_day',
-                schedule_note: 'Non-working day based on recurrence pattern'
-              };
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayName = dayNames[dayOfWeek];
+
+        for (const assignment of assignments) {
+          // Check if this date falls within the recurrence pattern
+          if (assignment.recurrence_pattern) {
+            // If recurrence_days is set, check if this day is included
+            if (assignment.recurrence_days) {
+              const recurrenceDays = JSON.parse(assignment.recurrence_days);
+              if (!recurrenceDays.includes(dayName) && !recurrenceDays.includes(dayOfWeek)) {
+                // This day is not part of this specific assignment's recurring schedule, 
+                // continue to look at other assignments
+                continue;
+              }
             }
           }
+
+          // If we found an assignment that includes this day (or is non-recurring), return its timing
+          return {
+            start_time: assignment.custom_start_time || assignment.template_start_time,
+            end_time: assignment.custom_end_time || assignment.template_end_time,
+            break_duration_minutes: assignment.custom_break_duration_minutes || assignment.template_break_duration_minutes || 0,
+            schedule_type: assignment.recurrence_pattern || 'standard',
+            schedule_note: 'Standard schedule'
+          };
         }
 
-        // Use custom times if set, otherwise use template times
+        // If we ran through all assignments and none matched the day pattern
         return {
-          start_time: assignment.custom_start_time || assignment.template_start_time,
-          end_time: assignment.custom_end_time || assignment.template_end_time,
-          break_duration_minutes: assignment.custom_break_duration_minutes || assignment.template_break_duration_minutes || 0,
-          schedule_type: assignment.recurrence_pattern || 'standard',
-          schedule_note: 'Standard schedule' // Could be expanded with more details
+          start_time: null,
+          end_time: null,
+          break_duration_minutes: 0,
+          schedule_type: 'non_working_day',
+          schedule_note: 'Non-working day based on recurrence patterns'
         };
       }
 
-      // If no specific schedule found, return null
+      // Finally, fall back to branch working hours if no specific user assignment exists
+      const [userBranch]: any = await pool.execute(
+        `SELECT branch_id FROM staff WHERE user_id = ?`,
+        [userId]
+      );
+
+      if (userBranch.length > 0 && userBranch[0].branch_id) {
+        const branchId = userBranch[0].branch_id;
+        const dayOfWeek = date.getDay();
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayName = dayNames[dayOfWeek];
+
+        const [branchHours]: any = await pool.execute(
+          `SELECT start_time, end_time, break_duration_minutes, is_working_day
+           FROM branch_working_days
+           WHERE branch_id = ? AND day_of_week = ?`,
+          [branchId, dayName]
+        );
+
+        if (branchHours.length > 0 && branchHours[0].is_working_day) {
+          return {
+            start_time: branchHours[0].start_time,
+            end_time: branchHours[0].end_time,
+            break_duration_minutes: branchHours[0].break_duration_minutes || 0,
+            schedule_type: 'branch_default',
+            schedule_note: `Standard ${dayName} hours for branch`
+          };
+        }
+      }
+
+      // If no specific schedule found and no branch default, return null
       return null;
     } catch (error) {
       console.error('Error getting effective schedule:', error);

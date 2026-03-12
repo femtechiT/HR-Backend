@@ -41,7 +41,7 @@ class LeaveAllocationModel {
     return rows as LeaveAllocation[];
   }
 
-  static async findById(id: number, connection?: Pool): Promise<LeaveAllocation | null> {
+  static async findById(id: number, connection?: any): Promise<LeaveAllocation | null> {
     const db = connection || pool;
     const [rows] = await db.execute(
       `SELECT * FROM ${this.tableName} WHERE id = ?`,
@@ -73,7 +73,7 @@ class LeaveAllocationModel {
     return allocations;
   }
 
-  static async findByUserIdAndTypeId(userId: number, leaveTypeId: number, connection?: Pool): Promise<LeaveAllocation[]> {
+  static async findByUserIdAndTypeId(userId: number, leaveTypeId: number, connection?: any): Promise<LeaveAllocation[]> {
     const db = connection || pool;
     const cacheKey = `leave_allocations:user:${userId}:type:${leaveTypeId}`;
 
@@ -109,7 +109,7 @@ class LeaveAllocationModel {
     return rows as LeaveAllocation[];
   }
 
-  static async create(allocationData: LeaveAllocationInput, connection?: Pool): Promise<LeaveAllocation> {
+  static async create(allocationData: LeaveAllocationInput, connection?: any): Promise<LeaveAllocation> {
     const db = connection || pool;
     const [result]: any = await db.execute(
       `INSERT INTO ${this.tableName} (user_id, leave_type_id, cycle_start_date, cycle_end_date, allocated_days, used_days, carried_over_days)
@@ -141,7 +141,7 @@ class LeaveAllocationModel {
     return createdItem;
   }
 
-  static async update(id: number, allocationData: LeaveAllocationUpdate, connection?: Pool): Promise<LeaveAllocation | null> {
+  static async update(id: number, allocationData: LeaveAllocationUpdate, connection?: any): Promise<LeaveAllocation | null> {
     const db = connection || pool;
     
     // First get the existing allocation to know which user and type to invalidate
@@ -225,7 +225,7 @@ class LeaveAllocationModel {
   }
 
   // Method to update used days when leave is taken
-  static async updateUsedDays(allocationId: number, daysUsed: number, connection?: Pool): Promise<boolean> {
+  static async updateUsedDays(allocationId: number, daysUsed: number, connection?: any): Promise<boolean> {
     const db = connection || pool;
     
     // First get the existing allocation to know which user and type to invalidate

@@ -7,6 +7,7 @@ import AttendanceLocationModel from '../models/attendance-location.model';
 import BranchModel from '../models/branch.model';
 import StaffModel from '../models/staff.model';
 import LeaveHistoryModel from '../models/leave-history.model';
+import AttendanceProcessorWorker from '../workers/attendance-processor.worker';
 import attendanceProcessRoutes from './attendance-process.route';
 import attendanceSettingsRoutes from './attendance-settings.route';
 import attendanceCheckRoutes from './attendance-check.route';
@@ -338,7 +339,7 @@ router.get('/records', authenticateJWT, checkPermission('attendance:read'), asyn
     const offset = (currentPage - 1) * perPage;
 
     // Build query conditions
-    let query = `SELECT a.*, u.first_name, u.last_name, s.employee_id
+    let query = `SELECT a.*, u.full_name, s.employee_id
                  FROM attendance a
                  LEFT JOIN staff s ON a.user_id = s.user_id
                  LEFT JOIN users u ON a.user_id = u.id
@@ -355,10 +356,10 @@ router.get('/records', authenticateJWT, checkPermission('attendance:read'), asyn
 
     if (date) {
       query += ' AND DATE(a.date) = ?';
-      params.push(new Date(date as string));
+      params.push(date);  // Use raw date string, let MySQL handle it
     } else if (startDate && endDate) {
       query += ' AND a.date BETWEEN ? AND ?';
-      params.push(new Date(startDate as string), new Date(endDate as string));
+      params.push(startDate, endDate);  // Use raw date strings
     }
 
     if (status) {
@@ -369,6 +370,9 @@ router.get('/records', authenticateJWT, checkPermission('attendance:read'), asyn
     // Add ordering and pagination
     query += ' ORDER BY a.date DESC, a.created_at DESC LIMIT ? OFFSET ?';
     params.push(perPage, offset);
+
+    console.log('Attendance records query:', query);
+    console.log('Params:', params);
 
     // Also get total count for pagination metadata
     let countQuery = `SELECT COUNT(*) as total FROM attendance a WHERE 1=1`;
@@ -384,10 +388,10 @@ router.get('/records', authenticateJWT, checkPermission('attendance:read'), asyn
 
     if (date) {
       countQuery += ' AND DATE(a.date) = ?';
-      countParams.push(new Date(date as string));
+      countParams.push(date);
     } else if (startDate && endDate) {
       countQuery += ' AND a.date BETWEEN ? AND ?';
-      countParams.push(new Date(startDate as string), new Date(endDate as string));
+      countParams.push(startDate, endDate);
     }
 
     if (status) {
@@ -414,11 +418,19 @@ router.get('/records', authenticateJWT, checkPermission('attendance:read'), asyn
         }
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get attendance records error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      errno: error.errno,
+      sql: error.sql,
+      sqlMessage: error.sqlMessage
+    });
     return res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: error.message
     });
   }
 });
@@ -433,8 +445,7 @@ router.get('/staff-data', authenticateJWT, checkPermission('attendance:read'), a
       SELECT
         s.id,
         s.user_id,
-        u.first_name,
-        u.last_name,
+        u.full_name,
         s.employee_id,
         d.name as department,
         b.name as branch,
@@ -470,8 +481,8 @@ router.get('/staff-data', authenticateJWT, checkPermission('attendance:read'), a
     }
 
     query += `
-      GROUP BY s.id, s.user_id, u.first_name, u.last_name, s.employee_id, d.name, b.name
-      ORDER BY u.first_name, u.last_name
+      GROUP BY s.id, s.user_id, u.full_name, s.employee_id, d.name, b.name
+      ORDER BY u.full_name
     `;
 
     const [results] = await pool.execute(query, params);
@@ -479,10 +490,90 @@ router.get('/staff-data', authenticateJWT, checkPermission('attendance:read'), a
     return res.json({
       success: true,
       message: 'Staff attendance data retrieved successfully',
-      data: { staff: results }
+      data: { staff: results, staffAttendanceData: results }
     });
   } catch (error) {
     console.error('Get staff attendance data error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET /api/attendance/monthly-stats - Get monthly attendance statistics for the last 6 months
+router.get('/monthly-stats', authenticateJWT, checkPermission('attendance:read'), async (req: Request, res: Response) => {
+  try {
+    const months: any[] = [];
+    const now = new Date();
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+      const [rows] = await pool.execute(
+        `SELECT
+          COUNT(CASE WHEN status = 'present' THEN 1 END) as present,
+          COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent,
+          COUNT(CASE WHEN status = 'late' THEN 1 END) as late,
+          COUNT(CASE WHEN status = 'leave' THEN 1 END) as leaves
+         FROM attendance
+         WHERE date BETWEEN ? AND ?`,
+        [startDate, endDate]
+      ) as [any[], any];
+
+      const monthName = date.toLocaleString('default', { month: 'short' });
+      months.push({
+        month: `${monthName} ${date.getFullYear()}`,
+        ...(rows[0] || { present: 0, absent: 0, late: 0, leaves: 0 })
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Monthly attendance statistics retrieved successfully',
+      data: { monthlyStats: months }
+    });
+  } catch (error) {
+    console.error('Get monthly stats error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// DELETE /api/attendance/:id - Delete attendance record (admin only)
+router.delete('/:id', authenticateJWT, checkPermission('attendance:delete'), async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+    const attendanceId = parseInt(idStr as string);
+
+    if (isNaN(attendanceId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid attendance ID'
+      });
+    }
+
+    const existingAttendance = await AttendanceModel.findById(attendanceId);
+    if (!existingAttendance) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attendance record not found'
+      });
+    }
+
+    await AttendanceModel.delete(attendanceId);
+
+    return res.json({
+      success: true,
+      message: 'Attendance record deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete attendance error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -926,6 +1017,64 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
+    });
+  }
+});
+
+// POST /api/attendance/process-range - Process attendance for a date range (manual trigger)
+router.post('/process-range', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate } = req.body;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'startDate and endDate are required'
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const dates: Date[] = [];
+    
+    for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(new Date(d));
+    }
+
+    let totalProcessed = 0;
+    const results: any[] = [];
+    
+    for (const date of dates) {
+      try {
+        await AttendanceProcessorWorker.processAttendanceForDate(date);
+        totalProcessed++;
+        results.push({
+          date: date.toISOString().split('T')[0],
+          success: true
+        });
+      } catch (error: any) {
+        results.push({
+          date: date.toISOString().split('T')[0],
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Processed attendance for ${totalProcessed} days`,
+      data: { 
+        daysProcessed: totalProcessed, 
+        dateRange: { startDate, endDate },
+        results
+      }
+    });
+  } catch (error: any) {
+    console.error('Process range error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to process attendance'
     });
   }
 });

@@ -77,6 +77,8 @@ router.post('/', authenticateJWT, checkPermission('attendance-location:create'),
   try {
     const { name, location_coordinates, location_radius_meters, branch_id, is_active } = req.body;
 
+    console.log('📍 POST /api/attendance-locations - Request body:', req.body);
+
     // Validate required fields
     if (!name || !location_coordinates) {
       return res.status(400).json({
@@ -92,6 +94,8 @@ router.post('/', authenticateJWT, checkPermission('attendance-location:create'),
       branch_id: branch_id || null,
       is_active: is_active !== undefined ? Boolean(is_active) : true
     };
+
+    console.log('📍 Passing to model:', locationData);
 
     const newLocation = await AttendanceLocationModel.create(locationData);
 

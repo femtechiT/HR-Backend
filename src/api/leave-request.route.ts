@@ -350,7 +350,7 @@ router.get('/:id', authenticateJWT, async (req: Request, res: Response, next: Ne
 router.post(
   '/',
   authenticateJWT,
-  checkPermission('leave:create'),
+  checkPermission('leave:request'),
   upload.array('files', 5),
   handleMulterError,
   async (req: Request, res: Response) => {
