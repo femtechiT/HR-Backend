@@ -532,6 +532,9 @@ export const assignShiftToEmployee = async (req: Request, res: Response) => {
       effective_from,
       effective_to,
       assignment_type,
+      recurrence_pattern,
+      recurrence_days,
+      recurrence_day_of_week,
       notes
     } = req.body;
 
@@ -542,6 +545,14 @@ export const assignShiftToEmployee = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'User ID and effective from date are required'
+      });
+    }
+
+    // Validate recurrence fields
+    if (recurrence_pattern === 'weekly' && !recurrence_days && !recurrence_day_of_week) {
+      return res.status(400).json({
+        success: false,
+        message: 'recurrence_days or recurrence_day_of_week is required for weekly pattern'
       });
     }
 
@@ -635,10 +646,11 @@ export const assignShiftToEmployee = async (req: Request, res: Response) => {
 
     // Create the shift assignment
     const [result]: any = await pool.execute(
-      `INSERT INTO employee_shift_assignments 
+      `INSERT INTO employee_shift_assignments
        (user_id, shift_template_id, custom_start_time, custom_end_time, custom_break_duration_minutes,
-        effective_from, effective_to, assignment_type, assigned_by, status, notes) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        effective_from, effective_to, assignment_type, recurrence_pattern, recurrence_days, recurrence_day_of_week,
+        assigned_by, status, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         user_id,
         shift_template_id || null,
@@ -648,6 +660,9 @@ export const assignShiftToEmployee = async (req: Request, res: Response) => {
         effective_from,
         effective_to || null,
         assignment_type || 'permanent',
+        recurrence_pattern || 'none',
+        recurrence_days ? JSON.stringify(recurrence_days) : null,
+        recurrence_day_of_week || null,
         assignedBy,
         'active', // Initially set to active
         notes || null
@@ -714,6 +729,9 @@ export const updateEmployeeShiftAssignment = async (req: Request, res: Response)
       effective_from,
       effective_to,
       assignment_type,
+      recurrence_pattern,
+      recurrence_days,
+      recurrence_day_of_week,
       status,
       notes
     } = req.body;
@@ -732,6 +750,14 @@ export const updateEmployeeShiftAssignment = async (req: Request, res: Response)
     }
 
     const existingAssignment = existingRows[0];
+
+    // Validate recurrence fields if provided
+    if (recurrence_pattern === 'weekly' && !recurrence_days && !recurrence_day_of_week) {
+      return res.status(400).json({
+        success: false,
+        message: 'recurrence_days or recurrence_day_of_week is required for weekly pattern'
+      });
+    }
 
     // Validate shift template exists if provided
     if (shift_template_id) {
@@ -843,6 +869,18 @@ export const updateEmployeeShiftAssignment = async (req: Request, res: Response)
     if (assignment_type !== undefined) {
       updateFields.push('assignment_type = ?');
       params.push(assignment_type);
+    }
+    if (recurrence_pattern !== undefined) {
+      updateFields.push('recurrence_pattern = ?');
+      params.push(recurrence_pattern);
+    }
+    if (recurrence_days !== undefined) {
+      updateFields.push('recurrence_days = ?');
+      params.push(JSON.stringify(recurrence_days));
+    }
+    if (recurrence_day_of_week !== undefined) {
+      updateFields.push('recurrence_day_of_week = ?');
+      params.push(recurrence_day_of_week);
     }
     if (status !== undefined) {
       updateFields.push('status = ?');
