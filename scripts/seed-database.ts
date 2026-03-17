@@ -653,6 +653,166 @@ async function seedRecurringShiftAssignments() {
   console.log(`✅ Recurring shift assignments seeded\n`);
 }
 
+async function seedShiftAssignmentsForAllStaff() {
+  console.log('📋 Seeding shift assignments for ALL staff (ensuring everyone has a shift)...');
+
+  // Get all active staff with user info
+  const [staff]: any = await pool.execute(
+    `SELECT s.user_id, s.branch_id, s.employee_id, u.email 
+     FROM staff s
+     JOIN users u ON s.user_id = u.id
+     WHERE s.status = 'active' 
+     ORDER BY s.user_id`
+  );
+
+  // Get the standard template
+  const [templates]: any = await pool.execute(
+    `SELECT id FROM shift_templates WHERE name = 'Standard Working Hours' LIMIT 1`
+  );
+
+  if (templates.length === 0) {
+    console.log('   ⚠️  Standard Working Hours template not found, skipping...\n');
+    return;
+  }
+
+  const standardTemplateId = templates[0].id;
+  let assignmentCount = 0;
+  let updatedCount = 0;
+
+  // Assign standard shift to EVERY staff member who doesn't have one
+  for (const employee of staff) {
+    // Check if employee already has an active assignment
+    const [existing]: any = await pool.execute(
+      `SELECT id FROM employee_shift_assignments 
+       WHERE user_id = ? AND status = 'active' 
+       LIMIT 1`,
+      [employee.user_id]
+    );
+
+    if (existing.length === 0) {
+      // No existing assignment, create one
+      await pool.execute(
+        `INSERT INTO employee_shift_assignments
+         (user_id, shift_template_id, effective_from, effective_to, assignment_type, 
+          assigned_by, status, notes)
+         VALUES (?, ?, '2026-01-01', '2026-12-31', 'permanent', 1, 'active', 
+          'Auto-assigned during seeding')`,
+        [employee.user_id, standardTemplateId]
+      );
+      assignmentCount++;
+      console.log(`   ✓ Assigned standard shift to ${employee.email}`);
+    } else {
+      updatedCount++;
+    }
+  }
+
+  console.log(`   ✓ Created ${assignmentCount} new shift assignments`);
+  console.log(`   ✓ ${updatedCount} employees already had assignments`);
+  console.log(`✅ All staff now have shift assignments\n`);
+}
+
+async function seedAutoExceptionsForAllStaff() {
+  console.log('⚠️  Seeding auto-exceptions for ALL staff (sample exceptions for testing)...');
+
+  try {
+    // Get all active staff with user info
+    const [staff]: any = await pool.execute(
+      `SELECT s.user_id, u.email 
+       FROM staff s
+       JOIN users u ON s.user_id = u.id
+       WHERE s.status = 'active' 
+       ORDER BY s.user_id 
+       LIMIT 50` // Limit to first 50 for demo purposes
+    );
+
+    // Get exception types
+    const [types]: any = await pool.execute(
+      `SELECT id, code FROM shift_exception_types WHERE is_active = TRUE`
+    );
+
+    if (types.length === 0) {
+      console.log('   ⚠️  No exception types found, skipping...\n');
+      return;
+    }
+
+    const typeMap = types.reduce((acc: any, t: any) => {
+      acc[t.code] = t.id;
+      return acc;
+    }, {});
+
+    let exceptionCount = 0;
+    const today = new Date();
+
+    // Create 1-2 exceptions per staff member for the next 3 months
+    for (const employee of staff) {
+      const numExceptions = Math.floor(Math.random() * 2) + 1; // 1 or 2 exceptions
+
+      for (let i = 0; i < numExceptions; i++) {
+        // Random date in the next 90 days
+        const exceptionDate = new Date(today);
+        exceptionDate.setDate(exceptionDate.getDate() + Math.floor(Math.random() * 90) + 1);
+
+        // Skip weekends
+        if (exceptionDate.getDay() === 0 || exceptionDate.getDay() === 6) {
+          continue;
+        }
+
+        // Randomly select exception type
+        const exceptionTypes = ['late_start', 'early_release', 'medical_appt', 'remote_work'];
+        const selectedType = exceptionTypes[Math.floor(Math.random() * exceptionTypes.length)];
+
+        if (!typeMap[selectedType]) {
+          continue;
+        }
+
+        // Set times based on exception type
+        let new_start_time = '08:00:00';
+        let new_end_time = '17:00:00';
+
+        if (selectedType === 'late_start') {
+          new_start_time = '10:00:00';
+        } else if (selectedType === 'early_release') {
+          new_end_time = '15:00:00';
+        } else if (selectedType === 'medical_appt') {
+          new_start_time = '09:00:00';
+          new_end_time = '16:00:00';
+        } else if (selectedType === 'remote_work') {
+          // Same hours, just different location
+        }
+
+        await pool.execute(
+          `INSERT INTO shift_exceptions
+           (user_id, exception_type_id, exception_type, exception_date,
+            new_start_time, new_end_time, new_break_duration_minutes,
+            reason, status, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 1)`,
+          [
+            employee.user_id,
+            typeMap[selectedType],
+            selectedType,
+            exceptionDate.toISOString().split('T')[0],
+            new_start_time,
+            new_end_time,
+            60,
+            `Auto-generated ${selectedType.replace('_', ' ')} for testing`
+          ]
+        );
+        exceptionCount++;
+      }
+    }
+
+    console.log(`   ✓ Created ${exceptionCount} sample exceptions for ${staff.length} employees`);
+    console.log(`✅ Auto-exceptions seeded for testing\n`);
+  } catch (error: any) {
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      console.log('   ⚠️  shift_exception_types table not found, skipping auto-exceptions...');
+      console.log('   ℹ️  Run: npm run migrate-exception-types\n');
+    } else {
+      throw error;
+    }
+  }
+}
+
 async function seedAttendance() {
   console.log('📊 Seeding attendance records (this may take a while)...');
 
@@ -1405,6 +1565,8 @@ async function seedDatabase() {
     await seedHolidays();
     await seedBranchWorkingDays();
     await seedRecurringShiftAssignments();
+    await seedShiftAssignmentsForAllStaff();
+    await seedAutoExceptionsForAllStaff();
     await seedAttendance();
     await seedLeaveTypes$();
     await seedLeaveRequests();
