@@ -195,6 +195,7 @@ async function clearExistingData() {
     'holidays',
     'holiday_duty_roster',
     'form_submissions',
+    'form_attachments',
     'employee_shift_assignments',
     'shift_templates',
     'branch_working_days',
@@ -206,6 +207,7 @@ async function clearExistingData() {
     'kpi_scores',
     'kpi_assignments',
     'performance_reviews',
+    'guarantors',
   ];
 
   for (const table of tablesToClear) {
@@ -1479,6 +1481,237 @@ async function seedLeaveRequestAttachments() {
   console.log(`✅ Leave request attachments seeded (${attachmentCount} attachments for ${leaveRequests.length} requests - 100% coverage)\n`);
 }
 
+async function seedAttendanceLocations() {
+  console.log('📍 Seeding attendance locations...');
+
+  const [branches]: any = await pool.execute('SELECT id, name, location_coordinates, location_radius_meters FROM branches');
+
+  let locationCount = 0;
+
+  // Create attendance locations for all branches that have coordinates
+  for (const branch of branches) {
+    if (branch.location_coordinates) {
+      // Parse branch coordinates (format: "lat,lng")
+      const [lat, lng] = branch.location_coordinates.split(',');
+
+      // Create main office location
+      await pool.execute(
+        `INSERT INTO attendance_locations
+         (name, location_type, branch_id, location_coordinates, location_radius_meters, address, is_active)
+         VALUES (?, ?, ?, ST_GeomFromText(CONCAT('POINT(', ?, ' ', ?, ')')), ?, ?, TRUE)`,
+        [
+          `${branch.name} - Main Office`,
+          'branch_office',
+          branch.id,
+          lng.trim(),
+          lat.trim(),
+          branch.location_radius_meters || 100,
+          `${branch.name} Headquarters`
+        ]
+      );
+      locationCount++;
+      console.log(`   ✓ Created location for ${branch.name}`);
+
+      // Create 1-2 additional remote sites for this branch
+      const numRemoteSites = Math.floor(Math.random() * 2) + 1;
+      for (let i = 0; i < numRemoteSites; i++) {
+        // Slightly offset coordinates for variety
+        const offsetLat = parseFloat(lat) + (Math.random() - 0.5) * 0.01;
+        const offsetLng = parseFloat(lng) + (Math.random() - 0.5) * 0.01;
+
+        await pool.execute(
+          `INSERT INTO attendance_locations
+           (name, location_type, branch_id, location_coordinates, location_radius_meters, address, is_active)
+           VALUES (?, ?, ?, ST_GeomFromText(CONCAT('POINT(', ?, ' ', ?, ')')), ?, ?, TRUE)`,
+          [
+            `${branch.name} - Remote Site ${i + 1}`,
+            'remote_site',
+            branch.id,
+            offsetLng,
+            offsetLat,
+            150 + Math.floor(Math.random() * 100),
+            `${branch.name} Remote Location ${i + 1}`
+          ]
+        );
+        locationCount++;
+      }
+    }
+  }
+
+  console.log(`✅ Attendance locations seeded (${locationCount} locations for ${branches.length} branches)\n`);
+}
+
+async function seedStaffLocationAssignments() {
+  console.log('👥 Seeding staff location assignments...');
+
+  // Get all staff with their branch info
+  const [staff]: any = await pool.execute(`
+    SELECT s.id as staff_id, s.user_id, s.branch_id, u.full_name
+    FROM staff s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.status = 'active'
+    ORDER BY s.branch_id, s.user_id
+  `);
+
+  // Get all attendance locations
+  const [locations]: any = await pool.execute(`
+    SELECT id, branch_id, name, location_type
+    FROM attendance_locations
+    ORDER BY branch_id, id
+  `);
+
+  let assignmentCount = 0;
+  let secondaryCount = 0;
+
+  // Assign each staff member to locations
+  for (const employee of staff) {
+    // Get main office location for this staff's branch
+    const mainOffice = locations.find((loc: any) => 
+      loc.branch_id === employee.branch_id && loc.location_type === 'branch_office'
+    );
+
+    if (mainOffice) {
+      // Assign primary location
+      await pool.execute(
+        `UPDATE staff SET assigned_location_id = ? WHERE id = ?`,
+        [mainOffice.id, employee.staff_id]
+      );
+      assignmentCount++;
+
+      // 40% of staff get secondary locations
+      if (Math.random() < 0.4) {
+        // Get remote sites for this branch
+        const remoteSites = locations.filter((loc: any) => 
+          loc.branch_id === employee.branch_id && loc.location_type === 'remote_site'
+        );
+
+        if (remoteSites.length > 0) {
+          // Pick 1 random remote site
+          const selectedSite = remoteSites[Math.floor(Math.random() * remoteSites.length)];
+          
+          // Insert into staff_secondary_locations
+          await pool.execute(
+            `INSERT IGNORE INTO staff_secondary_locations (staff_id, location_id) VALUES (?, ?)`,
+            [employee.staff_id, selectedSite.id]
+          );
+          secondaryCount++;
+        }
+      }
+    }
+  }
+
+  console.log(`   ✓ Assigned primary locations to ${assignmentCount} staff`);
+  console.log(`   ✓ Assigned secondary locations to ${secondaryCount} staff`);
+  console.log(`✅ Staff location assignments seeded\n`);
+}
+
+async function seedGuarantors() {
+  console.log('👥 Seeding guarantors for staff members...');
+
+  const [staff]: any = await pool.execute(`
+    SELECT s.id as staff_id, s.user_id, u.full_name, u.email
+    FROM staff s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.status = 'active'
+    ORDER BY s.user_id
+    LIMIT 80
+  `);
+
+  const guarantorData = [
+    { first_names: ['John', 'Michael', 'David', 'Robert', 'James', 'William'], last_names: ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia'] },
+    { first_names: ['Mary', 'Patricia', 'Jennifer', 'Linda', 'Elizabeth', 'Susan'], last_names: ['Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez'] },
+    { first_names: ['Peter', 'Paul', 'Andrew', 'Thomas', 'Charles', 'Daniel'], last_names: ['Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore'] },
+    { first_names: ['Margaret', 'Dorothy', 'Lisa', 'Nancy', 'Karen', 'Betty'], last_names: ['Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White'] },
+  ];
+
+  const relationships = ['Spouse', 'Parent', 'Sibling', 'Relative', 'Friend', 'Colleague'];
+  const occupations = ['Business Owner', 'Civil Servant', 'Teacher', 'Doctor', 'Lawyer', 'Engineer', 'Accountant', 'Manager'];
+  const guaranteeTypes = ['personal', 'personal', 'personal', 'financial', 'both'];
+  const nigerianStates = ['Lagos', 'Abuja', 'Rivers', 'Kano', 'Nairobi', 'Mombasa', 'Kisumu'];
+
+  let guarantorCount = 0;
+  let verifiedCount = 0;
+
+  for (const employee of staff) {
+    // Each staff member gets 1-2 guarantors
+    const numGuarantors = Math.floor(Math.random() * 2) + 1;
+
+    for (let i = 0; i < numGuarantors; i++) {
+      const dataSet = randomElement(guarantorData);
+      const firstName = randomElement(dataSet.first_names);
+      const lastName = randomElement(dataSet.last_names);
+      const relationship = randomElement(relationships);
+      const occupation = randomElement(occupations);
+      const guaranteeType = randomElement(guaranteeTypes);
+      const isVerified = Math.random() < 0.6; // 60% verified
+
+      const phoneNumber = `+234${Math.floor(Math.random() * 900000000) + 100000000}`;
+      const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@example.com`;
+      const state = randomElement(nigerianStates);
+
+      const [result]: any = await pool.execute(
+        `INSERT INTO guarantors
+         (staff_id, first_name, last_name, phone_number, email, relationship, occupation,
+          address_line_1, city, state, country, guarantee_type, is_verified, verified_by, verified_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          employee.staff_id,
+          firstName,
+          lastName,
+          phoneNumber,
+          email,
+          relationship,
+          occupation,
+          `${Math.floor(Math.random() * 100) + 1} ${randomElement(['Street', 'Avenue', 'Road', 'Close'])}`,
+          randomElement(['Lagos', 'Abuja', 'Port Harcourt']),
+          state,
+          'Nigeria',
+          guaranteeType,
+          isVerified ? 1 : 0,
+          isVerified ? Math.floor(Math.random() * 5) + 1 : null,
+          isVerified ? new Date() : null
+        ]
+      );
+
+      const guarantorId = result.insertId;
+      guarantorCount++;
+      if (isVerified) verifiedCount++;
+
+      // Upload guarantor form document (REQUIRED - every guarantor gets a form)
+      const formFileTypes = [
+        { name: 'guarantor_form.pdf', type: 'application/pdf' },
+        { name: 'signed_declaration.pdf', type: 'application/pdf' },
+        { name: 'guarantee_letter.jpg', type: 'image/jpeg' },
+      ];
+      const formFile = randomElement(formFileTypes);
+
+      await pool.execute(
+        `UPDATE guarantors SET guarantor_form_path = ? WHERE id = ?`,
+        [`/uploads/guarantors/guarantor_${guarantorId}_form.${formFile.name.split('.').pop()}`, guarantorId]
+      );
+
+      // 50% chance of ID document
+      if (Math.random() < 0.5) {
+        const idFileTypes = [
+          { name: 'national_id.jpg', type: 'image/jpeg' },
+          { name: 'passport.jpg', type: 'image/jpeg' },
+          { name: 'drivers_license.pdf', type: 'application/pdf' },
+        ];
+        const idFile = randomElement(idFileTypes);
+
+        await pool.execute(
+          `UPDATE guarantors SET id_document_path = ? WHERE id = ?`,
+          [`/uploads/guarantors/guarantor_${guarantorId}_id.${idFile.name.split('.').pop()}`, guarantorId]
+        );
+      }
+    }
+  }
+
+  console.log(`   ✓ Created ${guarantorCount} guarantors for ${staff.length} staff members`);
+  console.log(`   ✓ Verified: ${verifiedCount}, Pending: ${guarantorCount - verifiedCount}`);
+  console.log(`✅ Guarantors seeded\n`);
+}
+
 async function printSummary() {
   console.log('📈 Database Summary:\n');
 
@@ -1488,7 +1721,8 @@ async function printSummary() {
     'leave_allocations', 'leave_requests', 'leave_history',
     'forms', 'form_submissions', 'form_attachments',
     'employee_shift_assignments', 'shift_templates', 'branch_working_days',
-    'notifications', 'payroll_records', 'payroll_runs', 'payslips'
+    'notifications', 'payroll_records', 'payroll_runs', 'payslips',
+    'guarantors', 'attendance_locations'
   ];
 
   for (const table of tables) {
@@ -1513,8 +1747,8 @@ async function printSummary() {
   // Get leave requests summary
   try {
     const [leaveStats]: any = await pool.execute(`
-      SELECT status, COUNT(*) as count 
-      FROM leave_requests 
+      SELECT status, COUNT(*) as count
+      FROM leave_requests
       GROUP BY status
     `);
     if (leaveStats.length > 0) {
@@ -1527,7 +1761,65 @@ async function printSummary() {
     // Ignore
   }
 
-  console.log('\n✅ Seeding complete!\n');
+  // Get guarantors summary
+  try {
+    const [guarantorStats]: any = await pool.execute(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN is_verified = TRUE THEN 1 ELSE 0 END) as verified,
+        SUM(CASE WHEN is_verified = FALSE THEN 1 ELSE 0 END) as pending
+      FROM guarantors
+    `);
+    if (guarantorStats.length > 0 && guarantorStats[0].total > 0) {
+      console.log('\n   Guarantors:');
+      console.log(`      Total          : ${guarantorStats[0].total}`);
+      console.log(`      Verified       : ${guarantorStats[0].verified}`);
+      console.log(`      Pending        : ${guarantorStats[0].pending}`);
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  // Get attachments summary
+  try {
+    const [attachmentStats]: any = await pool.execute(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN leave_request_id IS NOT NULL THEN 1 ELSE 0 END) as leave_attachments,
+        SUM(CASE WHEN form_submission_id IS NOT NULL THEN 1 ELSE 0 END) as form_attachments
+      FROM form_attachments
+    `);
+    if (attachmentStats.length > 0 && attachmentStats[0].total > 0) {
+      console.log('\n   Attachments:');
+      console.log(`      Total          : ${attachmentStats[0].total}`);
+      console.log(`      Leave Requests : ${attachmentStats[0].leave_attachments}`);
+      console.log(`      Form Submissions: ${attachmentStats[0].form_attachments}`);
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  // Get staff location assignments summary
+  try {
+    const [locationStats]: any = await pool.execute(`
+      SELECT 
+        COUNT(*) as total_staff,
+        SUM(CASE WHEN assigned_location_id IS NOT NULL THEN 1 ELSE 0 END) as with_primary,
+        (SELECT COUNT(*) FROM staff_secondary_locations) as with_secondary
+      FROM staff
+      WHERE status = 'active'
+    `);
+    if (locationStats.length > 0 && locationStats[0].total_staff > 0) {
+      console.log('\n   Staff Location Assignments:');
+      console.log(`      Total Staff       : ${locationStats[0].total_staff}`);
+      console.log(`      With Primary      : ${locationStats[0].with_primary} (${Math.round(locationStats[0].with_primary / locationStats[0].total_staff * 100)}%)`);
+      console.log(`      With Secondary    : ${locationStats[0].with_secondary}`);
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  console.log('\n✅ Database seeding complete!\n');
   console.log('📝 Test Credentials:');
   console.log('   All employees use the same password: Password123!');
   console.log('   Create admin user manually through signup after seeding.\n');
@@ -1536,6 +1828,7 @@ async function printSummary() {
   console.log('   Leave Allocations: 2025, 2026 (cycle-based)');
   console.log('   Forms: Feedback, IT Support, Training, Remote Work, Appraisal');
   console.log('   Attachments: Form submissions and leave requests (100% coverage)');
+  console.log('   Guarantors: 1-2 per staff member with documents');
   console.log('   Shifts: Standard hours (Mon-Sat), Sunday workers, Fasting period');
   console.log('   Holidays: Kenyan public holidays (2025-2026)');
   console.log('   Migration: Leave request cancellation fields auto-applied\n');
@@ -1552,10 +1845,10 @@ async function seedDatabase() {
   try {
     // First: Ensure all required migrations are applied
     await ensureLeaveRequestCancellationFields();
-    
+
     // Clear existing transactional data
     await clearExistingData();
-    
+
     // Seed all data
     await seedRoles();
     await seedBranches();
@@ -1567,6 +1860,8 @@ async function seedDatabase() {
     await seedRecurringShiftAssignments();
     await seedShiftAssignmentsForAllStaff();
     await seedAutoExceptionsForAllStaff();
+    await seedAttendanceLocations(); // Seed locations first
+    await seedStaffLocationAssignments(); // Then assign staff to locations
     await seedAttendance();
     await seedLeaveTypes$();
     await seedLeaveRequests();
@@ -1574,6 +1869,7 @@ async function seedDatabase() {
     await seedForms();
     await seedFormSubmissions();
     await seedLeaveRequestAttachments();
+    await seedGuarantors(); // Seed guarantors with documents
     await printSummary();
   } catch (error) {
     console.error('❌ Seeding failed:', error);

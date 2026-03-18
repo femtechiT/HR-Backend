@@ -27,6 +27,16 @@ export interface AttendanceInput {
   notes?: string | null;
 }
 
+// Helper function to convert lat/lng object to WKT format
+export function locationToWKT(location: { longitude: number; latitude: number } | string | null): string | null {
+  if (!location) return null;
+  if (typeof location === 'string') return location; // Already in WKT or other string format
+  if (typeof location === 'object' && location.longitude !== undefined && location.latitude !== undefined) {
+    return `POINT(${location.longitude} ${location.latitude})`;
+  }
+  return null;
+}
+
 export interface AttendanceUpdate {
   status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday';
   check_in_time?: Date | null;

@@ -54,6 +54,7 @@ import attendanceLocationRoutes from './api/attendance-location.route';
 import staffDocumentRoutes from './api/staff-document.route';
 import staffLocationAssignmentRoutes from './api/staff-location-assignment.route';
 import dashboardRoutes from './api/dashboard.route';
+import guarantorRoutes from './api/guarantor.route';
 // import apiKeyRoutes from './api/api-key.route';
 import healthRoutes from './api/health.route';  // API Keys temporarily disabled
 import { SchedulerService } from './services/scheduler.service';
@@ -163,6 +164,7 @@ app.use('/api/reports', reportingAnalyticsRoutes);
 app.use('/api/attendance-locations', attendanceLocationRoutes);
 app.use('/api/staff-documents', staffDocumentRoutes);
 app.use('/api/staff-location-assignments', staffLocationAssignmentRoutes);
+app.use('/api/guarantors', guarantorRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/leave-cleanup', leaveCleanupRoutes);
 // app.use('/api/api-keys', apiKeyRoutes);  // API Keys temporarily disabled

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticateJWT } from '../middleware/auth.middleware';
-import AttendanceModel, { AttendanceUpdate } from '../models/attendance.model';
+import AttendanceModel, { AttendanceUpdate, locationToWKT } from '../models/attendance.model';
 import ShiftTimingModel from '../models/shift-timing.model';
 import { ShiftSchedulingService } from '../services/shift-scheduling.service';
 import HolidayModel from '../models/holiday.model';
@@ -10,6 +10,20 @@ import AttendanceLocationModel from '../models/attendance-location.model';
 import { pool } from '../config/database';
 
 const router = Router();
+
+/**
+ * Simplified Location Verification Logic
+ * 
+ * All locations are now in attendance_locations table.
+ * Staff are assigned to a primary location (assigned_location_id) 
+ * with optional secondary locations (staff_secondary_locations).
+ * 
+ * Check-in process:
+ * 1. Get staff's assigned location(s)
+ * 2. Check if user's GPS is within ANY of their assigned locations
+ * 3. Verify with configured radius
+ * 4. Allow/deny check-in
+ */
 
 // POST /api/attendance/check-in - Mark attendance check-in
 router.post('/check-in', authenticateJWT, async (req: Request, res: Response) => {
@@ -164,8 +178,7 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
 
       const updateData: Partial<AttendanceUpdate> = {
         check_in_time: new Date(`1970-01-01T${check_in_time}`),
-        location_coordinates: location_coordinates ?
-          `POINT(${location_coordinates.longitude} ${location_coordinates.latitude})` : null,
+        location_coordinates: locationToWKT(location_coordinates),
         location_verified: locationVerified,
         location_address: location_address || null
       };
@@ -368,8 +381,7 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
         status: 'present' as const, // Default to present, will be updated by ShiftSchedulingService
         check_in_time: new Date(`1970-01-01T${check_in_time}`),
         check_out_time: null, // Check-out will be added later
-        location_coordinates: location_coordinates ?
-          `POINT(${location_coordinates.longitude} ${location_coordinates.latitude})` : null,
+        location_coordinates: locationToWKT(location_coordinates),
         location_verified: locationVerified,
         location_address: location_address || null,
         notes: null
@@ -598,8 +610,7 @@ router.post('/check-out', authenticateJWT, async (req: Request, res: Response) =
     // Update the attendance record with check-out time
     const updateData = {
       check_out_time: new Date(`1970-01-01T${check_out_time}`),
-      location_coordinates: location_coordinates ?
-        `POINT(${location_coordinates.longitude} ${location_coordinates.latitude})` : null,
+      location_coordinates: locationToWKT(location_coordinates),
       location_verified: locationVerified,
       location_address: location_address || null
     };

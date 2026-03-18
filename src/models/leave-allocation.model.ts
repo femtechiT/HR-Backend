@@ -111,6 +111,24 @@ class LeaveAllocationModel {
 
   static async create(allocationData: LeaveAllocationInput, connection?: any): Promise<LeaveAllocation> {
     const db = connection || pool;
+    
+    // Check if an allocation already exists for this user, leave type, and cycle
+    const existingAllocations = await this.findByUserIdAndTypeId(
+      allocationData.user_id,
+      allocationData.leave_type_id,
+      connection
+    );
+    
+    // Check for overlapping cycle periods
+    const hasOverlappingCycle = existingAllocations.some(allocation => 
+      allocation.cycle_start_date.getTime() === allocationData.cycle_start_date.getTime() &&
+      allocation.cycle_end_date.getTime() === allocationData.cycle_end_date.getTime()
+    );
+    
+    if (hasOverlappingCycle) {
+      throw new Error('Leave allocation already exists for this user, leave type, and cycle period');
+    }
+    
     const [result]: any = await db.execute(
       `INSERT INTO ${this.tableName} (user_id, leave_type_id, cycle_start_date, cycle_end_date, allocated_days, used_days, carried_over_days)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,

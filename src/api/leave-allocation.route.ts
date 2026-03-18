@@ -239,8 +239,25 @@ router.post('/', authenticateJWT, checkPermission('leave_allocation:create'), as
       message: 'Leave allocation created successfully',
       data: { leaveAllocation: newAllocation }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create leave allocation error:', error);
+    
+    // Handle duplicate allocation error
+    if (error.message === 'Leave allocation already exists for this user, leave type, and cycle period') {
+      return res.status(409).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    // Handle MySQL unique constraint violation
+    if (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) {
+      return res.status(409).json({
+        success: false,
+        message: 'A leave allocation already exists for this user, leave type, and cycle period'
+      });
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
