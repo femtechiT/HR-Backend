@@ -42,10 +42,6 @@ ADD INDEX idx_exception_type_id (exception_type_id);
 
 -- Migrate existing data: Map old ENUM values to new type IDs
 UPDATE shift_exceptions se
-JOIN shift_exception_types set ON se.exception_type = set.code
-SET se.exception_type_id = set.id
+JOIN shift_exception_types st ON se.exception_type = st.code
+SET se.exception_type_id = st.id
 WHERE se.exception_type_id IS NULL;
-
--- Keep the old exception_type column for backwards compatibility (can be removed later)
--- But mark it as deprecated
--- ALTER TABLE shift_exceptions MODIFY COLUMN exception_type VARCHAR(50) NULL;

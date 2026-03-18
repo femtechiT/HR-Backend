@@ -131,8 +131,14 @@ class AttendanceLocationModel {
           coordinatesValue = `POINT(${lng} ${lat})`;
         }
       }
-      updates.push('location_coordinates = ST_GeomFromText(?)');
-      values.push(coordinatesValue);
+      // Don't wrap in ST_GeomFromText if already a POINT string
+      if (typeof coordinatesValue === 'string' && coordinatesValue.startsWith('POINT')) {
+        updates.push('location_coordinates = ST_GeomFromText(?)');
+        values.push(coordinatesValue);
+      } else {
+        updates.push('location_coordinates = ?');
+        values.push(coordinatesValue);
+      }
     }
 
     if (locationData.location_radius_meters !== undefined) {

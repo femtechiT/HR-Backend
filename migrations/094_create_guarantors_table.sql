@@ -76,15 +76,9 @@ CREATE TABLE IF NOT EXISTS guarantors (
   INDEX idx_guarantor_verified (is_verified)
 );
 
--- Add guarantor document type to staff_documents if not exists
--- This allows guarantor forms to be managed in the staff documents section too
-INSERT INTO staff_document_types (name, description, is_active)
-VALUES ('guarantor_form', 'Signed guarantor declaration form', TRUE)
-ON DUPLICATE KEY UPDATE name = name;
-
 -- Create view for easy guarantor lookup
 CREATE OR REPLACE VIEW staff_guarantors_summary AS
-SELECT 
+SELECT
   g.id,
   g.staff_id,
   s.user_id,

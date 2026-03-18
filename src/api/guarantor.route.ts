@@ -11,6 +11,7 @@ import {
 import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 
 const router = Router();
 
@@ -18,6 +19,9 @@ const router = Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(process.cwd(), 'uploads', 'guarantors');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
@@ -42,6 +46,21 @@ const upload = multer({
       cb(new Error('Invalid file type. Only PDF and images are allowed.'));
     }
   }
+});
+
+// Serve guarantor documents (public access for viewing)
+router.get('/uploads/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(process.cwd(), 'uploads', 'guarantors', filename);
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      message: 'File not found'
+    });
+  }
+  
+  res.sendFile(filePath);
 });
 
 // GET /api/guarantors/staff/:staffId - Get all guarantors for a staff member

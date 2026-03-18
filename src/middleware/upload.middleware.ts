@@ -8,10 +8,9 @@ import { Request } from 'express';
  * Can be extended for different entity types
  */
 function getUploadDir(entityType?: string): string {
-  // Default to 'attachments' for unified storage
-  // Can be customized per entity type if needed
-  const subpath = entityType === 'leave_request' ? 'leave-requests' : 'attachments';
-  const uploadDir = path.join(process.cwd(), 'uploads', subpath);
+  // Use unified 'attachments' directory for all uploads
+  // This ensures consistency with AttachmentService
+  const uploadDir = path.join(process.cwd(), 'uploads', 'attachments');
 
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });

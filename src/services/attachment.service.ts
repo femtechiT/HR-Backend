@@ -55,9 +55,11 @@ class AttachmentService {
     const attachments: Attachment[] = [];
 
     for (const file of files) {
+      // Use the actual file path from multer (file is already saved to disk)
+      // The file.filename is just the basename, we need to construct the URL path
       const attachmentInput: AttachmentInput = {
         file_name: file.originalname,
-        file_path: `/uploads/${this.getUploadSubpath()}/${path.basename(file.filename)}`,
+        file_path: `/uploads/attachments/${path.basename(file.filename)}`,
         file_size: file.size,
         mime_type: file.mimetype
       };
@@ -162,7 +164,7 @@ class AttachmentService {
    */
   static async create(attachmentData: AttachmentInput): Promise<Attachment> {
     const [result]: any = await pool.execute(
-      `INSERT INTO ${this.tableName} 
+      `INSERT INTO ${this.tableName}
        (form_submission_id, leave_request_id, field_id, file_name, file_path, file_size, mime_type)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -184,16 +186,6 @@ class AttachmentService {
     }
 
     return createdItem;
-  }
-
-  /**
-   * Get upload subpath based on entity type
-   * Can be extended for different storage strategies
-   */
-  private static getUploadSubpath(): string {
-    // For now, use a common uploads directory
-    // Can be customized per entity type if needed
-    return 'attachments';
   }
 }
 

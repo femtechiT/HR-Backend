@@ -351,7 +351,19 @@ export const uploadGuarantorDocument = async (req: Request, res: Response) => {
     const file = (req.files as Express.Multer.File[])[0];
     const filePath = `/uploads/guarantors/${file.filename}`;
 
-    const updateData = documentType === 'id' 
+    // Delete old file if it exists (prevent orphaned files)
+    const oldFilePath = documentType === 'id' 
+      ? guarantor.id_document_path 
+      : guarantor.guarantor_form_path;
+    
+    if (oldFilePath) {
+      const oldFileFullPath = path.join(process.cwd(), oldFilePath);
+      if (fs.existsSync(oldFileFullPath)) {
+        fs.unlinkSync(oldFileFullPath);
+      }
+    }
+
+    const updateData = documentType === 'id'
       ? { id_document_path: filePath }
       : { guarantor_form_path: filePath };
 
@@ -360,7 +372,7 @@ export const uploadGuarantorDocument = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       message: 'Document uploaded successfully',
-      data: { 
+      data: {
         guarantor: updatedGuarantor,
         file_path: filePath
       }
