@@ -89,10 +89,24 @@ export const getLeaveRequestFiles = async (req: Request, res: Response) => {
 
     const leaveRequest = rows[0];
     const currentUserId = (req as any).currentUser?.id;
+    const currentUserRole = (req as any).currentUser?.role_id;
 
-    // Check permission - owner or admin
+    // Allow access if: user is the owner, OR user is admin (role 1 or 2)
+    const isAdmin = currentUserRole === 1 || currentUserRole === 2;
+    const isOwner = leaveRequest.user_id === currentUserId;
     const userHasPermission = (req as any).permissions?.includes('leave:read');
-    if (leaveRequest.user_id !== currentUserId && !userHasPermission) {
+    
+    console.log('[Leave Files] Access check:', {
+      leaveRequestId,
+      leaveRequestUserId: leaveRequest.user_id,
+      currentUserId,
+      currentUserRole,
+      isAdmin,
+      isOwner,
+      hasPermission: userHasPermission
+    });
+    
+    if (!isOwner && !isAdmin && !userHasPermission) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view this request'
@@ -105,6 +119,8 @@ export const getLeaveRequestFiles = async (req: Request, res: Response) => {
       entityId: leaveRequestId
     });
 
+    console.log('[Leave Files] Found attachments:', attachments.length);
+    
     return res.json({
       success: true,
       data: {

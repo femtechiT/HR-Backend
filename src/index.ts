@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import { testConnection, initializeRedis } from './config/database';
 import { SystemInitService } from './services/system-init.service';
 import authRoutes from './api/auth.route';
@@ -124,6 +125,9 @@ app.use('/api/staff', staffRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/form-submissions', formSubmissionRoutes);
 app.use('/api/leave', leaveRoutes);
+// Serve uploaded files at root level (not under /api/leave)
+app.use('/api/uploads/leave-requests', express.static(path.join(process.cwd(), 'uploads', 'leave-requests')));
+app.use('/api/uploads/attachments', express.static(path.join(process.cwd(), 'uploads', 'attachments')));
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/payment-types', paymentTypeRoutes);
