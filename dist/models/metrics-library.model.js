@@ -1,26 +1,29 @@
-import { pool } from '../config/database';
-export const MetricsLibraryModel = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MetricsLibraryModel = void 0;
+const database_1 = require("../config/database");
+exports.MetricsLibraryModel = {
     tableName: 'metrics_library',
     async findAll() {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE is_active = ? ORDER BY created_at DESC`, [true]);
         connection.release();
         return rows;
     },
     async findById(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE id = ? AND is_active = ?`, [id, true]);
         connection.release();
         return rows[0] || null;
     },
     async findByCategory(category) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE JSON_CONTAINS(categories, ?) AND is_active = ? ORDER BY created_at DESC`, [`"${category}"`, true]);
         connection.release();
         return rows;
     },
     async create(metric) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`INSERT INTO ${this.tableName}
        (name, description, data_type, formula, data_source, categories, is_active, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`, [
@@ -42,7 +45,7 @@ export const MetricsLibraryModel = {
         };
     },
     async update(id, metric) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const fields = [];
         const values = [];
         if (metric.name !== undefined) {
@@ -87,7 +90,7 @@ export const MetricsLibraryModel = {
         return result.affectedRows > 0;
     },
     async delete(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`UPDATE ${this.tableName} SET is_active = ? WHERE id = ?`, [false, id]);
         connection.release();
         return result.affectedRows > 0;

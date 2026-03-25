@@ -1,6 +1,9 @@
-import { pool } from '../config/database';
-import { CacheService } from './cache.service';
-export class SystemInitService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SystemInitService = void 0;
+const database_1 = require("../config/database");
+const cache_service_1 = require("./cache.service");
+class SystemInitService {
     static CACHE_PREFIX = 'system:';
     static async initialize() {
         console.log('🚀 Starting system initialization...');
@@ -23,8 +26,8 @@ export class SystemInitService {
     }
     static async loadRoles() {
         try {
-            const [rows] = await pool.execute('SELECT id, name, description, created_at FROM roles ORDER BY id');
-            await CacheService.set(`${this.CACHE_PREFIX}roles`, rows, 86400);
+            const [rows] = await database_1.pool.execute('SELECT id, name, description, created_at FROM roles ORDER BY id');
+            await cache_service_1.CacheService.set(`${this.CACHE_PREFIX}roles`, rows, 86400);
             console.log(`   ✓ Loaded ${rows.length} roles`);
         }
         catch (error) {
@@ -33,10 +36,10 @@ export class SystemInitService {
     }
     static async loadPermissions() {
         try {
-            const [rows] = await pool.execute(`SELECT DISTINCT permission
+            const [rows] = await database_1.pool.execute(`SELECT DISTINCT permission
          FROM roles_permissions
          ORDER BY permission`);
-            await CacheService.set(`${this.CACHE_PREFIX}permissions:all`, rows.map((r) => r.permission), 86400);
+            await cache_service_1.CacheService.set(`${this.CACHE_PREFIX}permissions:all`, rows.map((r) => r.permission), 86400);
             console.log(`   ✓ Loaded ${rows.length} permissions`);
         }
         catch (error) {
@@ -45,11 +48,11 @@ export class SystemInitService {
     }
     static async loadBranches() {
         try {
-            const [rows] = await pool.execute(`SELECT id, name, code, city, country, phone, email, status 
+            const [rows] = await database_1.pool.execute(`SELECT id, name, code, city, country, phone, email, status 
          FROM branches 
          WHERE status = 'active' 
          ORDER BY name`);
-            await CacheService.set(`${this.CACHE_PREFIX}branches`, rows, 86400);
+            await cache_service_1.CacheService.set(`${this.CACHE_PREFIX}branches`, rows, 86400);
             console.log(`   ✓ Loaded ${rows.length} branches`);
         }
         catch (error) {
@@ -58,10 +61,10 @@ export class SystemInitService {
     }
     static async loadDepartments() {
         try {
-            const [rows] = await pool.execute(`SELECT id, name, description, branch_id 
+            const [rows] = await database_1.pool.execute(`SELECT id, name, description, branch_id 
          FROM departments 
          ORDER BY name`);
-            await CacheService.set(`${this.CACHE_PREFIX}departments`, rows, 86400);
+            await cache_service_1.CacheService.set(`${this.CACHE_PREFIX}departments`, rows, 86400);
             console.log(`   ✓ Loaded ${rows.length} departments`);
         }
         catch (error) {
@@ -70,11 +73,11 @@ export class SystemInitService {
     }
     static async loadLeaveTypes() {
         try {
-            const [rows] = await pool.execute(`SELECT id, name, days_per_year, is_paid, is_active 
+            const [rows] = await database_1.pool.execute(`SELECT id, name, days_per_year, is_paid, is_active 
          FROM leave_types 
          WHERE is_active = TRUE 
          ORDER BY id`);
-            await CacheService.set(`${this.CACHE_PREFIX}leave-types`, rows, 86400);
+            await cache_service_1.CacheService.set(`${this.CACHE_PREFIX}leave-types`, rows, 86400);
             console.log(`   ✓ Loaded ${rows.length} leave types`);
         }
         catch (error) {
@@ -87,11 +90,11 @@ export class SystemInitService {
             const nextYear = new Date();
             nextYear.setFullYear(nextYear.getFullYear() + 1);
             const nextYearDate = nextYear.toISOString().split('T')[0];
-            const [rows] = await pool.execute(`SELECT id, holiday_name, date, branch_id, is_mandatory, description 
+            const [rows] = await database_1.pool.execute(`SELECT id, holiday_name, date, branch_id, is_mandatory, description 
          FROM holidays 
          WHERE date >= ? AND date <= ? 
          ORDER BY date`, [today, nextYearDate]);
-            await CacheService.set(`${this.CACHE_PREFIX}holidays:upcoming`, rows, 86400);
+            await cache_service_1.CacheService.set(`${this.CACHE_PREFIX}holidays:upcoming`, rows, 86400);
             console.log(`   ✓ Loaded ${rows.length} upcoming holidays`);
         }
         catch (error) {
@@ -100,12 +103,12 @@ export class SystemInitService {
     }
     static async getSystemData() {
         const [roles, permissions, branches, departments, leaveTypes, holidays] = await Promise.all([
-            CacheService.get(`${this.CACHE_PREFIX}roles`),
-            CacheService.get(`${this.CACHE_PREFIX}permissions:all`),
-            CacheService.get(`${this.CACHE_PREFIX}branches`),
-            CacheService.get(`${this.CACHE_PREFIX}departments`),
-            CacheService.get(`${this.CACHE_PREFIX}leave-types`),
-            CacheService.get(`${this.CACHE_PREFIX}holidays:upcoming`),
+            cache_service_1.CacheService.get(`${this.CACHE_PREFIX}roles`),
+            cache_service_1.CacheService.get(`${this.CACHE_PREFIX}permissions:all`),
+            cache_service_1.CacheService.get(`${this.CACHE_PREFIX}branches`),
+            cache_service_1.CacheService.get(`${this.CACHE_PREFIX}departments`),
+            cache_service_1.CacheService.get(`${this.CACHE_PREFIX}leave-types`),
+            cache_service_1.CacheService.get(`${this.CACHE_PREFIX}holidays:upcoming`),
         ]);
         return {
             roles: roles || [],
@@ -118,7 +121,7 @@ export class SystemInitService {
     }
     static async refreshAll() {
         console.log('🔄 Refreshing all system cache...');
-        await CacheService.invalidatePattern(`${this.CACHE_PREFIX}*`);
+        await cache_service_1.CacheService.invalidatePattern(`${this.CACHE_PREFIX}*`);
         await this.initialize();
     }
     static async refresh(type) {
@@ -148,4 +151,5 @@ export class SystemInitService {
         };
     }
 }
+exports.SystemInitService = SystemInitService;
 //# sourceMappingURL=system-init.service.js.map

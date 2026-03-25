@@ -1,6 +1,9 @@
-import { pool } from '../config/database';
-import { notificationService } from '../services/notification.service';
-export const updateApplicationStatus = async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getCommentsForApplication = exports.addCommentToApplication = exports.withdrawApplication = exports.getAllApplications = exports.updateApplicationStatus = void 0;
+const database_1 = require("../config/database");
+const notification_service_1 = require("../services/notification.service");
+const updateApplicationStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status, rejection_reason } = req.body;
@@ -12,7 +15,7 @@ export const updateApplicationStatus = async (req, res) => {
                 message: `Invalid status. Valid statuses are: ${validStatuses.join(', ')}`
             });
         }
-        const [currentApplicationRows] = await pool.execute('SELECT * FROM job_applications WHERE id = ?', [id]);
+        const [currentApplicationRows] = await database_1.pool.execute('SELECT * FROM job_applications WHERE id = ?', [id]);
         if (currentApplicationRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -41,8 +44,8 @@ export const updateApplicationStatus = async (req, res) => {
         updateFields.push('updated_at = NOW()');
         params.push(id);
         const query = `UPDATE job_applications SET ${updateFields.join(', ')} WHERE id = ?`;
-        await pool.execute(query, params);
-        const [updatedApplicationRows] = await pool.execute(`SELECT ja.*, jp.title as job_title, jp.description as job_description
+        await database_1.pool.execute(query, params);
+        const [updatedApplicationRows] = await database_1.pool.execute(`SELECT ja.*, jp.title as job_title, jp.description as job_description
        FROM job_applications ja
        JOIN job_postings jp ON ja.job_posting_id = jp.id
        WHERE ja.id = ?`, [id]);
@@ -89,9 +92,9 @@ export const updateApplicationStatus = async (req, res) => {
                     break;
             }
             if (templateName) {
-                const [userRows] = await pool.execute('SELECT id FROM users WHERE email = ?', [currentApplication.applicant_email]);
+                const [userRows] = await database_1.pool.execute('SELECT id FROM users WHERE email = ?', [currentApplication.applicant_email]);
                 const userId = userRows.length > 0 ? userRows[0].id : 0;
-                await notificationService.queueNotification(userId, templateName, templateVariables, {
+                await notification_service_1.notificationService.queueNotification(userId, templateName, templateVariables, {
                     channel: 'email',
                     priority: 'normal'
                 });
@@ -116,7 +119,8 @@ export const updateApplicationStatus = async (req, res) => {
         });
     }
 };
-export const getAllApplications = async (req, res) => {
+exports.updateApplicationStatus = updateApplicationStatus;
+const getAllApplications = async (req, res) => {
     try {
         const { status, job_posting_id, applicant_email, limit = 10, page = 1 } = req.query;
         const currentUser = req.currentUser;
@@ -152,7 +156,7 @@ export const getAllApplications = async (req, res) => {
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `
       SELECT COUNT(*) as total
       FROM job_applications ja
@@ -172,7 +176,7 @@ export const getAllApplications = async (req, res) => {
             countQuery += ' AND ja.applicant_email LIKE ?';
             countParams.push(`%${applicant_email}%`);
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             data: {
@@ -194,11 +198,12 @@ export const getAllApplications = async (req, res) => {
         });
     }
 };
-export const withdrawApplication = async (req, res) => {
+exports.getAllApplications = getAllApplications;
+const withdrawApplication = async (req, res) => {
     try {
         const { id } = req.params;
         const currentUser = req.currentUser;
-        const [currentApplicationRows] = await pool.execute('SELECT * FROM job_applications WHERE id = ?', [id]);
+        const [currentApplicationRows] = await database_1.pool.execute('SELECT * FROM job_applications WHERE id = ?', [id]);
         if (currentApplicationRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -214,13 +219,13 @@ export const withdrawApplication = async (req, res) => {
                 message: 'Unauthorized to withdraw this application'
             });
         }
-        await pool.execute('UPDATE job_applications SET application_status = ?, updated_at = NOW() WHERE id = ?', ['withdrawn', id]);
-        const [updatedApplicationRows] = await pool.execute(`SELECT ja.*, jp.title as job_title
+        await database_1.pool.execute('UPDATE job_applications SET application_status = ?, updated_at = NOW() WHERE id = ?', ['withdrawn', id]);
+        const [updatedApplicationRows] = await database_1.pool.execute(`SELECT ja.*, jp.title as job_title
        FROM job_applications ja
        JOIN job_postings jp ON ja.job_posting_id = jp.id
        WHERE ja.id = ?`, [id]);
         try {
-            await notificationService.queueNotification(0, 'application_withdrawn_acknowledgment', {
+            await notification_service_1.notificationService.queueNotification(0, 'application_withdrawn_acknowledgment', {
                 applicant_name: currentApplication.applicant_name,
                 job_title: updatedApplicationRows[0].job_title,
                 company_name: process.env.APP_NAME || 'Our Company'
@@ -248,7 +253,8 @@ export const withdrawApplication = async (req, res) => {
         });
     }
 };
-export const addCommentToApplication = async (req, res) => {
+exports.withdrawApplication = withdrawApplication;
+const addCommentToApplication = async (req, res) => {
     try {
         const { id } = req.params;
         const { comment } = req.body;
@@ -259,7 +265,7 @@ export const addCommentToApplication = async (req, res) => {
                 message: 'Comment is required'
             });
         }
-        const [applicationRows] = await pool.execute('SELECT * FROM job_applications WHERE id = ?', [id]);
+        const [applicationRows] = await database_1.pool.execute('SELECT * FROM job_applications WHERE id = ?', [id]);
         if (applicationRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -273,8 +279,8 @@ export const addCommentToApplication = async (req, res) => {
                 message: 'Unauthorized to comment on this application'
             });
         }
-        await pool.execute('INSERT INTO application_comments (job_application_id, commented_by, comment) VALUES (?, ?, ?)', [id, currentUser.id, comment]);
-        const [commentRows] = await pool.execute(`SELECT ac.*, u.full_name as commented_by_name
+        await database_1.pool.execute('INSERT INTO application_comments (job_application_id, commented_by, comment) VALUES (?, ?, ?)', [id, currentUser.id, comment]);
+        const [commentRows] = await database_1.pool.execute(`SELECT ac.*, u.full_name as commented_by_name
        FROM application_comments ac
        JOIN users u ON ac.commented_by = u.id
        WHERE ac.job_application_id = ? AND ac.comment = ?
@@ -295,11 +301,12 @@ export const addCommentToApplication = async (req, res) => {
         });
     }
 };
-export const getCommentsForApplication = async (req, res) => {
+exports.addCommentToApplication = addCommentToApplication;
+const getCommentsForApplication = async (req, res) => {
     try {
         const { id } = req.params;
         const currentUser = req.currentUser;
-        const [applicationRows] = await pool.execute('SELECT * FROM job_applications WHERE id = ?', [id]);
+        const [applicationRows] = await database_1.pool.execute('SELECT * FROM job_applications WHERE id = ?', [id]);
         if (applicationRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -315,7 +322,7 @@ export const getCommentsForApplication = async (req, res) => {
                 message: 'Unauthorized to view comments for this application'
             });
         }
-        const [commentRows] = await pool.execute(`SELECT ac.*, u.full_name as commented_by_name
+        const [commentRows] = await database_1.pool.execute(`SELECT ac.*, u.full_name as commented_by_name
        FROM application_comments ac
        JOIN users u ON ac.commented_by = u.id
        WHERE ac.job_application_id = ?
@@ -335,4 +342,5 @@ export const getCommentsForApplication = async (req, res) => {
         });
     }
 };
+exports.getCommentsForApplication = getCommentsForApplication;
 //# sourceMappingURL=application-management.controller.js.map

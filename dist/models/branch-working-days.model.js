@@ -1,12 +1,14 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class BranchWorkingDaysModel {
     static tableName = 'branch_working_days';
     static async findByBranchId(branchId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id = ? ORDER BY FIELD(day_of_week, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')`, [branchId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id = ? ORDER BY FIELD(day_of_week, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')`, [branchId]);
         return rows;
     }
     static async findByBranchIdAndDay(branchId, dayOfWeek) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id = ? AND day_of_week = ?`, [branchId, dayOfWeek]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id = ? AND day_of_week = ?`, [branchId, dayOfWeek]);
         return rows[0] || null;
     }
     static async isWorkingDay(branchId, dayOfWeek) {
@@ -25,7 +27,7 @@ class BranchWorkingDaysModel {
         };
     }
     static async upsert(workingDay) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} 
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} 
        (branch_id, day_of_week, is_working_day, start_time, end_time, break_duration_minutes)
        VALUES (?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
@@ -47,7 +49,7 @@ class BranchWorkingDaysModel {
         return (await this.findById(id));
     }
     static async bulkUpdate(branchId, workingDays) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         try {
             await connection.beginTransaction();
             for (const day of workingDays) {
@@ -82,17 +84,17 @@ class BranchWorkingDaysModel {
         if (branchIds.length === 0)
             return [];
         const placeholders = branchIds.map(() => '?').join(',');
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id IN (${placeholders}) ORDER BY branch_id, FIELD(day_of_week, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')`, branchIds);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id IN (${placeholders}) ORDER BY branch_id, FIELD(day_of_week, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')`, branchIds);
         return rows;
     }
     static async deleteByBranchId(branchId) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE branch_id = ?`, [branchId]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE branch_id = ?`, [branchId]);
         return result.affectedRows > 0;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
 }
-export default BranchWorkingDaysModel;
+exports.default = BranchWorkingDaysModel;
 //# sourceMappingURL=branch-working-days.model.js.map

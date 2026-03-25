@@ -1,8 +1,13 @@
-import { pool } from '../config/database';
-import AttendanceModel from '../models/attendance.model';
-import HolidayModel from '../models/holiday.model';
-import LeaveHistoryModel from '../models/leave-history.model';
-import { ShiftSchedulingService } from '../services/shift-scheduling.service';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
+const attendance_model_1 = __importDefault(require("../models/attendance.model"));
+const holiday_model_1 = __importDefault(require("../models/holiday.model"));
+const leave_history_model_1 = __importDefault(require("../models/leave-history.model"));
+const shift_scheduling_service_1 = require("../services/shift-scheduling.service");
 class AttendanceProcessorWorker {
     static isRunning = false;
     static lastCheckTime = null;
@@ -23,21 +28,21 @@ class AttendanceProcessorWorker {
                 query += ' AND s.branch_id = ?';
                 params.push(branchId);
             }
-            const [staffResults] = await pool.execute(query, params);
+            const [staffResults] = await database_1.pool.execute(query, params);
             const userIds = staffResults.map((staff) => staff.user_id);
             console.log(`${logPrefix} Processing attendance for ${userIds.length} active staff members`);
-            const isHoliday = await HolidayModel.isHoliday(date);
+            const isHoliday = await holiday_model_1.default.isHoliday(date);
             if (isHoliday) {
                 console.log(`${logPrefix} Date ${dateStr} is a holiday, marking staff as holiday or holiday-working`);
                 let holidayProcessedCount = 0;
                 let holidayWorkingCount = 0;
                 for (const userId of userIds) {
-                    const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, date);
+                    const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(userId, date);
                     if (existingAttendance) {
                         console.log(`${logPrefix} Attendance already exists for user ${userId} on ${dateStr}, skipping`);
                         continue;
                     }
-                    const [dutyRoster] = await pool.execute(`SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`, [date, userId]);
+                    const [dutyRoster] = await database_1.pool.execute(`SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`, [date, userId]);
                     if (dutyRoster.length > 0) {
                         const roster = dutyRoster[0];
                         const attendanceData = {
@@ -51,7 +56,7 @@ class AttendanceProcessorWorker {
                             location_address: null,
                             notes: `Scheduled for holiday duty: ${roster.shift_start_time} - ${roster.shift_end_time}`
                         };
-                        await AttendanceModel.create(attendanceData);
+                        await attendance_model_1.default.create(attendanceData);
                         holidayWorkingCount++;
                         console.log(`${logPrefix} Holiday-working attendance processed for user ${userId}`);
                     }
@@ -67,7 +72,7 @@ class AttendanceProcessorWorker {
                             location_address: null,
                             notes: 'Public holiday - no attendance required'
                         };
-                        await AttendanceModel.create(attendanceData);
+                        await attendance_model_1.default.create(attendanceData);
                         holidayProcessedCount++;
                     }
                 }
@@ -78,13 +83,13 @@ class AttendanceProcessorWorker {
             let leaveProcessedCount = 0;
             let skippedCount = 0;
             for (const userId of userIds) {
-                const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, date);
+                const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(userId, date);
                 if (existingAttendance) {
                     console.log(`${logPrefix} Attendance already exists for user ${userId} on ${dateStr}, skipping`);
                     skippedCount++;
                     continue;
                 }
-                const leaveHistory = await LeaveHistoryModel.findByUserIdAndDateRange(userId, date, date);
+                const leaveHistory = await leave_history_model_1.default.findByUserIdAndDateRange(userId, date, date);
                 if (leaveHistory.length > 0) {
                     const activeApprovedLeave = leaveHistory.filter(leave => leave.status === 'approved');
                     if (activeApprovedLeave.length > 0) {
@@ -99,13 +104,13 @@ class AttendanceProcessorWorker {
                             location_address: null,
                             notes: 'On approved leave'
                         };
-                        await AttendanceModel.create(attendanceData);
+                        await attendance_model_1.default.create(attendanceData);
                         leaveProcessedCount++;
                         console.log(`${logPrefix} Leave attendance processed for user ${userId}`);
                         continue;
                     }
                 }
-                const [leaveRequests] = await pool.execute(`SELECT * FROM leave_requests
+                const [leaveRequests] = await database_1.pool.execute(`SELECT * FROM leave_requests
            WHERE user_id = ?
              AND ? BETWEEN start_date AND end_date
              AND status = 'approved'
@@ -122,12 +127,12 @@ class AttendanceProcessorWorker {
                         location_address: null,
                         notes: 'On approved leave'
                     };
-                    await AttendanceModel.create(attendanceData);
+                    await attendance_model_1.default.create(attendanceData);
                     leaveProcessedCount++;
                     console.log(`${logPrefix} Leave attendance processed for user ${userId} from leave_requests`);
                     continue;
                 }
-                const effectiveSchedule = await ShiftSchedulingService.getEffectiveScheduleForDate(userId, date);
+                const effectiveSchedule = await shift_scheduling_service_1.ShiftSchedulingService.getEffectiveScheduleForDate(userId, date);
                 if (!effectiveSchedule || !effectiveSchedule.start_time || !effectiveSchedule.end_time) {
                     skippedCount++;
                     console.log(`${logPrefix} No shift assigned for user ${userId} on ${dateStr}, skipping`);
@@ -144,7 +149,7 @@ class AttendanceProcessorWorker {
                     location_address: null,
                     notes: 'Scheduled shift but no check-in recorded'
                 };
-                await AttendanceModel.create(attendanceData);
+                await attendance_model_1.default.create(attendanceData);
                 absentProcessedCount++;
                 console.log(`${logPrefix} Absent attendance recorded for user ${userId} (scheduled shift but no check-in)`);
             }
@@ -191,7 +196,7 @@ class AttendanceProcessorWorker {
                 return;
             }
             console.log(`[Auto-Mark] Checking for branches with auto-mark time: ${currentTime}`);
-            const [branches] = await pool.execute(`
+            const [branches] = await database_1.pool.execute(`
         SELECT id, name, code, auto_mark_absent_time, auto_mark_absent_timezone
         FROM branches
         WHERE auto_mark_absent_enabled = TRUE
@@ -228,7 +233,7 @@ class AttendanceProcessorWorker {
     static async lockAttendanceForDate(branchId, date, lockedBy, reason) {
         const dateStr = date.toISOString().split('T')[0];
         try {
-            const [result] = await pool.execute(`
+            const [result] = await database_1.pool.execute(`
         UPDATE attendance a
         JOIN staff s ON a.user_id = s.user_id
         SET
@@ -240,12 +245,12 @@ class AttendanceProcessorWorker {
           AND a.date = ?
           AND a.is_locked = FALSE
       `, [lockedBy, reason || 'Auto-lock', branchId, dateStr]);
-            await pool.execute(`
+            await database_1.pool.execute(`
         UPDATE branches
         SET attendance_lock_date = LEAST(IFNULL(attendance_lock_date, ?), ?)
         WHERE id = ?
       `, [dateStr, dateStr, branchId]);
-            await pool.execute(`
+            await database_1.pool.execute(`
         INSERT INTO attendance_lock_log
           (branch_id, lock_date, locked_by, reason, attendance_count)
         VALUES (?, ?, ?, ?, ?)
@@ -289,5 +294,5 @@ class AttendanceProcessorWorker {
         };
     }
 }
-export default AttendanceProcessorWorker;
+exports.default = AttendanceProcessorWorker;
 //# sourceMappingURL=attendance-processor.worker.js.map

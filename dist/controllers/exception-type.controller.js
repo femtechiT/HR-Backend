@@ -1,8 +1,14 @@
-import ExceptionTypeModel from '../models/exception-type.model';
-export const getAllExceptionTypes = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.toggleExceptionTypeActive = exports.deleteExceptionType = exports.updateExceptionType = exports.createExceptionType = exports.getExceptionTypeById = exports.getAllExceptionTypes = void 0;
+const exception_type_model_1 = __importDefault(require("../models/exception-type.model"));
+const getAllExceptionTypes = async (req, res) => {
     try {
         const { activeOnly } = req.query;
-        const types = await ExceptionTypeModel.findAll(activeOnly === 'true');
+        const types = await exception_type_model_1.default.findAll(activeOnly === 'true');
         return res.json({
             success: true,
             message: 'Exception types retrieved successfully',
@@ -17,7 +23,8 @@ export const getAllExceptionTypes = async (req, res) => {
         });
     }
 };
-export const getExceptionTypeById = async (req, res) => {
+exports.getAllExceptionTypes = getAllExceptionTypes;
+const getExceptionTypeById = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -28,7 +35,7 @@ export const getExceptionTypeById = async (req, res) => {
                 message: 'Invalid exception type ID'
             });
         }
-        const exceptionType = await ExceptionTypeModel.findById(exceptionTypeId);
+        const exceptionType = await exception_type_model_1.default.findById(exceptionTypeId);
         if (!exceptionType) {
             return res.status(404).json({
                 success: false,
@@ -49,7 +56,8 @@ export const getExceptionTypeById = async (req, res) => {
         });
     }
 };
-export const createExceptionType = async (req, res) => {
+exports.getExceptionTypeById = getExceptionTypeById;
+const createExceptionType = async (req, res) => {
     try {
         const { name, code, description, icon, color, default_start_time, default_end_time, default_break_duration, sort_order } = req.body;
         if (!name || !code) {
@@ -58,7 +66,7 @@ export const createExceptionType = async (req, res) => {
                 message: 'Name and code are required'
             });
         }
-        const existing = await ExceptionTypeModel.findByCode(code);
+        const existing = await exception_type_model_1.default.findByCode(code);
         if (existing) {
             return res.status(409).json({
                 success: false,
@@ -78,7 +86,7 @@ export const createExceptionType = async (req, res) => {
             is_system: false,
             sort_order: sort_order || 0
         };
-        const newType = await ExceptionTypeModel.create(typeData);
+        const newType = await exception_type_model_1.default.create(typeData);
         return res.status(201).json({
             success: true,
             message: 'Exception type created successfully',
@@ -93,7 +101,8 @@ export const createExceptionType = async (req, res) => {
         });
     }
 };
-export const updateExceptionType = async (req, res) => {
+exports.createExceptionType = createExceptionType;
+const updateExceptionType = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -122,7 +131,7 @@ export const updateExceptionType = async (req, res) => {
             updateData.default_break_duration = default_break_duration;
         if (sort_order !== undefined)
             updateData.sort_order = sort_order;
-        const updatedType = await ExceptionTypeModel.update(exceptionTypeId, updateData);
+        const updatedType = await exception_type_model_1.default.update(exceptionTypeId, updateData);
         if (!updatedType) {
             return res.status(404).json({
                 success: false,
@@ -149,7 +158,8 @@ export const updateExceptionType = async (req, res) => {
         });
     }
 };
-export const deleteExceptionType = async (req, res) => {
+exports.updateExceptionType = updateExceptionType;
+const deleteExceptionType = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -160,7 +170,7 @@ export const deleteExceptionType = async (req, res) => {
                 message: 'Invalid exception type ID'
             });
         }
-        const deleted = await ExceptionTypeModel.delete(exceptionTypeId);
+        const deleted = await exception_type_model_1.default.delete(exceptionTypeId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -186,7 +196,8 @@ export const deleteExceptionType = async (req, res) => {
         });
     }
 };
-export const toggleExceptionTypeActive = async (req, res) => {
+exports.deleteExceptionType = deleteExceptionType;
+const toggleExceptionTypeActive = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -197,7 +208,7 @@ export const toggleExceptionTypeActive = async (req, res) => {
                 message: 'Invalid exception type ID'
             });
         }
-        const toggledType = await ExceptionTypeModel.toggleActive(exceptionTypeId);
+        const toggledType = await exception_type_model_1.default.toggleActive(exceptionTypeId);
         if (!toggledType) {
             return res.status(404).json({
                 success: false,
@@ -224,4 +235,5 @@ export const toggleExceptionTypeActive = async (req, res) => {
         });
     }
 };
+exports.toggleExceptionTypeActive = toggleExceptionTypeActive;
 //# sourceMappingURL=exception-type.controller.js.map

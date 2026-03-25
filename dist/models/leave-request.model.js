@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class LeaveRequestModel {
     static tableName = 'leave_requests';
     static async findAll(userId, status, page = 1, limit = 20) {
@@ -22,13 +24,13 @@ class LeaveRequestModel {
         }
         query += ' ORDER BY lr.created_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `SELECT COUNT(*) as total FROM ${this.tableName} lr`;
         const countParams = [...params.slice(0, params.length - 2)];
         if (conditions.length > 0) {
             countQuery += ' WHERE ' + conditions.join(' AND ');
         }
-        const [countResult] = await pool.execute(countQuery, countParams);
+        const [countResult] = await database_1.pool.execute(countQuery, countParams);
         return {
             data: rows,
             total: countResult[0].total,
@@ -36,7 +38,7 @@ class LeaveRequestModel {
         };
     }
     static async findById(id, connection) {
-        const db = connection || pool;
+        const db = connection || database_1.pool;
         const [rows] = await db.execute(`SELECT lr.*, u.full_name as user_name, lt.name as leave_type_name
        FROM ${this.tableName} lr
        JOIN users u ON lr.user_id = u.id
@@ -45,11 +47,11 @@ class LeaveRequestModel {
         return rows[0] || null;
     }
     static async findByUserId(userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
         return rows;
     }
     static async create(leaveData, connection) {
-        const db = connection || pool;
+        const db = connection || database_1.pool;
         const [result] = await db.execute(`INSERT INTO ${this.tableName}
        (user_id, leave_type_id, start_date, end_date, days_requested, reason, attachments, status, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
@@ -71,7 +73,7 @@ class LeaveRequestModel {
         return createdItem;
     }
     static async update(id, leaveData, connection) {
-        const db = connection || pool;
+        const db = connection || database_1.pool;
         const updates = [];
         const values = [];
         if (leaveData.status !== undefined) {
@@ -110,9 +112,9 @@ class LeaveRequestModel {
         return await this.findById(id, connection);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
 }
-export default LeaveRequestModel;
+exports.default = LeaveRequestModel;
 //# sourceMappingURL=leave-request.model.js.map

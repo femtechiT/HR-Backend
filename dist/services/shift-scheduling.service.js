@@ -1,8 +1,11 @@
-import { pool } from '../config/database';
-export class ShiftSchedulingService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ShiftSchedulingService = void 0;
+const database_1 = require("../config/database");
+class ShiftSchedulingService {
     static async getEffectiveScheduleForDate(userId, date) {
         try {
-            const [exceptions] = await pool.execute(`SELECT se.new_start_time, se.new_end_time, se.new_break_duration_minutes, se.exception_type, se.reason
+            const [exceptions] = await database_1.pool.execute(`SELECT se.new_start_time, se.new_end_time, se.new_break_duration_minutes, se.exception_type, se.reason
          FROM shift_exceptions se
          WHERE se.user_id = ? AND se.exception_date = ? AND se.status = 'active'`, [userId, date.toISOString().split('T')[0]]);
             if (exceptions.length > 0) {
@@ -15,7 +18,7 @@ export class ShiftSchedulingService {
                     schedule_note: exception.reason || `Special schedule for ${exception.exception_type}`
                 };
             }
-            const [assignments] = await pool.execute(`SELECT esa.custom_start_time, esa.custom_end_time, esa.custom_break_duration_minutes,
+            const [assignments] = await database_1.pool.execute(`SELECT esa.custom_start_time, esa.custom_end_time, esa.custom_break_duration_minutes,
                 st.start_time as template_start_time, st.end_time as template_end_time, 
                 st.break_duration_minutes as template_break_duration_minutes,
                 st.recurrence_pattern, st.recurrence_days
@@ -53,13 +56,13 @@ export class ShiftSchedulingService {
                     schedule_note: 'Non-working day based on recurrence patterns'
                 };
             }
-            const [userBranch] = await pool.execute(`SELECT branch_id FROM staff WHERE user_id = ?`, [userId]);
+            const [userBranch] = await database_1.pool.execute(`SELECT branch_id FROM staff WHERE user_id = ?`, [userId]);
             if (userBranch.length > 0 && userBranch[0].branch_id) {
                 const branchId = userBranch[0].branch_id;
                 const dayOfWeek = date.getDay();
                 const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                 const dayName = dayNames[dayOfWeek];
-                const [branchHours] = await pool.execute(`SELECT start_time, end_time, break_duration_minutes, is_working_day
+                const [branchHours] = await database_1.pool.execute(`SELECT start_time, end_time, break_duration_minutes, is_working_day
            FROM branch_working_days
            WHERE branch_id = ? AND day_of_week = ?`, [branchId, dayName]);
                 if (branchHours.length > 0 && branchHours[0].is_working_day) {
@@ -147,7 +150,7 @@ export class ShiftSchedulingService {
     }
     static async updateAttendanceWithScheduleInfo(attendanceId, userId, date, gracePeriodMinutes = 0) {
         try {
-            const [attendanceRecords] = await pool.execute(`SELECT check_in_time, check_out_time FROM attendance WHERE id = ?`, [attendanceId]);
+            const [attendanceRecords] = await database_1.pool.execute(`SELECT check_in_time, check_out_time FROM attendance WHERE id = ?`, [attendanceId]);
             if (attendanceRecords.length === 0) {
                 throw new Error('Attendance record not found');
             }
@@ -155,7 +158,7 @@ export class ShiftSchedulingService {
             const checkInTime = record.check_in_time;
             const checkOutTime = record.check_out_time;
             const metrics = await this.calculateAttendanceMetrics(userId, date, checkInTime, checkOutTime, gracePeriodMinutes);
-            const [result] = await pool.execute(`UPDATE attendance
+            const [result] = await database_1.pool.execute(`UPDATE attendance
          SET scheduled_start_time = ?, scheduled_end_time = ?,
              scheduled_break_duration_minutes = ?, is_late = ?,
              is_early_departure = ?, actual_working_hours = ?,
@@ -179,7 +182,7 @@ export class ShiftSchedulingService {
     }
     static async processAttendanceForDate(userId, date) {
         try {
-            const [attendanceRecords] = await pool.execute(`SELECT id, check_in_time, check_out_time
+            const [attendanceRecords] = await database_1.pool.execute(`SELECT id, check_in_time, check_out_time
          FROM attendance
          WHERE user_id = ? AND date = ?`, [userId, date.toISOString().split('T')[0]]);
             if (attendanceRecords.length > 0) {
@@ -193,4 +196,5 @@ export class ShiftSchedulingService {
         }
     }
 }
+exports.ShiftSchedulingService = ShiftSchedulingService;
 //# sourceMappingURL=shift-scheduling.service.js.map

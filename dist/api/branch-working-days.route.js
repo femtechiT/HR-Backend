@@ -1,7 +1,12 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import BranchWorkingDaysModel from '../models/branch-working-days.model';
-const router = Router();
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const branch_working_days_model_1 = __importDefault(require("../models/branch-working-days.model"));
+const router = (0, express_1.Router)();
 const DAYS_OF_WEEK = [
     'monday',
     'tuesday',
@@ -11,7 +16,7 @@ const DAYS_OF_WEEK = [
     'saturday',
     'sunday'
 ];
-router.get('/:branchId/working-days', authenticateJWT, async (req, res) => {
+router.get('/:branchId/working-days', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const branchId = parseInt(req.params.branchId);
         if (isNaN(branchId)) {
@@ -20,7 +25,7 @@ router.get('/:branchId/working-days', authenticateJWT, async (req, res) => {
                 message: 'Invalid branch ID'
             });
         }
-        const workingDays = await BranchWorkingDaysModel.findByBranchId(branchId);
+        const workingDays = await branch_working_days_model_1.default.findByBranchId(branchId);
         return res.json({
             success: true,
             message: 'Working days retrieved successfully',
@@ -38,7 +43,7 @@ router.get('/:branchId/working-days', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/:branchId/working-days/:dayOfWeek', authenticateJWT, async (req, res) => {
+router.get('/:branchId/working-days/:dayOfWeek', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const branchId = parseInt(req.params.branchId);
         const dayOfWeek = req.params.dayOfWeek.toLowerCase();
@@ -54,7 +59,7 @@ router.get('/:branchId/working-days/:dayOfWeek', authenticateJWT, async (req, re
                 message: `Invalid day of week. Must be one of: ${DAYS_OF_WEEK.join(', ')}`
             });
         }
-        const workingDay = await BranchWorkingDaysModel.findByBranchIdAndDay(branchId, dayOfWeek);
+        const workingDay = await branch_working_days_model_1.default.findByBranchIdAndDay(branchId, dayOfWeek);
         if (!workingDay) {
             return res.status(404).json({
                 success: false,
@@ -76,7 +81,7 @@ router.get('/:branchId/working-days/:dayOfWeek', authenticateJWT, async (req, re
         });
     }
 });
-router.put('/:branchId/working-days', authenticateJWT, checkPermission('branches:update'), async (req, res) => {
+router.put('/:branchId/working-days', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('branches:update'), async (req, res) => {
     try {
         const branchId = parseInt(req.params.branchId);
         if (isNaN(branchId)) {
@@ -110,7 +115,7 @@ router.put('/:branchId/working-days', authenticateJWT, checkPermission('branches
             ...day,
             day_of_week: day.day_of_week.toLowerCase()
         }));
-        const updatedWorkingDays = await BranchWorkingDaysModel.bulkUpdate(branchId, normalizedDays);
+        const updatedWorkingDays = await branch_working_days_model_1.default.bulkUpdate(branchId, normalizedDays);
         return res.json({
             success: true,
             message: 'Working days updated successfully',
@@ -127,7 +132,7 @@ router.put('/:branchId/working-days', authenticateJWT, checkPermission('branches
         });
     }
 });
-router.post('/:branchId/working-days/:dayOfWeek', authenticateJWT, checkPermission('branches:update'), async (req, res) => {
+router.post('/:branchId/working-days/:dayOfWeek', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('branches:update'), async (req, res) => {
     try {
         const branchId = parseInt(req.params.branchId);
         const dayOfWeek = req.params.dayOfWeek.toLowerCase();
@@ -144,7 +149,7 @@ router.post('/:branchId/working-days/:dayOfWeek', authenticateJWT, checkPermissi
             });
         }
         const { is_working_day, start_time, end_time, break_duration_minutes } = req.body;
-        const workingDay = await BranchWorkingDaysModel.upsert({
+        const workingDay = await branch_working_days_model_1.default.upsert({
             branch_id: branchId,
             day_of_week: dayOfWeek,
             is_working_day,
@@ -168,7 +173,7 @@ router.post('/:branchId/working-days/:dayOfWeek', authenticateJWT, checkPermissi
         });
     }
 });
-router.get('/working-days/check', authenticateJWT, async (req, res) => {
+router.get('/working-days/check', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { branch_id, date } = req.query;
         if (!branch_id || !date) {
@@ -186,8 +191,8 @@ router.get('/working-days/check', authenticateJWT, async (req, res) => {
             });
         }
         const dayOfWeek = DAYS_OF_WEEK[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
-        const isWorkingDay = await BranchWorkingDaysModel.isWorkingDay(branchId, dayOfWeek);
-        const workingHours = await BranchWorkingDaysModel.getWorkingHours(branchId, dayOfWeek);
+        const isWorkingDay = await branch_working_days_model_1.default.isWorkingDay(branchId, dayOfWeek);
+        const workingHours = await branch_working_days_model_1.default.getWorkingHours(branchId, dayOfWeek);
         return res.json({
             success: true,
             data: {
@@ -207,5 +212,5 @@ router.get('/working-days/check', authenticateJWT, async (req, res) => {
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=branch-working-days.route.js.map

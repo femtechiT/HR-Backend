@@ -1,28 +1,30 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class AuditLogModel {
     static tableName = 'audit_logs';
     static async findAll(limit = 20, offset = 0) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [limit, offset]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [limit, offset]);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByEntity(entityType, entityId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE entity_type = ? AND entity_id = ? ORDER BY created_at DESC`, [entityType, entityId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE entity_type = ? AND entity_id = ? ORDER BY created_at DESC`, [entityType, entityId]);
         return rows;
     }
     static async findByUser(userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
         return rows;
     }
     static async findByAction(action) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE action = ? ORDER BY created_at DESC`, [action]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE action = ? ORDER BY created_at DESC`, [action]);
         return rows;
     }
     static async create(logData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (user_id, action, entity_type, entity_id, before_data, after_data, ip_address, user_agent)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (user_id, action, entity_type, entity_id, before_data, after_data, ip_address, user_agent)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
             logData.user_id ?? null,
             logData.action,
@@ -58,5 +60,5 @@ class AuditLogModel {
         return result;
     }
 }
-export default AuditLogModel;
+exports.default = AuditLogModel;
 //# sourceMappingURL=audit-log.model.js.map

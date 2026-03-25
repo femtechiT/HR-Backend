@@ -1,16 +1,22 @@
-import PayrollRunModel from '../models/payroll-run.model';
-import PayrollRecordModel from '../models/payroll-record.model';
-import StaffModel from '../models/staff.model';
-import PayrollCalculator from '../utils/payroll-calculator.util';
-import AuditLogModel from '../models/audit-log.model';
-export const getAllPayrollRuns = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deletePayrollRun = exports.executePayrollRun = exports.updatePayrollRun = exports.createPayrollRun = exports.getPayrollRunById = exports.getAllPayrollRuns = void 0;
+const payroll_run_model_1 = __importDefault(require("../models/payroll-run.model"));
+const payroll_record_model_1 = __importDefault(require("../models/payroll-record.model"));
+const staff_model_1 = __importDefault(require("../models/staff.model"));
+const payroll_calculator_util_1 = __importDefault(require("../utils/payroll-calculator.util"));
+const audit_log_model_1 = __importDefault(require("../models/audit-log.model"));
+const getAllPayrollRuns = async (req, res) => {
     try {
         const { month, year, branchId, status } = req.query;
         const monthNum = month ? parseInt(month) : undefined;
         const yearNum = year ? parseInt(year) : undefined;
         const branchIdNum = branchId ? parseInt(branchId) : undefined;
         const statusStr = status ? status : undefined;
-        const payrollRuns = await PayrollRunModel.findAll(monthNum, yearNum, branchIdNum, statusStr);
+        const payrollRuns = await payroll_run_model_1.default.findAll(monthNum, yearNum, branchIdNum, statusStr);
         res.json({
             success: true,
             message: 'Payroll runs retrieved successfully',
@@ -25,7 +31,8 @@ export const getAllPayrollRuns = async (req, res) => {
         });
     }
 };
-export const getPayrollRunById = async (req, res) => {
+exports.getAllPayrollRuns = getAllPayrollRuns;
+const getPayrollRunById = async (req, res) => {
     try {
         const { id } = req.params;
         const payrollRunId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -35,14 +42,14 @@ export const getPayrollRunById = async (req, res) => {
                 message: 'Invalid payroll run ID'
             });
         }
-        const payrollRun = await PayrollRunModel.findById(payrollRunId);
+        const payrollRun = await payroll_run_model_1.default.findById(payrollRunId);
         if (!payrollRun) {
             return res.status(404).json({
                 success: false,
                 message: 'Payroll run not found'
             });
         }
-        const payrollRecords = await PayrollRecordModel.findByPayrollRunId(payrollRunId);
+        const payrollRecords = await payroll_record_model_1.default.findByPayrollRunId(payrollRunId);
         return res.json({
             success: true,
             message: 'Payroll run retrieved successfully',
@@ -57,7 +64,8 @@ export const getPayrollRunById = async (req, res) => {
         });
     }
 };
-export const createPayrollRun = async (req, res) => {
+exports.getPayrollRunById = getPayrollRunById;
+const createPayrollRun = async (req, res) => {
     try {
         const { month, year, branch_id, notes } = req.body;
         if (!month || !year) {
@@ -84,7 +92,7 @@ export const createPayrollRun = async (req, res) => {
                 message: 'Year must be between 1900 and 2100'
             });
         }
-        const existingRun = await PayrollRunModel.findByMonthYear(month, year, branch_id || null);
+        const existingRun = await payroll_run_model_1.default.findByMonthYear(month, year, branch_id || null);
         if (existingRun) {
             return res.status(409).json({
                 success: false,
@@ -99,7 +107,7 @@ export const createPayrollRun = async (req, res) => {
             processed_by: req.currentUser.id,
             notes: notes || null
         };
-        const newPayrollRun = await PayrollRunModel.create({
+        const newPayrollRun = await payroll_run_model_1.default.create({
             month,
             year,
             branch_id: branch_id || null,
@@ -107,7 +115,7 @@ export const createPayrollRun = async (req, res) => {
             processed_by: req.currentUser.id,
             notes: notes || null
         });
-        await AuditLogModel.create({
+        await audit_log_model_1.default.create({
             user_id: req.currentUser.id,
             action: 'payroll_run.created',
             entity_type: 'payroll_run',
@@ -131,7 +139,8 @@ export const createPayrollRun = async (req, res) => {
         });
     }
 };
-export const updatePayrollRun = async (req, res) => {
+exports.createPayrollRun = createPayrollRun;
+const updatePayrollRun = async (req, res) => {
     try {
         const { id } = req.params;
         const payrollRunId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -142,7 +151,7 @@ export const updatePayrollRun = async (req, res) => {
                 message: 'Invalid payroll run ID'
             });
         }
-        const existingPayrollRun = await PayrollRunModel.findById(payrollRunId);
+        const existingPayrollRun = await payroll_run_model_1.default.findById(payrollRunId);
         if (!existingPayrollRun) {
             return res.status(404).json({
                 success: false,
@@ -154,9 +163,9 @@ export const updatePayrollRun = async (req, res) => {
             updateData.status = status;
         if (notes !== undefined)
             updateData.notes = notes;
-        const updatedPayrollRun = await PayrollRunModel.update(payrollRunId, updateData);
+        const updatedPayrollRun = await payroll_run_model_1.default.update(payrollRunId, updateData);
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'payroll_run.updated',
                 entity_type: 'payroll_run',
@@ -181,7 +190,8 @@ export const updatePayrollRun = async (req, res) => {
         });
     }
 };
-export const executePayrollRun = async (req, res) => {
+exports.updatePayrollRun = updatePayrollRun;
+const executePayrollRun = async (req, res) => {
     try {
         const { id } = req.params;
         const payrollRunId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -197,7 +207,7 @@ export const executePayrollRun = async (req, res) => {
                 message: 'Authentication required'
             });
         }
-        const payrollRun = await PayrollRunModel.findById(payrollRunId);
+        const payrollRun = await payroll_run_model_1.default.findById(payrollRunId);
         if (!payrollRun) {
             return res.status(404).json({
                 success: false,
@@ -210,20 +220,20 @@ export const executePayrollRun = async (req, res) => {
                 message: 'Payroll run must be in draft status to execute'
             });
         }
-        await PayrollRunModel.updateStatus(payrollRunId, 'processing');
+        await payroll_run_model_1.default.updateStatus(payrollRunId, 'processing');
         try {
             let staffMembers;
             if (payrollRun.branch_id) {
-                staffMembers = await StaffModel.findByBranch(payrollRun.branch_id);
+                staffMembers = await staff_model_1.default.findByBranch(payrollRun.branch_id);
             }
             else {
-                const allStaffResult = await StaffModel.findAll();
+                const allStaffResult = await staff_model_1.default.findAll();
                 staffMembers = allStaffResult.staff;
             }
             const activeStaff = staffMembers.filter(staff => staff.status === 'active');
-            const payrollCalculations = await PayrollCalculator.calculatePayrollForStaff(activeStaff.map(staff => staff.id), payrollRun.month, payrollRun.year);
+            const payrollCalculations = await payroll_calculator_util_1.default.calculatePayrollForStaff(activeStaff.map(staff => staff.id), payrollRun.month, payrollRun.year);
             for (const calculation of payrollCalculations) {
-                await PayrollRecordModel.create({
+                await payroll_record_model_1.default.create({
                     payroll_run_id: payrollRunId,
                     staff_id: calculation.staff_id,
                     earnings: calculation.earnings,
@@ -233,13 +243,13 @@ export const executePayrollRun = async (req, res) => {
                     net_pay: calculation.net_pay
                 });
             }
-            const totalAmount = await PayrollRecordModel.calculateTotalAmountForRun(payrollRunId);
-            await PayrollRunModel.update(payrollRunId, {
+            const totalAmount = await payroll_record_model_1.default.calculateTotalAmountForRun(payrollRunId);
+            await payroll_run_model_1.default.update(payrollRunId, {
                 status: 'completed',
                 total_amount: totalAmount,
                 processed_by: req.currentUser.id
             });
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'payroll_run.executed',
                 entity_type: 'payroll_run',
@@ -260,7 +270,7 @@ export const executePayrollRun = async (req, res) => {
         }
         catch (executionError) {
             console.error('Payroll run execution error:', executionError);
-            await PayrollRunModel.updateStatus(payrollRunId, 'draft');
+            await payroll_run_model_1.default.updateStatus(payrollRunId, 'draft');
             return res.status(500).json({
                 success: false,
                 message: 'Error executing payroll run, status reset to draft',
@@ -276,7 +286,8 @@ export const executePayrollRun = async (req, res) => {
         });
     }
 };
-export const deletePayrollRun = async (req, res) => {
+exports.executePayrollRun = executePayrollRun;
+const deletePayrollRun = async (req, res) => {
     try {
         const { id } = req.params;
         const payrollRunId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -286,7 +297,7 @@ export const deletePayrollRun = async (req, res) => {
                 message: 'Invalid payroll run ID'
             });
         }
-        const existingPayrollRun = await PayrollRunModel.findById(payrollRunId);
+        const existingPayrollRun = await payroll_run_model_1.default.findById(payrollRunId);
         if (!existingPayrollRun) {
             return res.status(404).json({
                 success: false,
@@ -299,7 +310,7 @@ export const deletePayrollRun = async (req, res) => {
                 message: 'Can only delete payroll runs in draft status'
             });
         }
-        const deleted = await PayrollRunModel.delete(payrollRunId);
+        const deleted = await payroll_run_model_1.default.delete(payrollRunId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -307,7 +318,7 @@ export const deletePayrollRun = async (req, res) => {
             });
         }
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'payroll_run.deleted',
                 entity_type: 'payroll_run',
@@ -331,4 +342,5 @@ export const deletePayrollRun = async (req, res) => {
         });
     }
 };
+exports.deletePayrollRun = deletePayrollRun;
 //# sourceMappingURL=payroll-run.controller.js.map

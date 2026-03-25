@@ -1,26 +1,29 @@
-import { pool } from '../config/database';
-export const KpiScoreModel = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.KpiScoreModel = void 0;
+const database_1 = require("../config/database");
+exports.KpiScoreModel = {
     tableName: 'kpi_scores',
     async findAll() {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} ORDER BY calculated_at DESC`);
         connection.release();
         return rows;
     },
     async findById(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return rows[0] || null;
     },
     async findByAssignmentId(assignmentId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE kpi_assignment_id = ? ORDER BY calculated_at DESC`, [assignmentId]);
         connection.release();
         return rows;
     },
     async findByUserId(userId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`
       SELECT ks.*
       FROM ${this.tableName} ks
@@ -32,7 +35,7 @@ export const KpiScoreModel = {
         return rows;
     },
     async create(score) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`INSERT INTO ${this.tableName}
        (kpi_assignment_id, calculated_value, achievement_percentage, weighted_score, calculated_at, manually_overridden, override_value, override_reason, override_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, NOW(), ?, ?, ?, ?, NOW(), NOW())`, [
@@ -55,7 +58,7 @@ export const KpiScoreModel = {
         };
     },
     async update(id, score) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const fields = [];
         const values = [];
         if (score.kpi_assignment_id !== undefined) {
@@ -100,7 +103,7 @@ export const KpiScoreModel = {
         return result.affectedRows > 0;
     },
     async delete(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return result.affectedRows > 0;

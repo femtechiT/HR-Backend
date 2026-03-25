@@ -1,11 +1,16 @@
-import { pool } from '../config/database';
-import crypto from 'crypto';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
+const crypto_1 = __importDefault(require("crypto"));
 class ApiKeyModel {
     static tableName = 'api_keys';
     static async create(apiKeyData) {
-        const plainTextKey = 'hr_' + crypto.randomBytes(32).toString('hex');
-        const hashedKey = crypto.createHash('sha256').update(plainTextKey).digest('hex');
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName}
+        const plainTextKey = 'hr_' + crypto_1.default.randomBytes(32).toString('hex');
+        const hashedKey = crypto_1.default.createHash('sha256').update(plainTextKey).digest('hex');
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName}
        (api_key, name, user_id, permissions, is_active, expires_at, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`, [
             hashedKey,
@@ -23,7 +28,7 @@ class ApiKeyModel {
         return { apiKey, plainTextKey };
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         const apiKeys = rows;
         const apiKey = apiKeys[0] || null;
         if (apiKey && typeof apiKey.permissions === 'string') {
@@ -37,8 +42,8 @@ class ApiKeyModel {
         return apiKey;
     }
     static async findByKey(plainTextKey) {
-        const hashedKey = crypto.createHash('sha256').update(plainTextKey).digest('hex');
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE api_key = ? AND is_active = TRUE`, [hashedKey]);
+        const hashedKey = crypto_1.default.createHash('sha256').update(plainTextKey).digest('hex');
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE api_key = ? AND is_active = TRUE`, [hashedKey]);
         const apiKeys = rows;
         if (apiKeys[0] && apiKeys[0].expires_at && new Date() > new Date(apiKeys[0].expires_at)) {
             await this.update(apiKeys[0].id, { is_active: false });
@@ -47,7 +52,7 @@ class ApiKeyModel {
         return apiKeys[0] || null;
     }
     static async findByUser(userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
         const apiKeys = rows;
         const validKeys = [];
         for (const key of apiKeys) {
@@ -92,11 +97,11 @@ class ApiKeyModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const [result] = await pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
+        const [result] = await database_1.pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
         const updateResult = result;
         return updateResult.affectedRows > 0;
     }
@@ -124,5 +129,5 @@ class ApiKeyModel {
         return permissions.includes(permission);
     }
 }
-export default ApiKeyModel;
+exports.default = ApiKeyModel;
 //# sourceMappingURL=api-key.model.js.map

@@ -1,1 +1,1 @@
-{"version":3,"file":"company-email.middleware.js","sourceRoot":"","sources":["../../src/middleware/company-email.middleware.ts"],"names":[],"mappings":"AAMA,MAAM,CAAC,MAAM,gBAAgB,GAA8D,CAAC,GAAG,EAAE,GAAG,EAAE,IAAI,EAAE,EAAE;IAwB5G,IAAI,EAAE,CAAC;AACT,CAAC,CAAC"}
+{"version":3,"file":"company-email.middleware.js","sourceRoot":"","sources":["../../src/middleware/company-email.middleware.ts"],"names":[],"mappings":";;;AAMO,MAAM,gBAAgB,GAA8D,CAAC,GAAG,EAAE,GAAG,EAAE,IAAI,EAAE,EAAE;IAwB5G,IAAI,EAAE,CAAC;AACT,CAAC,CAAC;AAzBW,QAAA,gBAAgB,oBAyB3B"}

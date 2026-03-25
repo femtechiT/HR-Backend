@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class StaffPaymentStructureModel {
     static tableName = 'staff_payment_structure';
     static async findAll(staffId, paymentTypeId) {
@@ -17,27 +19,27 @@ class StaffPaymentStructureModel {
             query += ' WHERE ' + conditions.join(' AND ');
         }
         query += ' ORDER BY effective_from DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByStaffId(staffId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? ORDER BY effective_from DESC`, [staffId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? ORDER BY effective_from DESC`, [staffId]);
         return rows;
     }
     static async findByPaymentTypeId(paymentTypeId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE payment_type_id = ? ORDER BY staff_id`, [paymentTypeId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE payment_type_id = ? ORDER BY staff_id`, [paymentTypeId]);
         return rows;
     }
     static async findByStaffAndPaymentType(staffId, paymentTypeId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? AND payment_type_id = ? ORDER BY effective_from DESC`, [staffId, paymentTypeId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? AND payment_type_id = ? ORDER BY effective_from DESC`, [staffId, paymentTypeId]);
         return rows;
     }
     static async findActiveForStaff(staffId, date = new Date()) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} 
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} 
        WHERE staff_id = ? 
        AND effective_from <= ? 
        AND (effective_to IS NULL OR effective_to >= ?)
@@ -45,7 +47,7 @@ class StaffPaymentStructureModel {
         return rows;
     }
     static async create(paymentStructureData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (staff_id, payment_type_id, value, effective_from, effective_to, created_by)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (staff_id, payment_type_id, value, effective_from, effective_to, created_by)
        VALUES (?, ?, ?, ?, ?, ?)`, [
             paymentStructureData.staff_id,
             paymentStructureData.payment_type_id,
@@ -80,17 +82,17 @@ class StaffPaymentStructureModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async deactivate(id, endDate) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET effective_to = ? WHERE id = ?`, [endDate, id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET effective_to = ? WHERE id = ?`, [endDate, id]);
         return result.affectedRows > 0;
     }
 }
-export default StaffPaymentStructureModel;
+exports.default = StaffPaymentStructureModel;
 //# sourceMappingURL=staff-payment-structure.model.js.map

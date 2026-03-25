@@ -1,10 +1,12 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class LeaveTypeModel {
     static tableName = 'leave_types';
     static async findAll() {
         try {
             console.log(`Executing query: SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
-            const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+            const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
             const rowCount = Array.isArray(rows) ? rows.length : 0;
             console.log(`Query successful, found ${rowCount} leave types`);
             return rows;
@@ -15,15 +17,15 @@ class LeaveTypeModel {
         }
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByName(name) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE name = ?`, [name]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE name = ?`, [name]);
         return rows[0] || null;
     }
     static async create(leaveTypeData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (name, days_per_year, is_paid, allow_carryover, carryover_limit, expiry_rule_id, created_by, is_active)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, days_per_year, is_paid, allow_carryover, carryover_limit, expiry_rule_id, created_by, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
             leaveTypeData.name,
             leaveTypeData.days_per_year,
@@ -76,21 +78,21 @@ class LeaveTypeModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async activate(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET is_active = TRUE WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET is_active = TRUE WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async deactivate(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
 }
-export default LeaveTypeModel;
+exports.default = LeaveTypeModel;
 //# sourceMappingURL=leave-type.model.js.map

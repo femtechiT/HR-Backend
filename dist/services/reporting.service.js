@@ -1,5 +1,8 @@
-import { pool } from '../config/database';
-export class ReportTemplateService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ScheduledReportService = exports.ReportTemplateService = void 0;
+const database_1 = require("../config/database");
+class ReportTemplateService {
     static async getAllReportTemplates(category) {
         try {
             let query = 'SELECT * FROM report_templates WHERE is_active = TRUE';
@@ -9,7 +12,7 @@ export class ReportTemplateService {
                 params.push(category);
             }
             query += ' ORDER BY created_at DESC';
-            const [rows] = await pool.execute(query, params);
+            const [rows] = await database_1.pool.execute(query, params);
             return rows;
         }
         catch (error) {
@@ -19,7 +22,7 @@ export class ReportTemplateService {
     }
     static async getReportTemplateById(id) {
         try {
-            const [rows] = await pool.execute('SELECT * FROM report_templates WHERE id = ? AND is_active = TRUE', [id]);
+            const [rows] = await database_1.pool.execute('SELECT * FROM report_templates WHERE id = ? AND is_active = TRUE', [id]);
             return rows.length > 0 ? rows[0] : null;
         }
         catch (error) {
@@ -29,7 +32,7 @@ export class ReportTemplateService {
     }
     static async createReportTemplate(name, description, category, queryDefinition, parametersSchema, outputFormat, createdBy) {
         try {
-            const [result] = await pool.execute(`INSERT INTO report_templates 
+            const [result] = await database_1.pool.execute(`INSERT INTO report_templates 
          (name, description, category, query_definition, parameters_schema, output_format, created_by) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`, [
                 name,
@@ -82,7 +85,7 @@ export class ReportTemplateService {
             updateFields.push('updated_at = NOW()');
             params.push(id);
             const query = `UPDATE report_templates SET ${updateFields.join(', ')} WHERE id = ?`;
-            const [result] = await pool.execute(query, params);
+            const [result] = await database_1.pool.execute(query, params);
             return result.affectedRows > 0;
         }
         catch (error) {
@@ -92,7 +95,7 @@ export class ReportTemplateService {
     }
     static async deleteReportTemplate(id) {
         try {
-            const [result] = await pool.execute('UPDATE report_templates SET is_active = FALSE, updated_at = NOW() WHERE id = ?', [id]);
+            const [result] = await database_1.pool.execute('UPDATE report_templates SET is_active = FALSE, updated_at = NOW() WHERE id = ?', [id]);
             return result.affectedRows > 0;
         }
         catch (error) {
@@ -101,7 +104,8 @@ export class ReportTemplateService {
         }
     }
 }
-export class ScheduledReportService {
+exports.ReportTemplateService = ReportTemplateService;
+class ScheduledReportService {
     static async getAllScheduledReports(userId) {
         try {
             let query = `SELECT sr.*, rt.name as template_name, u.full_name as created_by_name
@@ -115,7 +119,7 @@ export class ScheduledReportService {
                 params.push(userId);
             }
             query += ' ORDER BY sr.created_at DESC';
-            const [rows] = await pool.execute(query, params);
+            const [rows] = await database_1.pool.execute(query, params);
             return rows;
         }
         catch (error) {
@@ -125,7 +129,7 @@ export class ScheduledReportService {
     }
     static async getScheduledReportById(id) {
         try {
-            const [rows] = await pool.execute(`SELECT sr.*, rt.name as template_name, u.full_name as created_by_name
+            const [rows] = await database_1.pool.execute(`SELECT sr.*, rt.name as template_name, u.full_name as created_by_name
          FROM scheduled_reports sr
          JOIN report_templates rt ON sr.report_template_id = rt.id
          LEFT JOIN users u ON sr.created_by = u.id
@@ -140,7 +144,7 @@ export class ScheduledReportService {
     static async createScheduledReport(reportTemplateId, name, description, scheduleType, scheduleConfig, recipients, parameters, createdBy) {
         try {
             const nextRunDate = this.calculateNextRunDate(scheduleType, scheduleConfig);
-            const [result] = await pool.execute(`INSERT INTO scheduled_reports 
+            const [result] = await database_1.pool.execute(`INSERT INTO scheduled_reports 
          (report_template_id, name, description, schedule_type, schedule_config, recipients, parameters, next_run_date, created_by) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                 reportTemplateId,
@@ -228,7 +232,7 @@ export class ScheduledReportService {
             updateFields.push('updated_at = NOW()');
             params.push(id);
             const query = `UPDATE scheduled_reports SET ${updateFields.join(', ')} WHERE id = ?`;
-            const [result] = await pool.execute(query, params);
+            const [result] = await database_1.pool.execute(query, params);
             return result.affectedRows > 0;
         }
         catch (error) {
@@ -238,7 +242,7 @@ export class ScheduledReportService {
     }
     static async deleteScheduledReport(id) {
         try {
-            const [result] = await pool.execute('DELETE FROM scheduled_reports WHERE id = ?', [id]);
+            const [result] = await database_1.pool.execute('DELETE FROM scheduled_reports WHERE id = ?', [id]);
             return result.affectedRows > 0;
         }
         catch (error) {
@@ -247,4 +251,5 @@ export class ScheduledReportService {
         }
     }
 }
+exports.ScheduledReportService = ScheduledReportService;
 //# sourceMappingURL=reporting.service.js.map

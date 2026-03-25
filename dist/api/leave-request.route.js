@@ -1,13 +1,51 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import { upload, handleMulterError } from '../middleware/upload.middleware';
-import LeaveRequestModel from '../models/leave-request.model';
-import LeaveTypeModel from '../models/leave-type.model';
-import LeaveAllocationModel from '../models/leave-allocation.model';
-import AttachmentService from '../services/attachment.service';
-import { pool } from '../config/database';
-const router = Router();
-router.get('/', authenticateJWT, checkPermission('leave:read'), async (req, res) => {
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const upload_middleware_1 = require("../middleware/upload.middleware");
+const leave_request_model_1 = __importDefault(require("../models/leave-request.model"));
+const leave_type_model_1 = __importDefault(require("../models/leave-type.model"));
+const leave_allocation_model_1 = __importDefault(require("../models/leave-allocation.model"));
+const attachment_service_1 = __importDefault(require("../services/attachment.service"));
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('leave:read'), async (req, res) => {
     try {
         const { userId, status, limit = 20, page = 1 } = req.query;
         const pageNum = parseInt(page) || 1;
@@ -18,7 +56,7 @@ router.get('/', authenticateJWT, checkPermission('leave:read'), async (req, res)
                 message: 'Invalid pagination parameters'
             });
         }
-        const result = await LeaveRequestModel.findAll(userId ? parseInt(userId) : undefined, status, pageNum, limitNum);
+        const result = await leave_request_model_1.default.findAll(userId ? parseInt(userId) : undefined, status, pageNum, limitNum);
         return res.json({
             success: true,
             message: 'Leave requests retrieved successfully',
@@ -41,7 +79,7 @@ router.get('/', authenticateJWT, checkPermission('leave:read'), async (req, res)
         });
     }
 });
-router.get('/my-requests', authenticateJWT, async (req, res) => {
+router.get('/my-requests', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { status, limit = 20, page = 1 } = req.query;
         const pageNum = parseInt(page) || 1;
@@ -53,7 +91,7 @@ router.get('/my-requests', authenticateJWT, async (req, res) => {
             });
         }
         const userId = req.currentUser?.id;
-        const result = await LeaveRequestModel.findAll(userId, status, pageNum, limitNum);
+        const result = await leave_request_model_1.default.findAll(userId, status, pageNum, limitNum);
         return res.json({
             success: true,
             message: 'Your leave requests retrieved successfully',
@@ -76,7 +114,7 @@ router.get('/my-requests', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/balance', authenticateJWT, async (req, res) => {
+router.get('/balance', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const userId = req.currentUser?.id;
         if (!userId) {
@@ -86,11 +124,11 @@ router.get('/balance', authenticateJWT, async (req, res) => {
             });
         }
         console.log(`[Leave Balance] Fetching balances for user ${userId}`);
-        const leaveTypes = await LeaveTypeModel.findAll();
+        const leaveTypes = await leave_type_model_1.default.findAll();
         console.log(`[Leave Balance] Found ${leaveTypes.length} leave types`);
-        const allocations = await LeaveAllocationModel.findByUserId(userId);
+        const allocations = await leave_allocation_model_1.default.findByUserId(userId);
         console.log(`[Leave Balance] Found ${allocations.length} allocations for user ${userId}`);
-        const [pendingRequests] = await pool.execute(`SELECT leave_type_id, SUM(days_requested) as pending_days
+        const [pendingRequests] = await database_1.pool.execute(`SELECT leave_type_id, SUM(days_requested) as pending_days
        FROM leave_requests
        WHERE user_id = ? AND status IN ('submitted', 'pending')
        GROUP BY leave_type_id`, [userId]);
@@ -157,7 +195,7 @@ router.get('/balance', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/history', authenticateJWT, async (req, res) => {
+router.get('/history', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { userId, year, status, limit = 50, page = 1 } = req.query;
         const pageNum = parseInt(page) || 1;
@@ -183,7 +221,7 @@ router.get('/history', authenticateJWT, async (req, res) => {
         }
         query += ' ORDER BY lh.created_at DESC LIMIT ? OFFSET ?';
         params.push(limitNum, offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `SELECT COUNT(*) as total FROM leave_history lh WHERE 1=1`;
         const countParams = [];
         if (userId) {
@@ -198,7 +236,7 @@ router.get('/history', authenticateJWT, async (req, res) => {
             countQuery += ' AND lh.status = ?';
             countParams.push(status);
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             message: 'Leave history retrieved successfully',
@@ -221,7 +259,7 @@ router.get('/history', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/:id', authenticateJWT, async (req, res, next) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, async (req, res, next) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -235,7 +273,7 @@ router.get('/:id', authenticateJWT, async (req, res, next) => {
                 message: 'Invalid leave request ID'
             });
         }
-        const leaveRequest = await LeaveRequestModel.findById(leaveRequestId);
+        const leaveRequest = await leave_request_model_1.default.findById(leaveRequestId);
         if (!leaveRequest) {
             return res.status(404).json({
                 success: false,
@@ -266,7 +304,7 @@ router.get('/:id', authenticateJWT, async (req, res, next) => {
         });
     }
 });
-router.post('/', authenticateJWT, upload.array('files', 5), handleMulterError, async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, upload_middleware_1.upload.array('files', 5), upload_middleware_1.handleMulterError, async (req, res) => {
     try {
         const { leave_type_id, start_date, end_date, reason } = req.body;
         if (!leave_type_id || !start_date || !end_date || !reason) {
@@ -298,14 +336,14 @@ router.post('/', authenticateJWT, upload.array('files', 5), handleMulterError, a
             });
         }
         const userId = req.currentUser?.id;
-        const leaveType = await LeaveTypeModel.findById(leave_type_id);
+        const leaveType = await leave_type_model_1.default.findById(leave_type_id);
         if (!leaveType) {
             return res.status(404).json({
                 success: false,
                 message: 'Leave type not found'
             });
         }
-        const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(userId, leave_type_id);
+        const allocations = await leave_allocation_model_1.default.findByUserIdAndTypeId(userId, leave_type_id);
         if (!allocations || allocations.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -313,7 +351,7 @@ router.post('/', authenticateJWT, upload.array('files', 5), handleMulterError, a
             });
         }
         const allocation = allocations[0];
-        const [pendingRows] = await pool.execute(`SELECT COALESCE(SUM(days_requested), 0) as pending_days
+        const [pendingRows] = await database_1.pool.execute(`SELECT COALESCE(SUM(days_requested), 0) as pending_days
        FROM leave_requests
        WHERE user_id = ? AND leave_type_id = ? AND status IN ('submitted', 'pending') AND id != ?`, [userId, leave_type_id, -1]);
         const pendingDays = parseFloat(pendingRows[0].pending_days);
@@ -326,10 +364,10 @@ router.post('/', authenticateJWT, upload.array('files', 5), handleMulterError, a
                 message: `Insufficient leave balance. Requested: ${requestedDays} days, Available: ${remainingDays} days (excluding ${pendingDays} days in pending requests)`
             });
         }
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         try {
             await connection.beginTransaction();
-            const leaveRequest = await LeaveRequestModel.create({
+            const leaveRequest = await leave_request_model_1.default.create({
                 user_id: userId,
                 leave_type_id,
                 start_date,
@@ -339,15 +377,15 @@ router.post('/', authenticateJWT, upload.array('files', 5), handleMulterError, a
                 attachments: null,
                 status: 'submitted'
             });
-            await AttachmentService.saveAttachments(files, { entityType: 'leave_request', entityId: leaveRequest.id });
+            await attachment_service_1.default.saveAttachments(files, { entityType: 'leave_request', entityId: leaveRequest.id });
             await connection.commit();
             try {
-                const [approverRows] = await pool.execute(`SELECT DISTINCT u.id, u.full_name, u.email
+                const [approverRows] = await database_1.pool.execute(`SELECT DISTINCT u.id, u.full_name, u.email
            FROM users u
            INNER JOIN roles_permissions rp ON u.role_id = rp.role_id
            WHERE rp.permission = 'leave:approve' AND rp.allow_deny = 'allow' AND u.status = 'active'`);
                 if (approverRows.length > 0) {
-                    const { NotificationService } = await import('../services/notification.service');
+                    const { NotificationService } = await Promise.resolve().then(() => __importStar(require('../services/notification.service')));
                     const notificationService = new NotificationService();
                     for (const approver of approverRows) {
                         await notificationService.queueNotification(approver.id, 'leave_request_pending', {
@@ -389,7 +427,7 @@ router.post('/', authenticateJWT, upload.array('files', 5), handleMulterError, a
         });
     }
 });
-router.put('/:id', authenticateJWT, checkPermission('leave:update'), async (req, res, next) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('leave:update'), async (req, res, next) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -404,7 +442,7 @@ router.put('/:id', authenticateJWT, checkPermission('leave:update'), async (req,
                 message: 'Invalid leave request ID'
             });
         }
-        const existingRequest = await LeaveRequestModel.findById(leaveRequestId);
+        const existingRequest = await leave_request_model_1.default.findById(leaveRequestId);
         if (!existingRequest) {
             return res.status(404).json({
                 success: false,
@@ -419,21 +457,21 @@ router.put('/:id', authenticateJWT, checkPermission('leave:update'), async (req,
         }
         const isApproving = status === 'approved' && existingRequest.status !== 'approved';
         const isRefunding = existingRequest.status === 'approved' && (status === 'cancelled' || status === 'rejected');
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         try {
             await connection.beginTransaction();
-            const updatedRequest = await LeaveRequestModel.update(leaveRequestId, {
+            const updatedRequest = await leave_request_model_1.default.update(leaveRequestId, {
                 status: status,
                 notes: reason,
                 reviewed_by: status ? req.currentUser?.id : undefined,
                 reviewed_at: status ? new Date() : undefined
             }, connection);
             if (isApproving) {
-                const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(existingRequest.user_id, existingRequest.leave_type_id, connection);
+                const allocations = await leave_allocation_model_1.default.findByUserIdAndTypeId(existingRequest.user_id, existingRequest.leave_type_id, connection);
                 const activeAllocation = allocations.find(alloc => new Date(alloc.cycle_end_date) >= new Date());
                 if (activeAllocation) {
-                    await LeaveAllocationModel.updateUsedDays(activeAllocation.id, existingRequest.days_requested, connection);
-                    const { NotificationService } = await import('../services/notification.service');
+                    await leave_allocation_model_1.default.updateUsedDays(activeAllocation.id, existingRequest.days_requested, connection);
+                    const { NotificationService } = await Promise.resolve().then(() => __importStar(require('../services/notification.service')));
                     const notificationService = new NotificationService();
                     await notificationService.queueNotification(existingRequest.user_id, 'leave_request_approved', {
                         staff_name: existingRequest.user_name || 'Employee',
@@ -452,11 +490,11 @@ router.put('/:id', authenticateJWT, checkPermission('leave:update'), async (req,
                 }
             }
             if (isRefunding) {
-                const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(existingRequest.user_id, existingRequest.leave_type_id, connection);
+                const allocations = await leave_allocation_model_1.default.findByUserIdAndTypeId(existingRequest.user_id, existingRequest.leave_type_id, connection);
                 const activeAllocation = allocations.find(alloc => new Date(alloc.cycle_end_date) >= new Date());
                 if (activeAllocation) {
-                    await LeaveAllocationModel.updateUsedDays(activeAllocation.id, -existingRequest.days_requested, connection);
-                    const { NotificationService } = await import('../services/notification.service');
+                    await leave_allocation_model_1.default.updateUsedDays(activeAllocation.id, -existingRequest.days_requested, connection);
+                    const { NotificationService } = await Promise.resolve().then(() => __importStar(require('../services/notification.service')));
                     const notificationService = new NotificationService();
                     const templateName = status === 'rejected' ? 'leave_request_rejected' : 'leave_request_cancelled';
                     await notificationService.queueNotification(existingRequest.user_id, templateName, {
@@ -496,7 +534,7 @@ router.put('/:id', authenticateJWT, checkPermission('leave:update'), async (req,
         });
     }
 });
-router.get('/:id/cancellation-eligibility', authenticateJWT, async (req, res, next) => {
+router.get('/:id/cancellation-eligibility', auth_middleware_1.authenticateJWT, async (req, res, next) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -510,7 +548,7 @@ router.get('/:id/cancellation-eligibility', authenticateJWT, async (req, res, ne
                 message: 'Invalid leave request ID'
             });
         }
-        const existingRequest = await LeaveRequestModel.findById(leaveRequestId);
+        const existingRequest = await leave_request_model_1.default.findById(leaveRequestId);
         if (!existingRequest) {
             return res.status(404).json({
                 success: false,
@@ -551,12 +589,12 @@ router.get('/:id/cancellation-eligibility', authenticateJWT, async (req, res, ne
         }
         if (eligibility.can_cancel) {
             if (existingRequest.status === 'approved') {
-                const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(existingRequest.user_id, existingRequest.leave_type_id);
+                const allocations = await leave_allocation_model_1.default.findByUserIdAndTypeId(existingRequest.user_id, existingRequest.leave_type_id);
                 const activeAllocation = allocations.find(alloc => new Date(alloc.cycle_end_date) >= new Date());
                 if (activeAllocation) {
                     eligibility.impact.days_will_be_refunded = existingRequest.days_requested;
                 }
-                const [attendanceRecords] = await pool.execute(`SELECT COUNT(*) as count FROM attendance
+                const [attendanceRecords] = await database_1.pool.execute(`SELECT COUNT(*) as count FROM attendance
            WHERE user_id = ?
              AND date BETWEEN ? AND ?
              AND status = 'leave'`, [existingRequest.user_id, existingRequest.start_date, existingRequest.end_date]);
@@ -594,7 +632,7 @@ router.get('/:id/cancellation-eligibility', authenticateJWT, async (req, res, ne
         });
     }
 });
-router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (req, res, next) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('leave:delete'), async (req, res, next) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -608,7 +646,7 @@ router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (r
                 message: 'Invalid leave request ID'
             });
         }
-        const existingRequest = await LeaveRequestModel.findById(leaveRequestId);
+        const existingRequest = await leave_request_model_1.default.findById(leaveRequestId);
         if (!existingRequest) {
             return res.status(404).json({
                 success: false,
@@ -632,10 +670,10 @@ router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (r
             });
         }
         const { cancellation_reason } = req.body;
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         try {
             await connection.beginTransaction();
-            await LeaveRequestModel.update(leaveRequestId, {
+            await leave_request_model_1.default.update(leaveRequestId, {
                 status: 'cancelled',
                 notes: cancellation_reason || 'Cancelled by user',
                 cancelled_by: req.currentUser?.id,
@@ -643,10 +681,10 @@ router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (r
                 cancellation_reason: cancellation_reason || null
             }, connection);
             if (existingRequest.status === 'approved') {
-                const allocations = await LeaveAllocationModel.findByUserIdAndTypeId(existingRequest.user_id, existingRequest.leave_type_id, connection);
+                const allocations = await leave_allocation_model_1.default.findByUserIdAndTypeId(existingRequest.user_id, existingRequest.leave_type_id, connection);
                 const activeAllocation = allocations.find(alloc => new Date(alloc.cycle_end_date) >= new Date());
                 if (activeAllocation) {
-                    await LeaveAllocationModel.updateUsedDays(activeAllocation.id, -existingRequest.days_requested, connection);
+                    await leave_allocation_model_1.default.updateUsedDays(activeAllocation.id, -existingRequest.days_requested, connection);
                     console.log(`Refunded ${existingRequest.days_requested} days for user ${existingRequest.user_id}, leave type ${existingRequest.leave_type_id} (approved leave cancelled)`);
                 }
                 else {
@@ -686,7 +724,7 @@ router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (r
             await connection.commit();
             if (existingRequest.status === 'approved') {
                 try {
-                    const { NotificationService } = await import('../services/notification.service');
+                    const { NotificationService } = await Promise.resolve().then(() => __importStar(require('../services/notification.service')));
                     const notificationService = new NotificationService();
                     await notificationService.queueNotification(existingRequest.user_id, 'leave_request_cancelled', {
                         staff_name: existingRequest.user_name || 'Employee',
@@ -731,5 +769,5 @@ router.delete('/:id', authenticateJWT, checkPermission('leave:delete'), async (r
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=leave-request.route.js.map

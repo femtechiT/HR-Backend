@@ -1,4 +1,9 @@
-export function extractStringParam(param) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.extractStringParam = extractStringParam;
+exports.extractNumberParam = extractNumberParam;
+exports.extractBooleanParam = extractBooleanParam;
+function extractStringParam(param) {
     if (param === undefined || param === null) {
         return undefined;
     }
@@ -22,7 +27,7 @@ export function extractStringParam(param) {
     }
     return undefined;
 }
-export function extractNumberParam(param) {
+function extractNumberParam(param) {
     const strValue = extractStringParam(param);
     if (strValue === undefined) {
         return undefined;
@@ -43,7 +48,7 @@ export function extractNumberParam(param) {
     const numValue = parseInt(strValue);
     return isNaN(numValue) ? undefined : numValue;
 }
-export function extractBooleanParam(param) {
+function extractBooleanParam(param) {
     const strValue = extractStringParam(param);
     if (strValue === undefined) {
         return undefined;

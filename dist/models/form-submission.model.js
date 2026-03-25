@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class FormSubmissionModel {
     static tableName = 'form_submissions';
     static async findAll(formId, userId, status) {
@@ -21,27 +23,27 @@ class FormSubmissionModel {
             query += ' WHERE ' + conditions.join(' AND ');
         }
         query += ' ORDER BY submitted_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByFormId(formId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE form_id = ? ORDER BY submitted_at DESC`, [formId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE form_id = ? ORDER BY submitted_at DESC`, [formId]);
         return rows;
     }
     static async findByUserId(userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY submitted_at DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY submitted_at DESC`, [userId]);
         return rows;
     }
     static async findByStatus(status) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE status = ? ORDER BY submitted_at DESC`, [status]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE status = ? ORDER BY submitted_at DESC`, [status]);
         return rows;
     }
     static async create(submissionData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (form_id, user_id, submission_data, status, notes) 
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (form_id, user_id, submission_data, status, notes) 
        VALUES (?, ?, ?, ?, ?)`, [
             submissionData.form_id,
             submissionData.user_id,
@@ -79,13 +81,13 @@ class FormSubmissionModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
 }
-export default FormSubmissionModel;
+exports.default = FormSubmissionModel;
 //# sourceMappingURL=form-submission.model.js.map

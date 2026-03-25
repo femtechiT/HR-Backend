@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class CompanyAssetModel {
     static tableName = 'company_assets';
     static async findAll(limit = 20, offset = 0, assetStatus) {
@@ -10,14 +12,14 @@ class CompanyAssetModel {
         }
         query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName}`;
         const countParams = [];
         if (assetStatus) {
             countQuery += ' WHERE asset_status = ?';
             countParams.push(assetStatus);
         }
-        const [countResult] = await pool.execute(countQuery, countParams);
+        const [countResult] = await database_1.pool.execute(countQuery, countParams);
         const totalCount = countResult[0].count;
         return {
             assets: rows,
@@ -25,19 +27,19 @@ class CompanyAssetModel {
         };
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByTag(assetTag) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE asset_tag = ?`, [assetTag]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE asset_tag = ?`, [assetTag]);
         return rows[0] || null;
     }
     static async findByStaff(staffId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE assigned_to_staff_id = ?`, [staffId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE assigned_to_staff_id = ?`, [staffId]);
         return rows;
     }
     static async create(assetData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (asset_tag, asset_name, asset_type, brand, model, serial_number, specifications, purchase_date, warranty_expiry_date, asset_condition, asset_status, assigned_to_staff_id, assigned_date, asset_image, notes)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (asset_tag, asset_name, asset_type, brand, model, serial_number, specifications, purchase_date, warranty_expiry_date, asset_condition, asset_status, assigned_to_staff_id, assigned_date, asset_image, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             assetData.asset_tag,
             assetData.asset_name,
@@ -125,7 +127,7 @@ class CompanyAssetModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async assignToStaff(assetId, staffId, assignedDate) {
@@ -145,9 +147,9 @@ class CompanyAssetModel {
         return await this.update(assetId, updateData);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
 }
-export default CompanyAssetModel;
+exports.default = CompanyAssetModel;
 //# sourceMappingURL=company-asset.model.js.map

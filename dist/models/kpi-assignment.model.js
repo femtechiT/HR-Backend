@@ -1,32 +1,35 @@
-import { pool } from '../config/database';
-export const KpiAssignmentModel = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.KpiAssignmentModel = void 0;
+const database_1 = require("../config/database");
+exports.KpiAssignmentModel = {
     tableName: 'kpi_assignments',
     async findAll() {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         connection.release();
         return rows;
     },
     async findById(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return rows[0] || null;
     },
     async findByUserId(userId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
         connection.release();
         return rows;
     },
     async findByKpiDefinitionId(kpiDefinitionId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE kpi_definition_id = ? ORDER BY created_at DESC`, [kpiDefinitionId]);
         connection.release();
         return rows;
     },
     async create(assignment) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`INSERT INTO ${this.tableName}
        (user_id, kpi_definition_id, cycle_start_date, cycle_end_date, assigned_by, custom_target_value, notes, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`, [
@@ -47,7 +50,7 @@ export const KpiAssignmentModel = {
         };
     },
     async update(id, assignment) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const fields = [];
         const values = [];
         if (assignment.user_id !== undefined) {
@@ -88,7 +91,7 @@ export const KpiAssignmentModel = {
         return result.affectedRows > 0;
     },
     async delete(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return result.affectedRows > 0;

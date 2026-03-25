@@ -1,11 +1,16 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import AttendanceModel from '../models/attendance.model';
-import ShiftTimingModel from '../models/shift-timing.model';
-import HolidayModel from '../models/holiday.model';
-import LeaveHistoryModel from '../models/leave-history.model';
-const router = Router();
-router.post('/process', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const attendance_model_1 = __importDefault(require("../models/attendance.model"));
+const shift_timing_model_1 = __importDefault(require("../models/shift-timing.model"));
+const holiday_model_1 = __importDefault(require("../models/holiday.model"));
+const leave_history_model_1 = __importDefault(require("../models/leave-history.model"));
+const router = (0, express_1.Router)();
+router.post('/process', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { date, userId } = req.body;
         const currentUserId = req.currentUser?.id;
@@ -26,14 +31,14 @@ router.post('/process', authenticateJWT, checkPermission('attendance:manage'), a
             }
             targetUserId = userId;
         }
-        const existingAttendance = await AttendanceModel.findByUserIdAndDate(targetUserId, new Date(date));
+        const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(targetUserId, new Date(date));
         if (existingAttendance) {
             return res.status(409).json({
                 success: false,
                 message: 'Attendance already processed for this date'
             });
         }
-        const isHoliday = await HolidayModel.isHoliday(new Date(date));
+        const isHoliday = await holiday_model_1.default.isHoliday(new Date(date));
         if (isHoliday) {
             const attendanceData = {
                 user_id: targetUserId,
@@ -46,14 +51,14 @@ router.post('/process', authenticateJWT, checkPermission('attendance:manage'), a
                 location_address: null,
                 notes: 'Public holiday - no attendance required'
             };
-            const newAttendance = await AttendanceModel.create(attendanceData);
+            const newAttendance = await attendance_model_1.default.create(attendanceData);
             return res.status(201).json({
                 success: true,
                 message: 'Holiday attendance processed successfully',
                 data: { attendance: newAttendance }
             });
         }
-        const leaveHistory = await LeaveHistoryModel.findByUserIdAndDateRange(targetUserId, new Date(date), new Date(date));
+        const leaveHistory = await leave_history_model_1.default.findByUserIdAndDateRange(targetUserId, new Date(date), new Date(date));
         if (leaveHistory.length > 0) {
             const attendanceData = {
                 user_id: targetUserId,
@@ -66,14 +71,14 @@ router.post('/process', authenticateJWT, checkPermission('attendance:manage'), a
                 location_address: null,
                 notes: 'On approved leave'
             };
-            const newAttendance = await AttendanceModel.create(attendanceData);
+            const newAttendance = await attendance_model_1.default.create(attendanceData);
             return res.status(201).json({
                 success: true,
                 message: 'Leave attendance processed successfully',
                 data: { attendance: newAttendance }
             });
         }
-        const shift = await ShiftTimingModel.findCurrentShiftForUser(targetUserId, new Date(date));
+        const shift = await shift_timing_model_1.default.findCurrentShiftForUser(targetUserId, new Date(date));
         if (!shift) {
             const attendanceData = {
                 user_id: targetUserId,
@@ -86,7 +91,7 @@ router.post('/process', authenticateJWT, checkPermission('attendance:manage'), a
                 location_address: null,
                 notes: 'No shift assigned for this date'
             };
-            const newAttendance = await AttendanceModel.create(attendanceData);
+            const newAttendance = await attendance_model_1.default.create(attendanceData);
             return res.status(201).json({
                 success: true,
                 message: 'Absence recorded (no shift assigned)',
@@ -104,7 +109,7 @@ router.post('/process', authenticateJWT, checkPermission('attendance:manage'), a
             location_address: null,
             notes: 'Scheduled shift but no check-in recorded'
         };
-        const newAttendance = await AttendanceModel.create(attendanceData);
+        const newAttendance = await attendance_model_1.default.create(attendanceData);
         return res.status(201).json({
             success: true,
             message: 'Absence recorded (shift scheduled but no check-in)',
@@ -119,7 +124,7 @@ router.post('/process', authenticateJWT, checkPermission('attendance:manage'), a
         });
     }
 });
-router.post('/process-batch', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+router.post('/process-batch', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { date, userIds } = req.body;
         if (!date) {
@@ -134,11 +139,11 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
                 message: 'User IDs array is required'
             });
         }
-        const isHoliday = await HolidayModel.isHoliday(new Date(date));
+        const isHoliday = await holiday_model_1.default.isHoliday(new Date(date));
         if (isHoliday) {
             const results = [];
             for (const userId of userIds) {
-                const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+                const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
                 if (existingAttendance) {
                     results.push({
                         user_id: userId,
@@ -158,7 +163,7 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
                     location_address: null,
                     notes: 'Public holiday - no attendance required'
                 };
-                const newAttendance = await AttendanceModel.create(attendanceData);
+                const newAttendance = await attendance_model_1.default.create(attendanceData);
                 results.push({
                     user_id: userId,
                     status: 'success',
@@ -173,7 +178,7 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
         }
         const results = [];
         for (const userId of userIds) {
-            const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+            const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
             if (existingAttendance) {
                 results.push({
                     user_id: userId,
@@ -182,7 +187,7 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
                 });
                 continue;
             }
-            const leaveHistory = await LeaveHistoryModel.findByUserIdAndDateRange(userId, new Date(date), new Date(date));
+            const leaveHistory = await leave_history_model_1.default.findByUserIdAndDateRange(userId, new Date(date), new Date(date));
             if (leaveHistory.length > 0) {
                 const attendanceData = {
                     user_id: userId,
@@ -195,7 +200,7 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
                     location_address: null,
                     notes: 'On approved leave'
                 };
-                const newAttendance = await AttendanceModel.create(attendanceData);
+                const newAttendance = await attendance_model_1.default.create(attendanceData);
                 results.push({
                     user_id: userId,
                     status: 'success',
@@ -203,7 +208,7 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
                 });
                 continue;
             }
-            const shift = await ShiftTimingModel.findCurrentShiftForUser(userId, new Date(date));
+            const shift = await shift_timing_model_1.default.findCurrentShiftForUser(userId, new Date(date));
             if (!shift) {
                 const attendanceData = {
                     user_id: userId,
@@ -216,7 +221,7 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
                     location_address: null,
                     notes: 'No shift assigned for this date'
                 };
-                const newAttendance = await AttendanceModel.create(attendanceData);
+                const newAttendance = await attendance_model_1.default.create(attendanceData);
                 results.push({
                     user_id: userId,
                     status: 'success',
@@ -235,7 +240,7 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
                 location_address: null,
                 notes: 'Scheduled shift but no check-in recorded'
             };
-            const newAttendance = await AttendanceModel.create(attendanceData);
+            const newAttendance = await attendance_model_1.default.create(attendanceData);
             results.push({
                 user_id: userId,
                 status: 'success',
@@ -256,5 +261,5 @@ router.post('/process-batch', authenticateJWT, checkPermission('attendance:manag
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=attendance-process.route.js.map

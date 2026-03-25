@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class PayrollRecordModel {
     static tableName = 'payroll_records';
     static async findAll(payrollRunId, staffId) {
@@ -17,27 +19,27 @@ class PayrollRecordModel {
             query += ' WHERE ' + conditions.join(' AND ');
         }
         query += ' ORDER BY processed_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByPayrollRunId(payrollRunId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE payroll_run_id = ? ORDER BY staff_id`, [payrollRunId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE payroll_run_id = ? ORDER BY staff_id`, [payrollRunId]);
         return rows;
     }
     static async findByStaffId(staffId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? ORDER BY processed_at DESC`, [staffId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? ORDER BY processed_at DESC`, [staffId]);
         return rows;
     }
     static async findByStaffIdAndPayrollRun(staffId, payrollRunId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? AND payroll_run_id = ?`, [staffId, payrollRunId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? AND payroll_run_id = ?`, [staffId, payrollRunId]);
         return rows[0] || null;
     }
     static async create(payrollRecordData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (payroll_run_id, staff_id, earnings, deductions, gross_pay, total_deductions, net_pay)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (payroll_run_id, staff_id, earnings, deductions, gross_pay, total_deductions, net_pay)
        VALUES (?, ?, ?, ?, ?, ?, ?)`, [
             payrollRecordData.payroll_run_id,
             payrollRecordData.staff_id,
@@ -81,18 +83,18 @@ class PayrollRecordModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async calculateTotalAmountForRun(payrollRunId) {
-        const [rows] = await pool.execute(`SELECT SUM(net_pay) as total_amount FROM ${this.tableName} WHERE payroll_run_id = ?`, [payrollRunId]);
+        const [rows] = await database_1.pool.execute(`SELECT SUM(net_pay) as total_amount FROM ${this.tableName} WHERE payroll_run_id = ?`, [payrollRunId]);
         const result = Array.isArray(rows) && rows.length > 0 ? rows[0] : { total_amount: 0 };
         return parseFloat(result.total_amount) || 0;
     }
 }
-export default PayrollRecordModel;
+exports.default = PayrollRecordModel;
 //# sourceMappingURL=payroll-record.model.js.map

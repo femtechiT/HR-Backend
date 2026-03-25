@@ -1,8 +1,14 @@
-import path from 'path';
-import fs from 'fs';
-import { pool } from '../config/database';
-import StaffDocumentModel from '../models/staff-document.model';
-export const uploadStaffDocument = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.serveStaffDocument = exports.deleteStaffDocument = exports.getStaffDocument = exports.getStaffDocuments = exports.uploadStaffDocument = void 0;
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const database_1 = require("../config/database");
+const staff_document_model_1 = __importDefault(require("../models/staff-document.model"));
+const uploadStaffDocument = async (req, res) => {
     try {
         const staffId = parseInt(req.params.id);
         const documentType = req.body.document_type;
@@ -29,7 +35,7 @@ export const uploadStaffDocument = async (req, res) => {
         const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
         const file = files[0];
         if (!allowedMimeTypes.includes(file.mimetype)) {
-            fs.unlinkSync(file.path);
+            fs_1.default.unlinkSync(file.path);
             return res.status(400).json({
                 success: false,
                 message: 'Invalid file type. Only PDF and images (JPG, PNG) are allowed.'
@@ -37,7 +43,7 @@ export const uploadStaffDocument = async (req, res) => {
         }
         const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            fs.unlinkSync(file.path);
+            fs_1.default.unlinkSync(file.path);
             return res.status(400).json({
                 success: false,
                 message: 'File size exceeds 10MB limit.'
@@ -47,19 +53,19 @@ export const uploadStaffDocument = async (req, res) => {
             staff_id: staffId,
             document_type: documentType,
             document_name: file.originalname,
-            file_path: `/uploads/staff-documents/${path.basename(file.filename)}`,
+            file_path: `/uploads/staff-documents/${path_1.default.basename(file.filename)}`,
             file_size: file.size,
             mime_type: file.mimetype,
             uploaded_by: uploadedBy || 1,
             expiry_date: null
         };
-        const createdDocument = await StaffDocumentModel.create(documentData);
+        const createdDocument = await staff_document_model_1.default.create(documentData);
         const uploadedDocument = {
             id: createdDocument.id,
             staff_id: staffId,
             document_type: documentType,
             document_name: file.originalname,
-            file_path: `/uploads/staff-documents/${path.basename(file.filename)}`,
+            file_path: `/uploads/staff-documents/${path_1.default.basename(file.filename)}`,
             file_size: file.size,
             mime_type: file.mimetype,
             uploaded_by: uploadedBy || 1,
@@ -81,7 +87,8 @@ export const uploadStaffDocument = async (req, res) => {
         });
     }
 };
-export const getStaffDocuments = async (req, res) => {
+exports.uploadStaffDocument = uploadStaffDocument;
+const getStaffDocuments = async (req, res) => {
     try {
         const staffId = parseInt(req.params.id);
         if (!staffId || isNaN(staffId)) {
@@ -90,7 +97,7 @@ export const getStaffDocuments = async (req, res) => {
                 message: 'Invalid staff ID'
             });
         }
-        const documents = await StaffDocumentModel.findByStaffId(staffId);
+        const documents = await staff_document_model_1.default.findByStaffId(staffId);
         return res.status(200).json({
             success: true,
             message: 'Documents retrieved successfully',
@@ -108,7 +115,8 @@ export const getStaffDocuments = async (req, res) => {
         });
     }
 };
-export const getStaffDocument = async (req, res) => {
+exports.getStaffDocuments = getStaffDocuments;
+const getStaffDocument = async (req, res) => {
     try {
         const documentId = parseInt(req.params.documentId);
         if (!documentId || isNaN(documentId)) {
@@ -117,7 +125,7 @@ export const getStaffDocument = async (req, res) => {
                 message: 'Invalid document ID'
             });
         }
-        const document = await StaffDocumentModel.findById(documentId);
+        const document = await staff_document_model_1.default.findById(documentId);
         if (!document) {
             return res.status(404).json({
                 success: false,
@@ -140,7 +148,8 @@ export const getStaffDocument = async (req, res) => {
         });
     }
 };
-export const deleteStaffDocument = async (req, res) => {
+exports.getStaffDocument = getStaffDocument;
+const deleteStaffDocument = async (req, res) => {
     try {
         const documentId = parseInt(req.params.documentId);
         if (!documentId || isNaN(documentId)) {
@@ -149,18 +158,18 @@ export const deleteStaffDocument = async (req, res) => {
                 message: 'Invalid document ID'
             });
         }
-        const document = await StaffDocumentModel.findById(documentId);
+        const document = await staff_document_model_1.default.findById(documentId);
         if (!document) {
             return res.status(404).json({
                 success: false,
                 message: 'Document not found'
             });
         }
-        const filePath = path.join(process.cwd(), document.file_path);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+        const filePath = path_1.default.join(process.cwd(), document.file_path);
+        if (fs_1.default.existsSync(filePath)) {
+            fs_1.default.unlinkSync(filePath);
         }
-        await pool.execute('DELETE FROM staff_documents WHERE id = ?', [documentId]);
+        await database_1.pool.execute('DELETE FROM staff_documents WHERE id = ?', [documentId]);
         return res.status(200).json({
             success: true,
             message: 'Document deleted successfully'
@@ -174,11 +183,12 @@ export const deleteStaffDocument = async (req, res) => {
         });
     }
 };
-export const serveStaffDocument = async (req, res) => {
+exports.deleteStaffDocument = deleteStaffDocument;
+const serveStaffDocument = async (req, res) => {
     try {
         const filename = req.params.filename;
-        const filePath = path.join(process.cwd(), 'uploads', 'staff-documents', filename);
-        if (!fs.existsSync(filePath)) {
+        const filePath = path_1.default.join(process.cwd(), 'uploads', 'staff-documents', filename);
+        if (!fs_1.default.existsSync(filePath)) {
             return res.status(404).json({
                 success: false,
                 message: 'File not found'
@@ -194,4 +204,5 @@ export const serveStaffDocument = async (req, res) => {
         });
     }
 };
+exports.serveStaffDocument = serveStaffDocument;
 //# sourceMappingURL=staff-document.controller.js.map

@@ -1,6 +1,12 @@
-import BranchModel from '../models/branch.model';
-import AuditLogModel from '../models/audit-log.model';
-export const updateGlobalAttendanceMode = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getGlobalAttendanceMode = exports.updateGlobalAttendanceMode = void 0;
+const branch_model_1 = __importDefault(require("../models/branch.model"));
+const audit_log_model_1 = __importDefault(require("../models/audit-log.model"));
+const updateGlobalAttendanceMode = async (req, res) => {
     try {
         const { attendance_mode } = req.body;
         if (!['branch_based', 'multiple_locations'].includes(attendance_mode)) {
@@ -15,16 +21,16 @@ export const updateGlobalAttendanceMode = async (req, res) => {
                 message: 'Authentication required'
             });
         }
-        const allBranches = await BranchModel.findAll();
+        const allBranches = await branch_model_1.default.findAll();
         const updatedBranches = [];
         for (const branch of allBranches) {
-            const updatedBranch = await BranchModel.update(branch.id, { attendance_mode });
+            const updatedBranch = await branch_model_1.default.update(branch.id, { attendance_mode });
             if (!updatedBranch) {
                 console.error(`Failed to update branch ${branch.id} attendance mode`);
                 continue;
             }
             updatedBranches.push(updatedBranch);
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'branch.attendance_mode.updated',
                 entity_type: 'branch',
@@ -52,9 +58,10 @@ export const updateGlobalAttendanceMode = async (req, res) => {
         });
     }
 };
-export const getGlobalAttendanceMode = async (req, res) => {
+exports.updateGlobalAttendanceMode = updateGlobalAttendanceMode;
+const getGlobalAttendanceMode = async (req, res) => {
     try {
-        const allBranches = await BranchModel.findAll();
+        const allBranches = await branch_model_1.default.findAll();
         const attendanceModes = allBranches.map(branch => ({
             id: branch.id,
             name: branch.name,
@@ -80,4 +87,5 @@ export const getGlobalAttendanceMode = async (req, res) => {
         });
     }
 };
+exports.getGlobalAttendanceMode = getGlobalAttendanceMode;
 //# sourceMappingURL=branch-global-attendance.controller.js.map

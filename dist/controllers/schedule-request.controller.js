@@ -1,6 +1,9 @@
-import { pool } from '../config/database';
-import { ShiftSchedulingService } from '../services/shift-scheduling.service';
-export const getAllScheduleRequests = async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createTimeOffBank = exports.getAllTimeOffBanks = exports.getTimeOffBankBalance = exports.rejectScheduleRequest = exports.approveScheduleRequest = exports.cancelScheduleRequest = exports.updateScheduleRequest = exports.createScheduleRequest = exports.getScheduleRequestById = exports.getAllScheduleRequests = void 0;
+const database_1 = require("../config/database");
+const shift_scheduling_service_1 = require("../services/shift-scheduling.service");
+const getAllScheduleRequests = async (req, res) => {
     try {
         const { page = 1, limit = 10, status, requestType, userId } = req.query;
         const currentUser = req.currentUser;
@@ -34,7 +37,7 @@ export const getAllScheduleRequests = async (req, res) => {
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `
       SELECT COUNT(*) as total
       FROM schedule_requests sr
@@ -57,7 +60,7 @@ export const getAllScheduleRequests = async (req, res) => {
             countQuery += ' AND sr.request_type = ?';
             countParams.push(requestType);
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             data: {
@@ -79,11 +82,12 @@ export const getAllScheduleRequests = async (req, res) => {
         });
     }
 };
-export const getScheduleRequestById = async (req, res) => {
+exports.getAllScheduleRequests = getAllScheduleRequests;
+const getScheduleRequestById = async (req, res) => {
     try {
         const { id } = req.params;
         const currentUser = req.currentUser;
-        const [rows] = await pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
+        const [rows] = await database_1.pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
        FROM schedule_requests sr
        LEFT JOIN users u ON sr.user_id = u.id
        LEFT JOIN users abr ON sr.approved_by = abr.id
@@ -118,7 +122,8 @@ export const getScheduleRequestById = async (req, res) => {
         });
     }
 };
-export const createScheduleRequest = async (req, res) => {
+exports.getScheduleRequestById = getScheduleRequestById;
+const createScheduleRequest = async (req, res) => {
     try {
         const { request_type, request_subtype, requested_date, requested_start_time, requested_end_time, requested_duration_days, reason, scheduled_for, expires_on } = req.body;
         const userId = req.currentUser.id;
@@ -187,7 +192,7 @@ export const createScheduleRequest = async (req, res) => {
             });
         }
         if (request_type === 'compensatory_time_use' && requested_duration_days) {
-            const [timeOffBankRows] = await pool.execute('SELECT available_days FROM time_off_banks WHERE user_id = ? AND valid_to >= CURDATE()', [userId]);
+            const [timeOffBankRows] = await database_1.pool.execute('SELECT available_days FROM time_off_banks WHERE user_id = ? AND valid_to >= CURDATE()', [userId]);
             if (timeOffBankRows.length === 0) {
                 return res.status(400).json({
                     success: false,
@@ -202,7 +207,7 @@ export const createScheduleRequest = async (req, res) => {
                 });
             }
         }
-        const [result] = await pool.execute(`INSERT INTO schedule_requests 
+        const [result] = await database_1.pool.execute(`INSERT INTO schedule_requests 
        (user_id, request_type, request_subtype, requested_date, requested_start_time, requested_end_time, 
         requested_duration_days, reason, scheduled_for, expires_on, created_by) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
@@ -219,7 +224,7 @@ export const createScheduleRequest = async (req, res) => {
             userId
         ]);
         const requestId = result.insertId;
-        const [requestRows] = await pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
+        const [requestRows] = await database_1.pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
        FROM schedule_requests sr
        LEFT JOIN users u ON sr.user_id = u.id
        LEFT JOIN users abr ON sr.approved_by = abr.id
@@ -242,12 +247,13 @@ export const createScheduleRequest = async (req, res) => {
         });
     }
 };
-export const updateScheduleRequest = async (req, res) => {
+exports.createScheduleRequest = createScheduleRequest;
+const updateScheduleRequest = async (req, res) => {
     try {
         const { id } = req.params;
         const { request_subtype, requested_date, requested_start_time, requested_end_time, requested_duration_days, reason, scheduled_for, expires_on } = req.body;
         const userId = req.currentUser.id;
-        const [existingRows] = await pool.execute('SELECT * FROM schedule_requests WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM schedule_requests WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -355,8 +361,8 @@ export const updateScheduleRequest = async (req, res) => {
         updateFields.push('updated_at = NOW()');
         params.push(id);
         const query = `UPDATE schedule_requests SET ${updateFields.join(', ')} WHERE id = ?`;
-        await pool.execute(query, params);
-        const [updatedRows] = await pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
+        await database_1.pool.execute(query, params);
+        const [updatedRows] = await database_1.pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
        FROM schedule_requests sr
        LEFT JOIN users u ON sr.user_id = u.id
        LEFT JOIN users abr ON sr.approved_by = abr.id
@@ -379,11 +385,12 @@ export const updateScheduleRequest = async (req, res) => {
         });
     }
 };
-export const cancelScheduleRequest = async (req, res) => {
+exports.updateScheduleRequest = updateScheduleRequest;
+const cancelScheduleRequest = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.currentUser.id;
-        const [existingRows] = await pool.execute('SELECT * FROM schedule_requests WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM schedule_requests WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -403,7 +410,7 @@ export const cancelScheduleRequest = async (req, res) => {
                 message: 'Cannot cancel a request that is already approved or implemented'
             });
         }
-        await pool.execute('UPDATE schedule_requests SET status = ?, updated_at = NOW() WHERE id = ?', ['cancelled', id]);
+        await database_1.pool.execute('UPDATE schedule_requests SET status = ?, updated_at = NOW() WHERE id = ?', ['cancelled', id]);
         return res.json({
             success: true,
             message: 'Schedule request cancelled successfully'
@@ -417,7 +424,8 @@ export const cancelScheduleRequest = async (req, res) => {
         });
     }
 };
-export const approveScheduleRequest = async (req, res) => {
+exports.cancelScheduleRequest = cancelScheduleRequest;
+const approveScheduleRequest = async (req, res) => {
     try {
         const { id } = req.params;
         const approverId = req.currentUser.id;
@@ -427,7 +435,7 @@ export const approveScheduleRequest = async (req, res) => {
                 message: 'Unauthorized to approve schedule requests'
             });
         }
-        const [existingRows] = await pool.execute('SELECT * FROM schedule_requests WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM schedule_requests WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -441,13 +449,13 @@ export const approveScheduleRequest = async (req, res) => {
                 message: `Cannot approve a request with status: ${existingRequest.status}`
             });
         }
-        await pool.execute('UPDATE schedule_requests SET status = ?, approved_by = ?, approved_at = NOW(), updated_at = NOW() WHERE id = ?', ['approved', approverId, id]);
+        await database_1.pool.execute('UPDATE schedule_requests SET status = ?, approved_by = ?, approved_at = NOW(), updated_at = NOW() WHERE id = ?', ['approved', approverId, id]);
         if (existingRequest.request_type === 'compensatory_time_use' && existingRequest.requested_duration_days) {
-            await pool.execute(`UPDATE time_off_banks 
+            await database_1.pool.execute(`UPDATE time_off_banks 
          SET used_days = used_days + ?, available_days = available_days - ? 
          WHERE user_id = ? AND valid_to >= CURDATE()`, [existingRequest.requested_duration_days, existingRequest.requested_duration_days, existingRequest.user_id]);
         }
-        const [updatedRows] = await pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
+        const [updatedRows] = await database_1.pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
        FROM schedule_requests sr
        LEFT JOIN users u ON sr.user_id = u.id
        LEFT JOIN users abr ON sr.approved_by = abr.id
@@ -457,12 +465,12 @@ export const approveScheduleRequest = async (req, res) => {
         if (updatedRows[0].scheduled_for) {
             try {
                 if (updatedRows[0].request_type === 'time_off_request') {
-                    await pool.execute(`INSERT INTO shift_exceptions 
+                    await database_1.pool.execute(`INSERT INTO shift_exceptions 
              (user_id, shift_assignment_id, exception_date, exception_type, reason, approved_by, status) 
              VALUES (?, NULL, ?, 'day_off', ?, ?, 'active')`, [updatedRows[0].user_id, updatedRows[0].scheduled_for, updatedRows[0].reason, approverId]);
                 }
                 else if (updatedRows[0].request_type === 'schedule_change') {
-                    await pool.execute(`INSERT INTO shift_exceptions 
+                    await database_1.pool.execute(`INSERT INTO shift_exceptions 
              (user_id, shift_assignment_id, exception_date, exception_type, new_start_time, new_end_time, reason, approved_by, status) 
              VALUES (?, NULL, ?, 'special_schedule', ?, ?, ?, ?, 'active')`, [
                         updatedRows[0].user_id,
@@ -481,7 +489,7 @@ export const approveScheduleRequest = async (req, res) => {
         if (updatedRows[0].scheduled_for) {
             try {
                 const date = new Date(updatedRows[0].scheduled_for);
-                await ShiftSchedulingService.processAttendanceForDate(updatedRows[0].user_id, date);
+                await shift_scheduling_service_1.ShiftSchedulingService.processAttendanceForDate(updatedRows[0].user_id, date);
             }
             catch (attendanceError) {
                 console.error('Error processing attendance after approval:', attendanceError);
@@ -503,7 +511,8 @@ export const approveScheduleRequest = async (req, res) => {
         });
     }
 };
-export const rejectScheduleRequest = async (req, res) => {
+exports.approveScheduleRequest = approveScheduleRequest;
+const rejectScheduleRequest = async (req, res) => {
     try {
         const { id } = req.params;
         const { rejection_reason } = req.body;
@@ -514,7 +523,7 @@ export const rejectScheduleRequest = async (req, res) => {
                 message: 'Unauthorized to reject schedule requests'
             });
         }
-        const [existingRows] = await pool.execute('SELECT * FROM schedule_requests WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM schedule_requests WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -528,8 +537,8 @@ export const rejectScheduleRequest = async (req, res) => {
                 message: `Cannot reject a request with status: ${existingRequest.status}`
             });
         }
-        await pool.execute('UPDATE schedule_requests SET status = ?, rejected_by = ?, rejected_at = NOW(), rejection_reason = ?, updated_at = NOW() WHERE id = ?', ['rejected', rejectorId, rejection_reason || null, id]);
-        const [updatedRows] = await pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
+        await database_1.pool.execute('UPDATE schedule_requests SET status = ?, rejected_by = ?, rejected_at = NOW(), rejection_reason = ?, updated_at = NOW() WHERE id = ?', ['rejected', rejectorId, rejection_reason || null, id]);
+        const [updatedRows] = await database_1.pool.execute(`SELECT sr.*, u.full_name as user_name, abr.full_name as approved_by_name, rbr.full_name as rejected_by_name, cbr.full_name as created_by_name
        FROM schedule_requests sr
        LEFT JOIN users u ON sr.user_id = u.id
        LEFT JOIN users abr ON sr.approved_by = abr.id
@@ -552,10 +561,11 @@ export const rejectScheduleRequest = async (req, res) => {
         });
     }
 };
-export const getTimeOffBankBalance = async (req, res) => {
+exports.rejectScheduleRequest = rejectScheduleRequest;
+const getTimeOffBankBalance = async (req, res) => {
     try {
         const userId = req.currentUser.id;
-        const [rows] = await pool.execute(`SELECT *
+        const [rows] = await database_1.pool.execute(`SELECT *
        FROM time_off_banks 
        WHERE user_id = ? AND valid_to >= CURDATE()`, [userId]);
         return res.json({
@@ -573,7 +583,8 @@ export const getTimeOffBankBalance = async (req, res) => {
         });
     }
 };
-export const getAllTimeOffBanks = async (req, res) => {
+exports.getTimeOffBankBalance = getTimeOffBankBalance;
+const getAllTimeOffBanks = async (req, res) => {
     try {
         const currentUser = req.currentUser;
         if (currentUser.role_id !== 1 && currentUser.role_id !== 2) {
@@ -599,7 +610,7 @@ export const getAllTimeOffBanks = async (req, res) => {
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `
       SELECT COUNT(*) as total
       FROM time_off_banks tob
@@ -610,7 +621,7 @@ export const getAllTimeOffBanks = async (req, res) => {
             countQuery += ' AND tob.user_id = ?';
             countParams.push(userId);
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             data: {
@@ -632,7 +643,8 @@ export const getAllTimeOffBanks = async (req, res) => {
         });
     }
 };
-export const createTimeOffBank = async (req, res) => {
+exports.getAllTimeOffBanks = getAllTimeOffBanks;
+const createTimeOffBank = async (req, res) => {
     try {
         const { user_id, program_name, description, total_entitled_days, valid_from, valid_to } = req.body;
         const createdBy = req.currentUser.id;
@@ -648,7 +660,7 @@ export const createTimeOffBank = async (req, res) => {
                 message: 'User ID, program name, total entitled days, valid from and valid to dates are required'
             });
         }
-        const [userRows] = await pool.execute('SELECT id FROM users WHERE id = ?', [user_id]);
+        const [userRows] = await database_1.pool.execute('SELECT id FROM users WHERE id = ?', [user_id]);
         if (userRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -676,7 +688,7 @@ export const createTimeOffBank = async (req, res) => {
                 message: 'Total entitled days must be a positive number'
             });
         }
-        const [result] = await pool.execute(`INSERT INTO time_off_banks 
+        const [result] = await database_1.pool.execute(`INSERT INTO time_off_banks 
        (user_id, program_name, description, total_entitled_days, used_days, valid_from, valid_to, created_by) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
             user_id,
@@ -689,7 +701,7 @@ export const createTimeOffBank = async (req, res) => {
             createdBy
         ]);
         const bankId = result.insertId;
-        const [bankRows] = await pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
+        const [bankRows] = await database_1.pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
        FROM time_off_banks tob
        LEFT JOIN users u ON tob.user_id = u.id
        LEFT JOIN users cbr ON tob.created_by = cbr.id
@@ -710,4 +722,5 @@ export const createTimeOffBank = async (req, res) => {
         });
     }
 };
+exports.createTimeOffBank = createTimeOffBank;
 //# sourceMappingURL=schedule-request.controller.js.map

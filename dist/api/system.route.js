@@ -1,10 +1,12 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import { SystemInitService } from '../services/system-init.service';
-const router = Router();
-router.get('/init-data', authenticateJWT, async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const system_init_service_1 = require("../services/system-init.service");
+const router = (0, express_1.Router)();
+router.get('/init-data', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
-        const systemData = await SystemInitService.getSystemData();
+        const systemData = await system_init_service_1.SystemInitService.getSystemData();
         return res.json({
             success: true,
             message: 'System initialization data retrieved successfully',
@@ -19,9 +21,9 @@ router.get('/init-data', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/init-data/stats', authenticateJWT, checkPermission('admin.access'), async (req, res) => {
+router.get('/init-data/stats', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('admin.access'), async (req, res) => {
     try {
-        const stats = await SystemInitService.getCacheStats();
+        const stats = await system_init_service_1.SystemInitService.getCacheStats();
         return res.json({
             success: true,
             message: 'Cache statistics retrieved successfully',
@@ -36,9 +38,9 @@ router.get('/init-data/stats', authenticateJWT, checkPermission('admin.access'),
         });
     }
 });
-router.post('/init-data/refresh', authenticateJWT, checkPermission('admin.access'), async (req, res) => {
+router.post('/init-data/refresh', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('admin.access'), async (req, res) => {
     try {
-        await SystemInitService.refreshAll();
+        await system_init_service_1.SystemInitService.refreshAll();
         return res.json({
             success: true,
             message: 'System cache refreshed successfully'
@@ -52,7 +54,7 @@ router.post('/init-data/refresh', authenticateJWT, checkPermission('admin.access
         });
     }
 });
-router.post('/init-data/refresh/:type', authenticateJWT, checkPermission('admin.access'), async (req, res) => {
+router.post('/init-data/refresh/:type', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('admin.access'), async (req, res) => {
     try {
         const typeParam = req.params.type;
         const type = Array.isArray(typeParam) ? typeParam[0] : typeParam;
@@ -63,7 +65,7 @@ router.post('/init-data/refresh/:type', authenticateJWT, checkPermission('admin.
                 message: `Invalid type. Must be one of: ${validTypes.join(', ')}`
             });
         }
-        await SystemInitService.refresh(type);
+        await system_init_service_1.SystemInitService.refresh(type);
         return res.json({
             success: true,
             message: `${type} cache refreshed successfully`
@@ -77,5 +79,5 @@ router.post('/init-data/refresh/:type', authenticateJWT, checkPermission('admin.
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=system.route.js.map

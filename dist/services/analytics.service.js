@@ -1,5 +1,8 @@
-import { pool } from '../config/database';
-export class AnalyticsService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AnalyticsService = void 0;
+const database_1 = require("../config/database");
+class AnalyticsService {
     static async calculateAttendanceMetrics(startDate, endDate, branchId, departmentId) {
         try {
             let query = `
@@ -28,7 +31,7 @@ export class AnalyticsService {
                 query += ' AND s.department = ?';
                 params.push(departmentId);
             }
-            const [rows] = await pool.execute(query, params);
+            const [rows] = await database_1.pool.execute(query, params);
             return rows[0];
         }
         catch (error) {
@@ -64,7 +67,7 @@ export class AnalyticsService {
                 params.push(departmentId);
             }
             query += ' GROUP BY lt.id, lt.name';
-            const [rows] = await pool.execute(query, params);
+            const [rows] = await database_1.pool.execute(query, params);
             return rows;
         }
         catch (error) {
@@ -100,7 +103,7 @@ export class AnalyticsService {
                 params.push(departmentId);
             }
             query += ' GROUP BY pr.payroll_run_id, prun.month, prun.year';
-            const [rows] = await pool.execute(query, params);
+            const [rows] = await database_1.pool.execute(query, params);
             return rows;
         }
         catch (error) {
@@ -136,7 +139,7 @@ export class AnalyticsService {
                 params.push(departmentId);
             }
             query += ' GROUP BY u.id, u.full_name ORDER BY average_overall_score DESC';
-            const [rows] = await pool.execute(query, params);
+            const [rows] = await database_1.pool.execute(query, params);
             return rows;
         }
         catch (error) {
@@ -163,7 +166,7 @@ export class AnalyticsService {
                 newHiresParams.push(departmentId);
             }
             newHiresQuery += ' GROUP BY s.department';
-            const [newHiresRows] = await pool.execute(newHiresQuery, newHiresParams);
+            const [newHiresRows] = await database_1.pool.execute(newHiresQuery, newHiresParams);
             let terminationsQuery = `
         SELECT 
           COUNT(s.id) as terminations,
@@ -181,7 +184,7 @@ export class AnalyticsService {
                 terminationsParams.push(departmentId);
             }
             terminationsQuery += ' GROUP BY s.department';
-            const [terminationsRows] = await pool.execute(terminationsQuery, terminationsParams);
+            const [terminationsRows] = await database_1.pool.execute(terminationsQuery, terminationsParams);
             let activeQuery = `
         SELECT 
           COUNT(s.id) as active_employees,
@@ -199,7 +202,7 @@ export class AnalyticsService {
                 activeParams.push(departmentId);
             }
             activeQuery += ' GROUP BY s.department';
-            const [activeRows] = await pool.execute(activeQuery, activeParams);
+            const [activeRows] = await database_1.pool.execute(activeQuery, activeParams);
             return {
                 newHires: newHiresRows,
                 terminations: terminationsRows,
@@ -213,7 +216,7 @@ export class AnalyticsService {
     }
     static async saveCalculatedMetric(metricName, metricCategory, metricValue, metricUnit, calculatedForPeriod, calculatedFrom, calculatedTo, branchId, departmentId) {
         try {
-            const [result] = await pool.execute(`INSERT INTO analytics_metrics 
+            const [result] = await database_1.pool.execute(`INSERT INTO analytics_metrics 
          (metric_name, metric_category, metric_value, metric_unit, calculated_at, calculated_for_period, 
           calculated_from, calculated_to, branch_id, department_id, calculated_by) 
          VALUES (?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?)`, [
@@ -268,7 +271,7 @@ export class AnalyticsService {
                 params.push(departmentId);
             }
             query += ' ORDER BY calculated_at DESC, created_at DESC';
-            const [rows] = await pool.execute(query, params);
+            const [rows] = await database_1.pool.execute(query, params);
             return rows;
         }
         catch (error) {
@@ -318,4 +321,5 @@ export class AnalyticsService {
         }
     }
 }
+exports.AnalyticsService = AnalyticsService;
 //# sourceMappingURL=analytics.service.js.map

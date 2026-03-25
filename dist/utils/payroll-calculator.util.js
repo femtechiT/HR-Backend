@@ -1,5 +1,10 @@
-import StaffPaymentStructureModel from '../models/staff-payment-structure.model';
-import PaymentTypeModel from '../models/payment-type.model';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const staff_payment_structure_model_1 = __importDefault(require("../models/staff-payment-structure.model"));
+const payment_type_model_1 = __importDefault(require("../models/payment-type.model"));
 class PayrollCalculator {
     static async calculateStaffPayroll(input) {
         const { staff_id, paymentStructures, month, year } = input;
@@ -56,9 +61,9 @@ class PayrollCalculator {
     static async calculatePayrollForStaff(staffIds, month, year) {
         const results = [];
         for (const staffId of staffIds) {
-            const paymentStructures = await StaffPaymentStructureModel.findActiveForStaff(staffId, new Date(year, month - 1, 1));
+            const paymentStructures = await staff_payment_structure_model_1.default.findActiveForStaff(staffId, new Date(year, month - 1, 1));
             const detailedStructures = await Promise.all(paymentStructures.map(async (structure) => {
-                const paymentType = await PaymentTypeModel.findById(structure.payment_type_id);
+                const paymentType = await payment_type_model_1.default.findById(structure.payment_type_id);
                 return {
                     ...structure,
                     payment_type_details: paymentType
@@ -108,5 +113,5 @@ class PayrollCalculator {
         };
     }
 }
-export default PayrollCalculator;
+exports.default = PayrollCalculator;
 //# sourceMappingURL=payroll-calculator.util.js.map

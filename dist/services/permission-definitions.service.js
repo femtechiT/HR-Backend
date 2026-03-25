@@ -1,4 +1,7 @@
-export const PERMISSION_DEFINITIONS = [
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getPermissionByKey = exports.isValidPermission = exports.getAllPermissionCategories = exports.getPermissionsByCategory = exports.PERMISSION_DEFINITIONS = void 0;
+exports.PERMISSION_DEFINITIONS = [
     { key: 'staff:create', category: 'Staff Management', description: 'Create new staff members' },
     { key: 'staff:read', category: 'Staff Management', description: 'View staff information' },
     { key: 'staff:update', category: 'Staff Management', description: 'Update staff information' },
@@ -158,17 +161,21 @@ export const PERMISSION_DEFINITIONS = [
     { key: 'scheduled_report:delete', category: 'Report Management', description: 'Delete scheduled reports' },
     { key: 'analytics:read', category: 'Analytics Management', description: 'View analytics' },
 ];
-export const getPermissionsByCategory = (category) => {
-    return PERMISSION_DEFINITIONS.filter(permission => permission.category === category);
+const getPermissionsByCategory = (category) => {
+    return exports.PERMISSION_DEFINITIONS.filter(permission => permission.category === category);
 };
-export const getAllPermissionCategories = () => {
-    const categories = new Set(PERMISSION_DEFINITIONS.map(p => p.category));
+exports.getPermissionsByCategory = getPermissionsByCategory;
+const getAllPermissionCategories = () => {
+    const categories = new Set(exports.PERMISSION_DEFINITIONS.map(p => p.category));
     return Array.from(categories).sort();
 };
-export const isValidPermission = (permission) => {
-    return PERMISSION_DEFINITIONS.some(p => p.key === permission);
+exports.getAllPermissionCategories = getAllPermissionCategories;
+const isValidPermission = (permission) => {
+    return exports.PERMISSION_DEFINITIONS.some(p => p.key === permission);
 };
-export const getPermissionByKey = (key) => {
-    return PERMISSION_DEFINITIONS.find(p => p.key === key);
+exports.isValidPermission = isValidPermission;
+const getPermissionByKey = (key) => {
+    return exports.PERMISSION_DEFINITIONS.find(p => p.key === key);
 };
+exports.getPermissionByKey = getPermissionByKey;
 //# sourceMappingURL=permission-definitions.service.js.map

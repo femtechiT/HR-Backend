@@ -1,12 +1,17 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import LeaveCleanupWorker from '../workers/leave-cleanup.worker';
-import { pool } from '../config/database';
-const router = Router();
-router.post('/trigger', authenticateJWT, checkPermission('leave:manage'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const leave_cleanup_worker_1 = __importDefault(require("../workers/leave-cleanup.worker"));
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
+router.post('/trigger', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('leave:manage'), async (req, res) => {
     try {
         console.log('🧹 Leave Cleanup: Manual trigger requested by user', req.currentUser?.email);
-        const result = await LeaveCleanupWorker.triggerCleanup();
+        const result = await leave_cleanup_worker_1.default.triggerCleanup();
         console.log('🧹 Leave Cleanup: Result:', result);
         return res.json({
             success: result.success,
@@ -26,20 +31,20 @@ router.post('/trigger', authenticateJWT, checkPermission('leave:manage'), async 
         });
     }
 });
-router.get('/status', authenticateJWT, async (req, res) => {
+router.get('/status', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
-        const [expiredLeaves] = await pool.execute(`
+        const [expiredLeaves] = await database_1.pool.execute(`
       SELECT COUNT(*) as count
       FROM leave_requests
       WHERE status IN ('pending', 'submitted')
       AND end_date < CURDATE()
     `);
-        const [pendingLeaves] = await pool.execute(`
+        const [pendingLeaves] = await database_1.pool.execute(`
       SELECT COUNT(*) as count
       FROM leave_requests
       WHERE status IN ('pending', 'submitted')
     `);
-        const lastRunTime = LeaveCleanupWorker.getLastRunTime();
+        const lastRunTime = leave_cleanup_worker_1.default.getLastRunTime();
         console.log('🧹 Leave Cleanup Status:', {
             expiredPendingLeaves: expiredLeaves[0]?.count || 0,
             totalPendingLeaves: pendingLeaves[0]?.count || 0,
@@ -52,7 +57,7 @@ router.get('/status', authenticateJWT, async (req, res) => {
                 totalPendingLeaves: pendingLeaves[0]?.count || 0,
                 workerRunning: true,
                 lastRunTime: lastRunTime,
-                nextRunTime: LeaveCleanupWorker.getNextRunTime()
+                nextRunTime: leave_cleanup_worker_1.default.getNextRunTime()
             }
         });
     }
@@ -65,5 +70,5 @@ router.get('/status', authenticateJWT, async (req, res) => {
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=leave-cleanup.route.js.map

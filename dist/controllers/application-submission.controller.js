@@ -1,18 +1,24 @@
-import { pool } from '../config/database';
-import { notificationService } from '../services/notification.service';
-import multer from 'multer';
-import path from 'path';
-const storage = multer.diskStorage({
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getApplicationsByApplicant = exports.getApplicationsByJobPosting = exports.getApplicationById = exports.submitJobApplication = exports.upload = void 0;
+const database_1 = require("../config/database");
+const notification_service_1 = require("../services/notification.service");
+const multer_1 = __importDefault(require("multer"));
+const path_1 = __importDefault(require("path"));
+const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/resumes/');
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+        cb(null, file.fieldname + '-' + uniqueSuffix + path_1.default.extname(file.originalname));
     }
 });
-export const upload = multer({ storage: storage });
-export const submitJobApplication = async (req, res) => {
+exports.upload = (0, multer_1.default)({ storage: storage });
+const submitJobApplication = async (req, res) => {
     try {
         const { job_posting_id, applicant_name, applicant_email, applicant_phone, cover_letter } = req.body;
         if (!job_posting_id || !applicant_name || !applicant_email) {
@@ -28,7 +34,7 @@ export const submitJobApplication = async (req, res) => {
                 message: 'Invalid email format'
             });
         }
-        const [jobPostingRows] = await pool.execute('SELECT * FROM job_postings WHERE id = ? AND status = ? AND is_active = TRUE AND closing_date >= CURDATE()', [job_posting_id, 'open']);
+        const [jobPostingRows] = await database_1.pool.execute('SELECT * FROM job_postings WHERE id = ? AND status = ? AND is_active = TRUE AND closing_date >= CURDATE()', [job_posting_id, 'open']);
         if (jobPostingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -36,7 +42,7 @@ export const submitJobApplication = async (req, res) => {
             });
         }
         const jobPosting = jobPostingRows[0];
-        const [existingApplicationRows] = await pool.execute('SELECT * FROM job_applications WHERE job_posting_id = ? AND applicant_email = ?', [job_posting_id, applicant_email]);
+        const [existingApplicationRows] = await database_1.pool.execute('SELECT * FROM job_applications WHERE job_posting_id = ? AND applicant_email = ?', [job_posting_id, applicant_email]);
         if (existingApplicationRows.length > 0) {
             return res.status(400).json({
                 success: false,
@@ -47,7 +53,7 @@ export const submitJobApplication = async (req, res) => {
         if (req.file) {
             resumeFilePath = req.file.path;
         }
-        const [result] = await pool.execute(`INSERT INTO job_applications 
+        const [result] = await database_1.pool.execute(`INSERT INTO job_applications 
        (job_posting_id, applicant_name, applicant_email, applicant_phone, resume_file_path, cover_letter, application_status) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`, [
             job_posting_id,
@@ -59,12 +65,12 @@ export const submitJobApplication = async (req, res) => {
             'applied'
         ]);
         const applicationId = result.insertId;
-        const [applicationRows] = await pool.execute(`SELECT ja.*, jp.title as job_title, jp.closing_date
+        const [applicationRows] = await database_1.pool.execute(`SELECT ja.*, jp.title as job_title, jp.closing_date
        FROM job_applications ja
        JOIN job_postings jp ON ja.job_posting_id = jp.id
        WHERE ja.id = ?`, [applicationId]);
         try {
-            await notificationService.queueNotification(0, 'job_application_confirmation', {
+            await notification_service_1.notificationService.queueNotification(0, 'job_application_confirmation', {
                 applicant_name: applicant_name,
                 job_title: jobPosting.title,
                 company_name: process.env.APP_NAME || 'Our Company',
@@ -94,11 +100,12 @@ export const submitJobApplication = async (req, res) => {
         });
     }
 };
-export const getApplicationById = async (req, res) => {
+exports.submitJobApplication = submitJobApplication;
+const getApplicationById = async (req, res) => {
     try {
         const { id } = req.params;
         const currentUser = req.currentUser;
-        const [rows] = await pool.execute(`SELECT ja.*, jp.title as job_title, jp.department_id, d.name as department_name
+        const [rows] = await database_1.pool.execute(`SELECT ja.*, jp.title as job_title, jp.department_id, d.name as department_name
        FROM job_applications ja
        JOIN job_postings jp ON ja.job_posting_id = jp.id
        LEFT JOIN departments d ON jp.department_id = d.id
@@ -133,11 +140,12 @@ export const getApplicationById = async (req, res) => {
         });
     }
 };
-export const getApplicationsByJobPosting = async (req, res) => {
+exports.getApplicationById = getApplicationById;
+const getApplicationsByJobPosting = async (req, res) => {
     try {
         const { job_posting_id } = req.params;
         const currentUser = req.currentUser;
-        const [jobPostingRows] = await pool.execute('SELECT * FROM job_postings WHERE id = ?', [job_posting_id]);
+        const [jobPostingRows] = await database_1.pool.execute('SELECT * FROM job_postings WHERE id = ?', [job_posting_id]);
         if (jobPostingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -152,7 +160,7 @@ export const getApplicationsByJobPosting = async (req, res) => {
                 message: 'Unauthorized to view applications for this job posting'
             });
         }
-        const [rows] = await pool.execute(`SELECT ja.*, u.full_name as reviewed_by_name
+        const [rows] = await database_1.pool.execute(`SELECT ja.*, u.full_name as reviewed_by_name
        FROM job_applications ja
        LEFT JOIN users u ON ja.reviewed_by = u.id
        WHERE ja.job_posting_id = ?
@@ -172,7 +180,8 @@ export const getApplicationsByJobPosting = async (req, res) => {
         });
     }
 };
-export const getApplicationsByApplicant = async (req, res) => {
+exports.getApplicationsByJobPosting = getApplicationsByJobPosting;
+const getApplicationsByApplicant = async (req, res) => {
     try {
         const { email } = req.params;
         const currentUser = req.currentUser;
@@ -185,7 +194,7 @@ export const getApplicationsByApplicant = async (req, res) => {
                 });
             }
         }
-        const [rows] = await pool.execute(`SELECT ja.*, jp.title as job_title, jp.department_id, d.name as department_name
+        const [rows] = await database_1.pool.execute(`SELECT ja.*, jp.title as job_title, jp.department_id, d.name as department_name
        FROM job_applications ja
        JOIN job_postings jp ON ja.job_posting_id = jp.id
        LEFT JOIN departments d ON jp.department_id = d.id
@@ -206,4 +215,5 @@ export const getApplicationsByApplicant = async (req, res) => {
         });
     }
 };
+exports.getApplicationsByApplicant = getApplicationsByApplicant;
 //# sourceMappingURL=application-submission.controller.js.map

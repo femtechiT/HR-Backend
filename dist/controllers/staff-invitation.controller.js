@@ -1,10 +1,49 @@
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import axios from 'axios';
-import { pool } from '../config/database';
-import { sendStaffInvitationEmail } from '../services/email.service';
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.acceptInvitation = exports.cancelInvitation = exports.resendInvitation = exports.getPendingInvitations = exports.getAllInvitations = exports.getAvailableDepartments = exports.getAvailableBranches = exports.getAvailableRoles = exports.inviteStaffMember = void 0;
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const crypto_1 = __importDefault(require("crypto"));
+const axios_1 = __importDefault(require("axios"));
+const database_1 = require("../config/database");
+const email_service_1 = require("../services/email.service");
 const generateInvitationToken = () => {
-    return crypto.randomBytes(32).toString('hex');
+    return crypto_1.default.randomBytes(32).toString('hex');
 };
 const generateTemporaryPassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
@@ -30,8 +69,8 @@ const createCpanelEmail = async (email, password) => {
             password: password,
             quota: 1000
         };
-        const https = await import('https');
-        const response = await axios.post(`https://${process.env.CPANEL_HOST}:2083/json-api/cpanel`, new URLSearchParams(cpanelParams), {
+        const https = await Promise.resolve().then(() => __importStar(require('https')));
+        const response = await axios_1.default.post(`https://${process.env.CPANEL_HOST}:2083/json-api/cpanel`, new URLSearchParams(cpanelParams), {
             headers: {
                 'Authorization': `Basic ${Buffer.from(`${process.env.CPANEL_USERNAME}:${process.env.CPANEL_PASSWORD}`).toString('base64')}`,
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -49,7 +88,7 @@ const createCpanelEmail = async (email, password) => {
         return false;
     }
 };
-export const inviteStaffMember = async (req, res) => {
+const inviteStaffMember = async (req, res) => {
     try {
         const { firstName, lastName, personalEmail, phone, roleId, branchId, departmentId } = req.body;
         if (!firstName || !lastName || !personalEmail || !roleId) {
@@ -65,7 +104,7 @@ export const inviteStaffMember = async (req, res) => {
                 message: 'Invalid personal email format'
             });
         }
-        const [roleRows] = await pool.execute('SELECT id FROM roles WHERE id = ?', [roleId]);
+        const [roleRows] = await database_1.pool.execute('SELECT id FROM roles WHERE id = ?', [roleId]);
         if (roleRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -73,7 +112,7 @@ export const inviteStaffMember = async (req, res) => {
             });
         }
         if (branchId) {
-            const [branchRows] = await pool.execute('SELECT id FROM branches WHERE id = ?', [branchId]);
+            const [branchRows] = await database_1.pool.execute('SELECT id FROM branches WHERE id = ?', [branchId]);
             if (branchRows.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -82,7 +121,7 @@ export const inviteStaffMember = async (req, res) => {
             }
         }
         if (departmentId) {
-            const [deptRows] = await pool.execute('SELECT id FROM departments WHERE id = ?', [departmentId]);
+            const [deptRows] = await database_1.pool.execute('SELECT id FROM departments WHERE id = ?', [departmentId]);
             if (deptRows.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -90,14 +129,14 @@ export const inviteStaffMember = async (req, res) => {
                 });
             }
         }
-        const [existingUsers] = await pool.execute('SELECT id FROM users WHERE email = ?', [personalEmail]);
+        const [existingUsers] = await database_1.pool.execute('SELECT id FROM users WHERE email = ?', [personalEmail]);
         if (existingUsers.length > 0) {
             return res.status(400).json({
                 success: false,
                 message: 'A user account already exists with this email address'
             });
         }
-        const [existingInvitations] = await pool.execute('SELECT id, status, expires_at FROM staff_invitations WHERE email = ? AND status = "pending"', [personalEmail]);
+        const [existingInvitations] = await database_1.pool.execute('SELECT id, status, expires_at FROM staff_invitations WHERE email = ? AND status = "pending"', [personalEmail]);
         if (existingInvitations.length > 0) {
             const invitation = existingInvitations[0];
             const isExpired = new Date(invitation.expires_at) < new Date();
@@ -118,13 +157,13 @@ export const inviteStaffMember = async (req, res) => {
         expiresAt.setDate(expiresAt.getDate() + 7);
         let departmentName = null;
         if (departmentId) {
-            const [deptRows] = await pool.execute('SELECT name FROM departments WHERE id = ?', [departmentId]);
+            const [deptRows] = await database_1.pool.execute('SELECT name FROM departments WHERE id = ?', [departmentId]);
             if (deptRows.length > 0) {
                 departmentName = deptRows[0].name;
             }
         }
         const adminId = req.currentUser?.userId;
-        await pool.execute(`INSERT INTO staff_invitations
+        await database_1.pool.execute(`INSERT INTO staff_invitations
        (email, token, first_name, last_name, phone, role_id, branch_id, department_id, expires_at, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             personalEmail,
@@ -141,13 +180,13 @@ export const inviteStaffMember = async (req, res) => {
         const workEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@tripa.com.ng`;
         let adminName = 'an administrator';
         if (adminId) {
-            const [adminRows] = await pool.execute('SELECT full_name FROM users WHERE id = ?', [adminId]);
+            const [adminRows] = await database_1.pool.execute('SELECT full_name FROM users WHERE id = ?', [adminId]);
             if (adminRows.length > 0 && adminRows[0].full_name) {
                 adminName = adminRows[0].full_name;
             }
         }
         try {
-            await sendStaffInvitationEmail({
+            await (0, email_service_1.sendStaffInvitationEmail)({
                 to: personalEmail,
                 fullName: `${firstName} ${lastName}`,
                 workEmail: workEmail,
@@ -176,9 +215,10 @@ export const inviteStaffMember = async (req, res) => {
         });
     }
 };
-export const getAvailableRoles = async (req, res) => {
+exports.inviteStaffMember = inviteStaffMember;
+const getAvailableRoles = async (req, res) => {
     try {
-        const [rows] = await pool.execute('SELECT id, name, description FROM roles ORDER BY name');
+        const [rows] = await database_1.pool.execute('SELECT id, name, description FROM roles ORDER BY name');
         return res.json({
             success: true,
             data: {
@@ -194,9 +234,10 @@ export const getAvailableRoles = async (req, res) => {
         });
     }
 };
-export const getAvailableBranches = async (req, res) => {
+exports.getAvailableRoles = getAvailableRoles;
+const getAvailableBranches = async (req, res) => {
     try {
-        const [rows] = await pool.execute('SELECT id, name, CONCAT(address, ", ", city, ", ", state, ", ", country) as location FROM branches ORDER BY name');
+        const [rows] = await database_1.pool.execute('SELECT id, name, CONCAT(address, ", ", city, ", ", state, ", ", country) as location FROM branches ORDER BY name');
         return res.json({
             success: true,
             data: {
@@ -212,9 +253,10 @@ export const getAvailableBranches = async (req, res) => {
         });
     }
 };
-export const getAvailableDepartments = async (req, res) => {
+exports.getAvailableBranches = getAvailableBranches;
+const getAvailableDepartments = async (req, res) => {
     try {
-        const [rows] = await pool.execute('SELECT id, name, description FROM departments ORDER BY name');
+        const [rows] = await database_1.pool.execute('SELECT id, name, description FROM departments ORDER BY name');
         return res.json({
             success: true,
             data: {
@@ -230,9 +272,10 @@ export const getAvailableDepartments = async (req, res) => {
         });
     }
 };
-export const getAllInvitations = async (req, res) => {
+exports.getAvailableDepartments = getAvailableDepartments;
+const getAllInvitations = async (req, res) => {
     try {
-        const [rows] = await pool.execute(`SELECT 
+        const [rows] = await database_1.pool.execute(`SELECT 
         si.id,
         si.email,
         si.first_name,
@@ -267,9 +310,10 @@ export const getAllInvitations = async (req, res) => {
         });
     }
 };
-export const getPendingInvitations = async (req, res) => {
+exports.getAllInvitations = getAllInvitations;
+const getPendingInvitations = async (req, res) => {
     try {
-        const [rows] = await pool.execute(`SELECT 
+        const [rows] = await database_1.pool.execute(`SELECT 
         si.id,
         si.email,
         si.first_name,
@@ -302,10 +346,11 @@ export const getPendingInvitations = async (req, res) => {
         });
     }
 };
-export const resendInvitation = async (req, res) => {
+exports.getPendingInvitations = getPendingInvitations;
+const resendInvitation = async (req, res) => {
     try {
         const { id } = req.params;
-        const [rows] = await pool.execute('SELECT * FROM staff_invitations WHERE id = ?', [id]);
+        const [rows] = await database_1.pool.execute('SELECT * FROM staff_invitations WHERE id = ?', [id]);
         if (rows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -328,10 +373,10 @@ export const resendInvitation = async (req, res) => {
         const newToken = generateInvitationToken();
         const newExpiresAt = new Date();
         newExpiresAt.setDate(newExpiresAt.getDate() + 7);
-        await pool.execute('UPDATE staff_invitations SET token = ?, expires_at = ? WHERE id = ?', [newToken, newExpiresAt, id]);
+        await database_1.pool.execute('UPDATE staff_invitations SET token = ?, expires_at = ? WHERE id = ?', [newToken, newExpiresAt, id]);
         const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@tripa.com.ng`;
         try {
-            await sendStaffInvitationEmail({
+            await (0, email_service_1.sendStaffInvitationEmail)({
                 to: invitation.email,
                 fullName: `${invitation.first_name} ${invitation.last_name}`,
                 workEmail: workEmail,
@@ -359,10 +404,11 @@ export const resendInvitation = async (req, res) => {
         });
     }
 };
-export const cancelInvitation = async (req, res) => {
+exports.resendInvitation = resendInvitation;
+const cancelInvitation = async (req, res) => {
     try {
         const { id } = req.params;
-        const [result] = await pool.execute('UPDATE staff_invitations SET status = "cancelled" WHERE id = ? AND status = "pending"', [id]);
+        const [result] = await database_1.pool.execute('UPDATE staff_invitations SET status = "cancelled" WHERE id = ? AND status = "pending"', [id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({
                 success: false,
@@ -382,7 +428,8 @@ export const cancelInvitation = async (req, res) => {
         });
     }
 };
-export const acceptInvitation = async (req, res) => {
+exports.cancelInvitation = cancelInvitation;
+const acceptInvitation = async (req, res) => {
     try {
         const { token } = req.params;
         const { password } = req.body;
@@ -392,7 +439,7 @@ export const acceptInvitation = async (req, res) => {
                 message: 'Password must be at least 8 characters'
             });
         }
-        const [rows] = await pool.execute('SELECT * FROM staff_invitations WHERE token = ?', [token]);
+        const [rows] = await database_1.pool.execute('SELECT * FROM staff_invitations WHERE token = ?', [token]);
         if (rows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -413,15 +460,15 @@ export const acceptInvitation = async (req, res) => {
             });
         }
         const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@tripa.com.ng`;
-        const [existingUsers] = await pool.execute('SELECT id FROM users WHERE email = ?', [workEmail]);
+        const [existingUsers] = await database_1.pool.execute('SELECT id FROM users WHERE email = ?', [workEmail]);
         if (existingUsers.length > 0) {
             return res.status(400).json({
                 success: false,
                 message: 'User already exists with this email'
             });
         }
-        const passwordHash = await bcrypt.hash(password, 10);
-        const connection = await pool.getConnection();
+        const passwordHash = await bcryptjs_1.default.hash(password, 10);
+        const connection = await database_1.pool.getConnection();
         try {
             await connection.beginTransaction();
             const [userResult] = await connection.execute(`INSERT INTO users 
@@ -476,4 +523,5 @@ export const acceptInvitation = async (req, res) => {
         });
     }
 };
+exports.acceptInvitation = acceptInvitation;
 //# sourceMappingURL=staff-invitation.controller.js.map

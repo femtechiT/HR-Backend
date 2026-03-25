@@ -1,7 +1,13 @@
-import JwtUtil from '../utils/jwt.util';
-import UserModel from '../models/user.model';
-import PermissionService from '../services/permission.service';
-export const login = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getPermissions = exports.refreshToken = exports.logout = exports.login = void 0;
+const jwt_util_1 = __importDefault(require("../utils/jwt.util"));
+const user_model_1 = __importDefault(require("../models/user.model"));
+const permission_service_1 = __importDefault(require("../services/permission.service"));
+const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
@@ -10,7 +16,7 @@ export const login = async (req, res) => {
                 message: 'Email and password are required'
             });
         }
-        const user = await UserModel.findByEmail(email);
+        const user = await user_model_1.default.findByEmail(email);
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -23,7 +29,7 @@ export const login = async (req, res) => {
                 message: 'Account is inactive'
             });
         }
-        const isValidPassword = await UserModel.comparePassword(password, user.password_hash);
+        const isValidPassword = await user_model_1.default.comparePassword(password, user.password_hash);
         if (!isValidPassword) {
             return res.status(401).json({
                 success: false,
@@ -35,9 +41,9 @@ export const login = async (req, res) => {
             email: user.email,
             role: user.role_id
         };
-        const accessToken = JwtUtil.generateAccessToken(payload);
-        const refreshToken = JwtUtil.generateRefreshToken(payload);
-        const permissions = await PermissionService.generatePermissionManifest(user.id);
+        const accessToken = jwt_util_1.default.generateAccessToken(payload);
+        const refreshToken = jwt_util_1.default.generateRefreshToken(payload);
+        const permissions = await permission_service_1.default.generatePermissionManifest(user.id);
         const mustChangePassword = user.must_change_password;
         return res.json({
             success: true,
@@ -69,7 +75,8 @@ export const login = async (req, res) => {
         });
     }
 };
-export const logout = async (req, res) => {
+exports.login = login;
+const logout = async (req, res) => {
     try {
         res.json({
             success: true,
@@ -84,7 +91,8 @@ export const logout = async (req, res) => {
         });
     }
 };
-export const refreshToken = async (req, res) => {
+exports.logout = logout;
+const refreshToken = async (req, res) => {
     try {
         const { refreshToken } = req.body;
         if (!refreshToken) {
@@ -94,8 +102,8 @@ export const refreshToken = async (req, res) => {
             });
         }
         try {
-            const decoded = JwtUtil.verifyRefreshToken(refreshToken);
-            const user = await UserModel.findById(decoded.userId);
+            const decoded = jwt_util_1.default.verifyRefreshToken(refreshToken);
+            const user = await user_model_1.default.findById(decoded.userId);
             if (!user || user.status !== 'active') {
                 return res.status(401).json({
                     success: false,
@@ -107,8 +115,8 @@ export const refreshToken = async (req, res) => {
                 email: user.email,
                 role: user.role_id
             };
-            const newAccessToken = JwtUtil.generateAccessToken(payload);
-            const newRefreshToken = JwtUtil.generateRefreshToken(payload);
+            const newAccessToken = jwt_util_1.default.generateAccessToken(payload);
+            const newRefreshToken = jwt_util_1.default.generateRefreshToken(payload);
             return res.json({
                 success: true,
                 message: 'Tokens refreshed successfully',
@@ -136,7 +144,8 @@ export const refreshToken = async (req, res) => {
         });
     }
 };
-export const getPermissions = async (req, res) => {
+exports.refreshToken = refreshToken;
+const getPermissions = async (req, res) => {
     try {
         if (!req.currentUser) {
             return res.status(401).json({
@@ -144,7 +153,7 @@ export const getPermissions = async (req, res) => {
                 message: 'Authentication required'
             });
         }
-        const permissions = await PermissionService.generatePermissionManifest(req.currentUser.id);
+        const permissions = await permission_service_1.default.generatePermissionManifest(req.currentUser.id);
         return res.json({
             success: true,
             message: 'Permissions retrieved successfully',
@@ -161,4 +170,5 @@ export const getPermissions = async (req, res) => {
         });
     }
 };
+exports.getPermissions = getPermissions;
 //# sourceMappingURL=auth.controller.js.map

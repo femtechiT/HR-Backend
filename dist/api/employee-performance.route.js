@@ -1,10 +1,15 @@
-import express from 'express';
-import { authenticateJWT } from '../middleware/auth.middleware';
-import { checkPermission } from '../middleware/permission.middleware';
-import { PerformanceScoreModel } from '../models/performance-score.model';
-import { AppraisalAssignmentModel } from '../models/appraisal-assignment.model';
-const router = express.Router();
-router.get('/:id/performance', authenticateJWT, checkPermission('performance:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const permission_middleware_1 = require("../middleware/permission.middleware");
+const performance_score_model_1 = require("../models/performance-score.model");
+const appraisal_assignment_model_1 = require("../models/appraisal-assignment.model");
+const router = express_1.default.Router();
+router.get('/:id/performance', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('performance:read'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const employeeId = parseInt(idParam);
@@ -14,7 +19,7 @@ router.get('/:id/performance', authenticateJWT, checkPermission('performance:rea
                 message: 'Invalid employee ID'
             });
         }
-        const performanceScores = await PerformanceScoreModel.findByEmployeeId(employeeId);
+        const performanceScores = await performance_score_model_1.PerformanceScoreModel.findByEmployeeId(employeeId);
         res.json({
             success: true,
             data: performanceScores
@@ -30,7 +35,7 @@ router.get('/:id/performance', authenticateJWT, checkPermission('performance:rea
     }
     return;
 });
-router.get('/:id/appraisals', authenticateJWT, checkPermission('appraisal:read'), async (req, res) => {
+router.get('/:id/appraisals', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal:read'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const employeeId = parseInt(idParam);
@@ -40,7 +45,7 @@ router.get('/:id/appraisals', authenticateJWT, checkPermission('appraisal:read')
                 message: 'Invalid employee ID'
             });
         }
-        const appraisalAssignments = await AppraisalAssignmentModel.findByEmployeeId(employeeId);
+        const appraisalAssignments = await appraisal_assignment_model_1.AppraisalAssignmentModel.findByEmployeeId(employeeId);
         res.json({
             success: true,
             data: appraisalAssignments
@@ -56,7 +61,7 @@ router.get('/:id/appraisals', authenticateJWT, checkPermission('appraisal:read')
     }
     return;
 });
-router.get('/:id/appraisals/template/:templateId', authenticateJWT, checkPermission('appraisal:read'), async (req, res) => {
+router.get('/:id/appraisals/template/:templateId', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal:read'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const templateIdParam = Array.isArray(req.params.templateId) ? req.params.templateId[0] : req.params.templateId;
@@ -89,7 +94,7 @@ router.get('/:id/appraisals/template/:templateId', authenticateJWT, checkPermiss
     }
     return;
 });
-router.post('/:id/self-assessment', authenticateJWT, checkPermission('appraisal.submit'), async (req, res) => {
+router.post('/:id/self-assessment', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal.submit'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const employeeId = parseInt(idParam);
@@ -127,7 +132,7 @@ router.post('/:id/self-assessment', authenticateJWT, checkPermission('appraisal.
     }
     return;
 });
-router.get('/:id/self-assessment', authenticateJWT, checkPermission('appraisal:read'), async (req, res) => {
+router.get('/:id/self-assessment', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal:read'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const employeeId = parseInt(idParam);
@@ -158,5 +163,5 @@ router.get('/:id/self-assessment', authenticateJWT, checkPermission('appraisal:r
     }
     return;
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=employee-performance.route.js.map

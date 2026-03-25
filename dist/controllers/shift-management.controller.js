@@ -1,6 +1,9 @@
-import { pool } from '../config/database';
-import { ShiftSchedulingService } from '../services/shift-scheduling.service';
-export const getAllShiftTemplates = async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteRecurringShift = exports.updateRecurringShift = exports.getRecurringShifts = exports.bulkAssignRecurringShiftsByBranch = exports.bulkAssignRecurringShifts = exports.bulkAssignShifts = exports.updateEmployeeShiftAssignment = exports.assignShiftToEmployee = exports.getEmployeeShiftAssignmentById = exports.getAllEmployeeShiftAssignments = exports.deleteShiftTemplate = exports.updateShiftTemplate = exports.createShiftTemplate = exports.getShiftTemplateById = exports.getAllShiftTemplates = void 0;
+const database_1 = require("../config/database");
+const shift_scheduling_service_1 = require("../services/shift-scheduling.service");
+const getAllShiftTemplates = async (req, res) => {
     try {
         const { page = 1, limit = 10, isActive } = req.query;
         let query = 'SELECT * FROM shift_templates WHERE 1=1';
@@ -13,14 +16,14 @@ export const getAllShiftTemplates = async (req, res) => {
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = 'SELECT COUNT(*) as total FROM shift_templates WHERE 1=1';
         const countParams = [];
         if (isActive !== undefined) {
             countQuery += ' AND is_active = ?';
             countParams.push(isActive === 'true' || isActive === '1');
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             data: {
@@ -42,10 +45,11 @@ export const getAllShiftTemplates = async (req, res) => {
         });
     }
 };
-export const getShiftTemplateById = async (req, res) => {
+exports.getAllShiftTemplates = getAllShiftTemplates;
+const getShiftTemplateById = async (req, res) => {
     try {
         const { id } = req.params;
-        const [rows] = await pool.execute('SELECT * FROM shift_templates WHERE id = ?', [id]);
+        const [rows] = await database_1.pool.execute('SELECT * FROM shift_templates WHERE id = ?', [id]);
         if (rows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -67,7 +71,8 @@ export const getShiftTemplateById = async (req, res) => {
         });
     }
 };
-export const createShiftTemplate = async (req, res) => {
+exports.getShiftTemplateById = getShiftTemplateById;
+const createShiftTemplate = async (req, res) => {
     try {
         const { name, description, start_time, end_time, break_duration_minutes, effective_from, effective_to, recurrence_pattern, recurrence_days } = req.body;
         const createdBy = req.currentUser.id;
@@ -104,7 +109,7 @@ export const createShiftTemplate = async (req, res) => {
                 message: `Invalid recurrence pattern. Valid values are: ${validPatterns.join(', ')}`
             });
         }
-        const [result] = await pool.execute(`INSERT INTO shift_templates 
+        const [result] = await database_1.pool.execute(`INSERT INTO shift_templates 
        (name, description, start_time, end_time, break_duration_minutes, 
         effective_from, effective_to, recurrence_pattern, recurrence_days, created_by) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
@@ -120,7 +125,7 @@ export const createShiftTemplate = async (req, res) => {
             createdBy
         ]);
         const templateId = result.insertId;
-        const [templateRows] = await pool.execute('SELECT * FROM shift_templates WHERE id = ?', [templateId]);
+        const [templateRows] = await database_1.pool.execute('SELECT * FROM shift_templates WHERE id = ?', [templateId]);
         return res.status(201).json({
             success: true,
             message: 'Shift template created successfully',
@@ -137,11 +142,12 @@ export const createShiftTemplate = async (req, res) => {
         });
     }
 };
-export const updateShiftTemplate = async (req, res) => {
+exports.createShiftTemplate = createShiftTemplate;
+const updateShiftTemplate = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, description, start_time, end_time, break_duration_minutes, effective_from, effective_to, recurrence_pattern, recurrence_days, is_active } = req.body;
-        const [existingRows] = await pool.execute('SELECT * FROM shift_templates WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM shift_templates WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -239,8 +245,8 @@ export const updateShiftTemplate = async (req, res) => {
         updateFields.push('updated_at = NOW()');
         params.push(id);
         const query = `UPDATE shift_templates SET ${updateFields.join(', ')} WHERE id = ?`;
-        await pool.execute(query, params);
-        const [updatedRows] = await pool.execute('SELECT * FROM shift_templates WHERE id = ?', [id]);
+        await database_1.pool.execute(query, params);
+        const [updatedRows] = await database_1.pool.execute('SELECT * FROM shift_templates WHERE id = ?', [id]);
         return res.json({
             success: true,
             message: 'Shift template updated successfully',
@@ -257,17 +263,18 @@ export const updateShiftTemplate = async (req, res) => {
         });
     }
 };
-export const deleteShiftTemplate = async (req, res) => {
+exports.updateShiftTemplate = updateShiftTemplate;
+const deleteShiftTemplate = async (req, res) => {
     try {
         const { id } = req.params;
-        const [existingRows] = await pool.execute('SELECT * FROM shift_templates WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM shift_templates WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Shift template not found'
             });
         }
-        await pool.execute('UPDATE shift_templates SET is_active = FALSE, updated_at = NOW() WHERE id = ?', [id]);
+        await database_1.pool.execute('UPDATE shift_templates SET is_active = FALSE, updated_at = NOW() WHERE id = ?', [id]);
         return res.json({
             success: true,
             message: 'Shift template deactivated successfully'
@@ -281,11 +288,14 @@ export const deleteShiftTemplate = async (req, res) => {
         });
     }
 };
-export const getAllEmployeeShiftAssignments = async (req, res) => {
+exports.deleteShiftTemplate = deleteShiftTemplate;
+const getAllEmployeeShiftAssignments = async (req, res) => {
     try {
+        console.log('[ShiftManagement Controller] Fetching all employee shift assignments');
+        console.log('[ShiftManagement Controller] Query params:', req.query);
         const { userId, status, page = 1, limit = 10 } = req.query;
         let query = `
-      SELECT esa.*, st.name as template_name, u.full_name as user_name, 
+      SELECT esa.*, st.name as template_name, u.full_name as user_name,
              abr.full_name as assigned_by_name, apr.full_name as approved_by_name
       FROM employee_shift_assignments esa
       LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
@@ -303,11 +313,15 @@ export const getAllEmployeeShiftAssignments = async (req, res) => {
             query += ' AND esa.status = ?';
             params.push(status);
         }
+        console.log('[ShiftManagement Controller] Final query:', query);
+        console.log('[ShiftManagement Controller] Query params:', params);
         query += ' ORDER BY esa.created_at DESC';
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        console.log('[ShiftManagement Controller] Executing query with params:', params);
+        const [rows] = await database_1.pool.execute(query, params);
+        console.log('[ShiftManagement Controller] Retrieved', rows.length, 'assignments');
         let countQuery = `
       SELECT COUNT(*) as total
       FROM employee_shift_assignments esa
@@ -322,7 +336,7 @@ export const getAllEmployeeShiftAssignments = async (req, res) => {
             countQuery += ' AND esa.status = ?';
             countParams.push(status);
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             data: {
@@ -344,10 +358,11 @@ export const getAllEmployeeShiftAssignments = async (req, res) => {
         });
     }
 };
-export const getEmployeeShiftAssignmentById = async (req, res) => {
+exports.getAllEmployeeShiftAssignments = getAllEmployeeShiftAssignments;
+const getEmployeeShiftAssignmentById = async (req, res) => {
     try {
         const { id } = req.params;
-        const [rows] = await pool.execute(`SELECT esa.*, st.name as template_name, u.full_name as user_name, 
+        const [rows] = await database_1.pool.execute(`SELECT esa.*, st.name as template_name, u.full_name as user_name, 
               abr.full_name as assigned_by_name, apr.full_name as approved_by_name
        FROM employee_shift_assignments esa
        LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
@@ -376,7 +391,8 @@ export const getEmployeeShiftAssignmentById = async (req, res) => {
         });
     }
 };
-export const assignShiftToEmployee = async (req, res) => {
+exports.getEmployeeShiftAssignmentById = getEmployeeShiftAssignmentById;
+const assignShiftToEmployee = async (req, res) => {
     try {
         const { user_id, shift_template_id, custom_start_time, custom_end_time, custom_break_duration_minutes, effective_from, effective_to, assignment_type, recurrence_pattern, recurrence_days, recurrence_day_of_week, notes } = req.body;
         const assignedBy = req.currentUser.id;
@@ -392,7 +408,7 @@ export const assignShiftToEmployee = async (req, res) => {
                 message: 'recurrence_days or recurrence_day_of_week is required for weekly pattern'
             });
         }
-        const [userRows] = await pool.execute('SELECT id FROM users WHERE id = ?', [user_id]);
+        const [userRows] = await database_1.pool.execute('SELECT id FROM users WHERE id = ?', [user_id]);
         if (userRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -400,7 +416,7 @@ export const assignShiftToEmployee = async (req, res) => {
             });
         }
         if (shift_template_id) {
-            const [templateRows] = await pool.execute('SELECT id FROM shift_templates WHERE id = ? AND is_active = TRUE', [shift_template_id]);
+            const [templateRows] = await database_1.pool.execute('SELECT id FROM shift_templates WHERE id = ? AND is_active = TRUE', [shift_template_id]);
             if (templateRows.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -446,11 +462,11 @@ export const assignShiftToEmployee = async (req, res) => {
                 message: `Invalid assignment type. Valid values are: ${validTypes.join(', ')}`
             });
         }
-        const [existingActiveRows] = await pool.execute('SELECT id FROM employee_shift_assignments WHERE user_id = ? AND status = ?', [user_id, 'active']);
+        const [existingActiveRows] = await database_1.pool.execute('SELECT id FROM employee_shift_assignments WHERE user_id = ? AND status = ?', [user_id, 'active']);
         if (existingActiveRows.length > 0) {
-            await pool.execute('UPDATE employee_shift_assignments SET status = ?, updated_at = NOW() WHERE user_id = ? AND status = ?', ['expired', user_id, 'active']);
+            await database_1.pool.execute('UPDATE employee_shift_assignments SET status = ?, updated_at = NOW() WHERE user_id = ? AND status = ?', ['expired', user_id, 'active']);
         }
-        const [result] = await pool.execute(`INSERT INTO employee_shift_assignments
+        const [result] = await database_1.pool.execute(`INSERT INTO employee_shift_assignments
        (user_id, shift_template_id, custom_start_time, custom_end_time, custom_break_duration_minutes,
         effective_from, effective_to, assignment_type, recurrence_pattern, recurrence_days, recurrence_day_of_week,
         assigned_by, status, notes)
@@ -471,7 +487,7 @@ export const assignShiftToEmployee = async (req, res) => {
             notes || null
         ]);
         const assignmentId = result.insertId;
-        const [assignmentRows] = await pool.execute(`SELECT esa.*, st.name as template_name, u.full_name as user_name, 
+        const [assignmentRows] = await database_1.pool.execute(`SELECT esa.*, st.name as template_name, u.full_name as user_name, 
               abr.full_name as assigned_by_name
        FROM employee_shift_assignments esa
        LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
@@ -483,7 +499,7 @@ export const assignShiftToEmployee = async (req, res) => {
             const endDate = effective_to ? new Date(effective_to) : new Date();
             const date = new Date(startDate);
             while (date <= endDate) {
-                await ShiftSchedulingService.processAttendanceForDate(user_id, date);
+                await shift_scheduling_service_1.ShiftSchedulingService.processAttendanceForDate(user_id, date);
                 date.setDate(date.getDate() + 1);
             }
         }
@@ -506,18 +522,24 @@ export const assignShiftToEmployee = async (req, res) => {
         });
     }
 };
-export const updateEmployeeShiftAssignment = async (req, res) => {
+exports.assignShiftToEmployee = assignShiftToEmployee;
+const updateEmployeeShiftAssignment = async (req, res) => {
     try {
+        console.log('[ShiftManagement Controller] Updating assignment', req.params.id);
+        console.log('[ShiftManagement Controller] Request body:', req.body);
         const { id } = req.params;
         const { shift_template_id, custom_start_time, custom_end_time, custom_break_duration_minutes, effective_from, effective_to, assignment_type, recurrence_pattern, recurrence_days, recurrence_day_of_week, status, notes } = req.body;
-        const [existingRows] = await pool.execute('SELECT * FROM employee_shift_assignments WHERE id = ?', [id]);
+        console.log('[ShiftManagement Controller] Checking if assignment', id, 'exists');
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM employee_shift_assignments WHERE id = ?', [id]);
         if (existingRows.length === 0) {
+            console.warn('[ShiftManagement Controller] Assignment not found:', id);
             return res.status(404).json({
                 success: false,
                 message: 'Employee shift assignment not found'
             });
         }
         const existingAssignment = existingRows[0];
+        console.log('[ShiftManagement Controller] Found assignment:', existingAssignment);
         if (recurrence_pattern === 'weekly' && !recurrence_days && !recurrence_day_of_week) {
             return res.status(400).json({
                 success: false,
@@ -525,7 +547,7 @@ export const updateEmployeeShiftAssignment = async (req, res) => {
             });
         }
         if (shift_template_id) {
-            const [templateRows] = await pool.execute('SELECT id FROM shift_templates WHERE id = ? AND is_active = TRUE', [shift_template_id]);
+            const [templateRows] = await database_1.pool.execute('SELECT id FROM shift_templates WHERE id = ? AND is_active = TRUE', [shift_template_id]);
             if (templateRows.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -640,8 +662,11 @@ export const updateEmployeeShiftAssignment = async (req, res) => {
         updateFields.push('updated_at = NOW()');
         params.push(id);
         const query = `UPDATE employee_shift_assignments SET ${updateFields.join(', ')} WHERE id = ?`;
-        await pool.execute(query, params);
-        const [updatedRows] = await pool.execute(`SELECT esa.*, st.name as template_name, u.full_name as user_name, 
+        console.log('[ShiftManagement Controller] Executing update query:', query);
+        console.log('[ShiftManagement Controller] With params:', params);
+        await database_1.pool.execute(query, params);
+        console.log('[ShiftManagement Controller] Update executed successfully');
+        const [updatedRows] = await database_1.pool.execute(`SELECT esa.*, st.name as template_name, u.full_name as user_name,
               abr.full_name as assigned_by_name, apr.full_name as approved_by_name
        FROM employee_shift_assignments esa
        LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
@@ -649,18 +674,22 @@ export const updateEmployeeShiftAssignment = async (req, res) => {
        LEFT JOIN users abr ON esa.assigned_by = abr.id
        LEFT JOIN users apr ON esa.approved_by = apr.id
        WHERE esa.id = ?`, [id]);
+        console.log('[ShiftManagement Controller] Updated assignment:', updatedRows[0]);
         try {
             const userId = updatedRows[0].user_id;
             const startDate = new Date(updatedRows[0].effective_from);
             const endDate = updatedRows[0].effective_to ? new Date(updatedRows[0].effective_to) : new Date();
+            console.log('[ShiftManagement Controller] Processing attendance for user', userId, 'from', startDate, 'to', endDate);
             const date = new Date(startDate);
             while (date <= endDate) {
-                await ShiftSchedulingService.processAttendanceForDate(userId, date);
+                await shift_scheduling_service_1.ShiftSchedulingService.processAttendanceForDate(userId, date);
                 date.setDate(date.getDate() + 1);
             }
+            console.log('[ShiftManagement Controller] Attendance processing completed');
         }
         catch (attendanceError) {
-            console.error('Error processing attendance after shift assignment update:', attendanceError);
+            console.error('[ShiftManagement Controller] Error processing attendance after shift assignment update:', attendanceError);
+            console.warn('[ShiftManagement Controller] Continuing despite attendance error - assignment was updated successfully');
         }
         return res.json({
             success: true,
@@ -671,31 +700,43 @@ export const updateEmployeeShiftAssignment = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Error updating employee shift assignment:', error);
+        console.error('[ShiftManagement Controller] Error updating employee shift assignment:', error);
+        console.error('[ShiftManagement Controller] Error details:', error.message);
+        console.error('[ShiftManagement Controller] Stack trace:', error.stack);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error while updating employee shift assignment'
+            message: 'Internal server error during update',
+            error: error.message
         });
     }
 };
-export const bulkAssignShifts = async (req, res) => {
+exports.updateEmployeeShiftAssignment = updateEmployeeShiftAssignment;
+const bulkAssignShifts = async (req, res) => {
     try {
+        console.log('[ShiftManagement Controller] Bulk assign shifts - Request body:', JSON.stringify(req.body, null, 2));
         const { user_ids, shift_template_id, custom_start_time, custom_end_time, custom_break_duration_minutes, effective_from, effective_to, assignment_type, notes } = req.body;
         const assignedBy = req.currentUser.id;
+        console.log('[ShiftManagement Controller] User IDs:', user_ids);
+        console.log('[ShiftManagement Controller] Shift template ID:', shift_template_id);
+        console.log('[ShiftManagement Controller] Effective from:', effective_from);
+        console.log('[ShiftManagement Controller] Assignment type:', assignment_type);
+        console.log('[ShiftManagement Controller] Assigned by:', assignedBy);
         if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+            console.warn('[ShiftManagement Controller] Validation failed: User IDs array is required');
             return res.status(400).json({
                 success: false,
                 message: 'User IDs array is required'
             });
         }
         if (!effective_from) {
+            console.warn('[ShiftManagement Controller] Validation failed: Effective from date is required');
             return res.status(400).json({
                 success: false,
                 message: 'Effective from date is required'
             });
         }
         if (shift_template_id) {
-            const [templateRows] = await pool.execute('SELECT id FROM shift_templates WHERE id = ? AND is_active = TRUE', [shift_template_id]);
+            const [templateRows] = await database_1.pool.execute('SELECT id FROM shift_templates WHERE id = ? AND is_active = TRUE', [shift_template_id]);
             if (templateRows.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -725,7 +766,7 @@ export const bulkAssignShifts = async (req, res) => {
                 });
             }
         }
-        const [userRows] = await pool.execute(`SELECT id FROM users WHERE id IN (${user_ids.map(() => '?').join(',')})`, user_ids);
+        const [userRows] = await database_1.pool.execute(`SELECT id FROM users WHERE id IN (${user_ids.map(() => '?').join(',')})`, user_ids);
         if (userRows.length !== user_ids.length) {
             return res.status(404).json({
                 success: false,
@@ -735,12 +776,15 @@ export const bulkAssignShifts = async (req, res) => {
         const results = [];
         let successCount = 0;
         let failureCount = 0;
+        console.log('[ShiftManagement Controller] Starting to process', user_ids.length, 'users...');
         for (const userId of user_ids) {
             try {
-                await pool.execute('UPDATE employee_shift_assignments SET status = ?, updated_at = NOW() WHERE user_id = ? AND status = ?', ['expired', userId, 'active']);
-                const [result] = await pool.execute(`INSERT INTO employee_shift_assignments 
+                console.log('[ShiftManagement Controller] Processing user:', userId);
+                const [expireResult] = await database_1.pool.execute('UPDATE employee_shift_assignments SET status = ?, updated_at = NOW() WHERE user_id = ? AND status = ?', ['expired', userId, 'active']);
+                console.log('[ShiftManagement Controller] Expired existing assignments for user', userId, '- Rows affected:', expireResult.affectedRows);
+                const [result] = await database_1.pool.execute(`INSERT INTO employee_shift_assignments
            (user_id, shift_template_id, custom_start_time, custom_end_time, custom_break_duration_minutes,
-            effective_from, effective_to, assignment_type, assigned_by, status, notes) 
+            effective_from, effective_to, assignment_type, assigned_by, status, notes)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                     userId,
                     shift_template_id || null,
@@ -755,7 +799,8 @@ export const bulkAssignShifts = async (req, res) => {
                     notes || null
                 ]);
                 const assignmentId = result.insertId;
-                const [assignmentRows] = await pool.execute(`SELECT esa.*, st.name as template_name, u.full_name as user_name, 
+                console.log('[ShiftManagement Controller] Created assignment', assignmentId, 'for user', userId);
+                const [assignmentRows] = await database_1.pool.execute(`SELECT esa.*, st.name as template_name, u.full_name as user_name, 
                   abr.full_name as assigned_by_name
            FROM employee_shift_assignments esa
            LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
@@ -773,7 +818,7 @@ export const bulkAssignShifts = async (req, res) => {
                     const endDate = effective_to ? new Date(effective_to) : new Date();
                     const date = new Date(startDate);
                     while (date <= endDate) {
-                        await ShiftSchedulingService.processAttendanceForDate(userId, date);
+                        await shift_scheduling_service_1.ShiftSchedulingService.processAttendanceForDate(userId, date);
                         date.setDate(date.getDate() + 1);
                     }
                 }
@@ -791,6 +836,7 @@ export const bulkAssignShifts = async (req, res) => {
                 failureCount++;
             }
         }
+        console.log('[ShiftManagement Controller] Bulk assignment completed - Success:', successCount, 'Failed:', failureCount);
         return res.status(201).json({
             success: true,
             message: `Bulk shift assignment completed. ${successCount} succeeded, ${failureCount} failed.`,
@@ -805,14 +851,15 @@ export const bulkAssignShifts = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Error in bulk shift assignment:', error);
+        console.error('[ShiftManagement Controller] Error in bulk shift assignment:', error);
         return res.status(500).json({
             success: false,
             message: 'Internal server error during bulk shift assignment'
         });
     }
 };
-export const bulkAssignRecurringShifts = async (req, res) => {
+exports.bulkAssignShifts = bulkAssignShifts;
+const bulkAssignRecurringShifts = async (req, res) => {
     try {
         const { assignments } = req.body;
         if (!assignments || !Array.isArray(assignments) || assignments.length === 0) {
@@ -852,7 +899,7 @@ export const bulkAssignRecurringShifts = async (req, res) => {
             }
         }
         const userIds = assignments.map((a) => a.user_id);
-        const [userRows] = await pool.execute(`SELECT id FROM users WHERE id IN (${userIds.map(() => '?').join(',')})`, userIds);
+        const [userRows] = await database_1.pool.execute(`SELECT id FROM users WHERE id IN (${userIds.map(() => '?').join(',')})`, userIds);
         if (userRows.length !== userIds.length) {
             return res.status(404).json({
                 success: false,
@@ -860,7 +907,7 @@ export const bulkAssignRecurringShifts = async (req, res) => {
             });
         }
         const templateIds = Array.from(new Set(assignments.map((a) => a.shift_template_id)));
-        const [templateRows] = await pool.execute(`SELECT id FROM shift_templates WHERE id IN (${templateIds.map(() => '?').join(',')}) AND is_active = TRUE`, templateIds);
+        const [templateRows] = await database_1.pool.execute(`SELECT id FROM shift_templates WHERE id IN (${templateIds.map(() => '?').join(',')}) AND is_active = TRUE`, templateIds);
         if (templateRows.length !== templateIds.length) {
             return res.status(404).json({
                 success: false,
@@ -873,13 +920,13 @@ export const bulkAssignRecurringShifts = async (req, res) => {
         for (const assignment of assignments) {
             try {
                 const { user_id, shift_template_id, day_of_week, start_date, end_date = null, notes = null } = assignment;
-                await pool.execute(`UPDATE employee_shift_assignments 
+                await database_1.pool.execute(`UPDATE employee_shift_assignments 
            SET status = 'expired', updated_at = NOW() 
            WHERE user_id = ? 
              AND recurrence_pattern = 'weekly' 
              AND recurrence_day_of_week = ? 
              AND status = 'active'`, [user_id, day_of_week.toLowerCase()]);
-                const [result] = await pool.execute(`INSERT INTO employee_shift_assignments
+                const [result] = await database_1.pool.execute(`INSERT INTO employee_shift_assignments
            (user_id, shift_template_id,
             effective_from, recurrence_end_date,
             recurrence_pattern, recurrence_day_of_week,
@@ -894,7 +941,7 @@ export const bulkAssignRecurringShifts = async (req, res) => {
                     notes
                 ]);
                 const assignmentId = result.insertId;
-                const [assignmentRows] = await pool.execute(`SELECT esa.*, st.name as template_name, st.start_time, st.end_time, st.type as shift_type,
+                const [assignmentRows] = await database_1.pool.execute(`SELECT esa.*, st.name as template_name, st.start_time, st.end_time, st.type as shift_type,
                   u.full_name as user_name, abr.full_name as assigned_by_name
            FROM employee_shift_assignments esa
            LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
@@ -913,7 +960,7 @@ export const bulkAssignRecurringShifts = async (req, res) => {
                     endDate.setMonth(endDate.getMonth() + 3);
                     const date = new Date(startDate);
                     while (date <= endDate) {
-                        await ShiftSchedulingService.processAttendanceForDate(user_id, date);
+                        await shift_scheduling_service_1.ShiftSchedulingService.processAttendanceForDate(user_id, date);
                         date.setDate(date.getDate() + 1);
                     }
                 }
@@ -952,7 +999,8 @@ export const bulkAssignRecurringShifts = async (req, res) => {
         });
     }
 };
-export const bulkAssignRecurringShiftsByBranch = async (req, res) => {
+exports.bulkAssignRecurringShifts = bulkAssignRecurringShifts;
+const bulkAssignRecurringShiftsByBranch = async (req, res) => {
     try {
         const { branch_id, user_ids, shift_template_id, days_of_week, effective_from, effective_to = null, assignment_type = 'permanent' } = req.body;
         if (!shift_template_id || !days_of_week || !effective_from) {
@@ -989,7 +1037,7 @@ export const bulkAssignRecurringShiftsByBranch = async (req, res) => {
                 message: 'effective_to must be in YYYY-MM-DD format'
             });
         }
-        const [templateRows] = await pool.execute('SELECT id, name, start_time, end_time FROM shift_templates WHERE id = ? AND is_active = TRUE', [shift_template_id]);
+        const [templateRows] = await database_1.pool.execute('SELECT id, name, start_time, end_time FROM shift_templates WHERE id = ? AND is_active = TRUE', [shift_template_id]);
         if (templateRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -1002,7 +1050,7 @@ export const bulkAssignRecurringShiftsByBranch = async (req, res) => {
             userIdsToAssign = user_ids;
         }
         else if (branch_id) {
-            const [staffRows] = await pool.execute('SELECT user_id FROM staff WHERE branch_id = ? AND status = "active"', [branch_id]);
+            const [staffRows] = await database_1.pool.execute('SELECT user_id FROM staff WHERE branch_id = ? AND status = "active"', [branch_id]);
             if (staffRows.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -1017,7 +1065,7 @@ export const bulkAssignRecurringShiftsByBranch = async (req, res) => {
                 message: 'Either user_ids array or branch_id is required'
             });
         }
-        const [userRows] = await pool.execute(`SELECT id, full_name FROM users WHERE id IN (${userIdsToAssign.map(() => '?').join(',')}) AND status = 'active'`, userIdsToAssign);
+        const [userRows] = await database_1.pool.execute(`SELECT id, full_name FROM users WHERE id IN (${userIdsToAssign.map(() => '?').join(',')}) AND status = 'active'`, userIdsToAssign);
         if (userRows.length !== userIdsToAssign.length) {
             return res.status(404).json({
                 success: false,
@@ -1032,7 +1080,7 @@ export const bulkAssignRecurringShiftsByBranch = async (req, res) => {
         for (const userId of userIdsToAssign) {
             try {
                 for (const dayOfWeek of normalizedDays) {
-                    await pool.execute(`UPDATE employee_shift_assignments
+                    await database_1.pool.execute(`UPDATE employee_shift_assignments
              SET status = 'expired', updated_at = NOW()
              WHERE user_id = ?
                AND recurrence_pattern = 'weekly'
@@ -1040,7 +1088,7 @@ export const bulkAssignRecurringShiftsByBranch = async (req, res) => {
                AND status IN ('active', 'pending')`, [userId, dayOfWeek]);
                 }
                 for (const dayOfWeek of normalizedDays) {
-                    await pool.execute(`INSERT INTO employee_shift_assignments
+                    await database_1.pool.execute(`INSERT INTO employee_shift_assignments
              (user_id, shift_template_id,
               effective_from, recurrence_end_date,
               recurrence_pattern, recurrence_day_of_week,
@@ -1061,7 +1109,7 @@ export const bulkAssignRecurringShiftsByBranch = async (req, res) => {
                     endDate.setMonth(endDate.getMonth() + 3);
                     const date = new Date(startDate);
                     while (date <= endDate) {
-                        await ShiftSchedulingService.processAttendanceForDate(userId, date);
+                        await shift_scheduling_service_1.ShiftSchedulingService.processAttendanceForDate(userId, date);
                         date.setDate(date.getDate() + 1);
                     }
                 }
@@ -1117,7 +1165,8 @@ export const bulkAssignRecurringShiftsByBranch = async (req, res) => {
         });
     }
 };
-export const getRecurringShifts = async (req, res) => {
+exports.bulkAssignRecurringShiftsByBranch = bulkAssignRecurringShiftsByBranch;
+const getRecurringShifts = async (req, res) => {
     try {
         const { userId, dayOfWeek, page = 1, limit = 50 } = req.query;
         let query = `
@@ -1142,7 +1191,7 @@ export const getRecurringShifts = async (req, res) => {
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `
       SELECT COUNT(*) as total
       FROM employee_shift_assignments esa
@@ -1157,7 +1206,7 @@ export const getRecurringShifts = async (req, res) => {
             countQuery += ' AND esa.recurrence_day_of_week = ?';
             countParams.push(dayOfWeek);
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             data: {
@@ -1179,11 +1228,12 @@ export const getRecurringShifts = async (req, res) => {
         });
     }
 };
-export const updateRecurringShift = async (req, res) => {
+exports.getRecurringShifts = getRecurringShifts;
+const updateRecurringShift = async (req, res) => {
     try {
         const { id } = req.params;
         const { shift_template_id, recurrence_day_of_week, recurrence_end_date, notes } = req.body;
-        const [existingRows] = await pool.execute('SELECT * FROM employee_shift_assignments WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM employee_shift_assignments WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -1226,8 +1276,8 @@ export const updateRecurringShift = async (req, res) => {
         updateFields.push('updated_at = NOW()');
         values.push(id);
         const query = `UPDATE employee_shift_assignments SET ${updateFields.join(', ')} WHERE id = ?`;
-        await pool.execute(query, values);
-        const [updatedRows] = await pool.execute(`SELECT esa.*, st.name as template_name, st.start_time, st.end_time, st.type as shift_type,
+        await database_1.pool.execute(query, values);
+        const [updatedRows] = await database_1.pool.execute(`SELECT esa.*, st.name as template_name, st.start_time, st.end_time, st.type as shift_type,
               u.full_name as user_name, abr.full_name as assigned_by_name
        FROM employee_shift_assignments esa
        LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
@@ -1243,7 +1293,7 @@ export const updateRecurringShift = async (req, res) => {
             endDate.setMonth(endDate.getMonth() + 3);
             const date = new Date(startDate);
             while (date <= endDate) {
-                await ShiftSchedulingService.processAttendanceForDate(assignment.user_id, date);
+                await shift_scheduling_service_1.ShiftSchedulingService.processAttendanceForDate(assignment.user_id, date);
                 date.setDate(date.getDate() + 1);
             }
         }
@@ -1266,17 +1316,18 @@ export const updateRecurringShift = async (req, res) => {
         });
     }
 };
-export const deleteRecurringShift = async (req, res) => {
+exports.updateRecurringShift = updateRecurringShift;
+const deleteRecurringShift = async (req, res) => {
     try {
         const { id } = req.params;
-        const [existingRows] = await pool.execute('SELECT * FROM employee_shift_assignments WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM employee_shift_assignments WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Shift assignment not found'
             });
         }
-        await pool.execute("UPDATE employee_shift_assignments SET status = 'cancelled', updated_at = NOW() WHERE id = ?", [id]);
+        await database_1.pool.execute("UPDATE employee_shift_assignments SET status = 'cancelled', updated_at = NOW() WHERE id = ?", [id]);
         return res.json({
             success: true,
             message: 'Recurring shift assignment cancelled successfully'
@@ -1290,4 +1341,5 @@ export const deleteRecurringShift = async (req, res) => {
         });
     }
 };
+exports.deleteRecurringShift = deleteRecurringShift;
 //# sourceMappingURL=shift-management.controller.js.map

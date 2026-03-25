@@ -1,20 +1,22 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class HolidayModel {
     static tableName = 'holidays';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY date DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY date DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByDate(date) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE date = ? ORDER BY holiday_name`, [date]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE date = ? ORDER BY holiday_name`, [date]);
         return rows;
     }
     static async findByBranch(branchId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id = ? OR branch_id IS NULL ORDER BY date DESC`, [branchId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id = ? OR branch_id IS NULL ORDER BY date DESC`, [branchId]);
         return rows;
     }
     static async isHoliday(date, branchId) {
@@ -27,7 +29,7 @@ class HolidayModel {
         else {
             query = `SELECT id FROM ${this.tableName} WHERE date = ? LIMIT 1`;
         }
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows.length > 0;
     }
     static async getHolidaysInRange(startDate, endDate, branchId) {
@@ -40,11 +42,11 @@ class HolidayModel {
         else {
             query = `SELECT * FROM ${this.tableName} WHERE date BETWEEN ? AND ? ORDER BY date`;
         }
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async create(holidayData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (holiday_name, date, branch_id, is_mandatory, description, created_by)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (holiday_name, date, branch_id, is_mandatory, description, created_by)
        VALUES (?, ?, ?, ?, ?, ?)`, [
             holidayData.holiday_name,
             holidayData.date,
@@ -87,13 +89,13 @@ class HolidayModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
 }
-export default HolidayModel;
+exports.default = HolidayModel;
 //# sourceMappingURL=holiday.model.js.map

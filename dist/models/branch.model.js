@@ -1,20 +1,22 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class BranchModel {
     static tableName = 'branches';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByCode(code) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE code = ?`, [code]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE code = ?`, [code]);
         return rows[0] || null;
     }
     static async create(branchData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (name, code, address, city, state, country, phone, email, manager_user_id, location_coordinates, location_radius_meters, attendance_mode, status)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, code, address, city, state, country, phone, email, manager_user_id, location_coordinates, location_radius_meters, attendance_mode, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`, [
             branchData.name,
             branchData.code,
@@ -95,19 +97,19 @@ class BranchModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET status = 'inactive' WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET status = 'inactive' WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async findActive() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE status = 'active' ORDER BY name`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE status = 'active' ORDER BY name`);
         return rows;
     }
     static async isWithinBranchLocation(branchId, lat, lng) {
-        const [rows] = await pool.execute(`
+        const [rows] = await database_1.pool.execute(`
       SELECT 
         id,
         ST_Distance_Sphere(
@@ -126,7 +128,7 @@ class BranchModel {
         return distance <= radius;
     }
     static async findNearbyBranches(lat, lng, maxDistanceMeters = 1000) {
-        const [rows] = await pool.execute(`
+        const [rows] = await database_1.pool.execute(`
       SELECT *,
         ST_Distance_Sphere(
           location_coordinates, 
@@ -141,5 +143,5 @@ class BranchModel {
         return rows;
     }
 }
-export default BranchModel;
+exports.default = BranchModel;
 //# sourceMappingURL=branch.model.js.map

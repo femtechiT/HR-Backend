@@ -1,29 +1,34 @@
-import PayrollRecordModel from '../models/payroll-record.model';
-import PayrollRunModel from '../models/payroll-run.model';
-import StaffModel from '../models/staff.model';
-import UserModel from '../models/user.model';
-import BranchModel from '../models/branch.model';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const payroll_record_model_1 = __importDefault(require("../models/payroll-record.model"));
+const payroll_run_model_1 = __importDefault(require("../models/payroll-run.model"));
+const staff_model_1 = __importDefault(require("../models/staff.model"));
+const user_model_1 = __importDefault(require("../models/user.model"));
+const branch_model_1 = __importDefault(require("../models/branch.model"));
 class PayslipGenerator {
     static async generatePayslipData(staffId, payrollRunId) {
-        const payrollRecord = await PayrollRecordModel.findByStaffIdAndPayrollRun(staffId, payrollRunId);
+        const payrollRecord = await payroll_record_model_1.default.findByStaffIdAndPayrollRun(staffId, payrollRunId);
         if (!payrollRecord) {
             return null;
         }
-        const payrollRun = await PayrollRunModel.findById(payrollRunId);
+        const payrollRun = await payroll_run_model_1.default.findById(payrollRunId);
         if (!payrollRun) {
             return null;
         }
-        const staff = await StaffModel.findById(staffId);
+        const staff = await staff_model_1.default.findById(staffId);
         if (!staff) {
             return null;
         }
-        const user = await UserModel.findById(staff.user_id);
+        const user = await user_model_1.default.findById(staff.user_id);
         if (!user) {
             return null;
         }
         let branch = null;
         if (staff.branch_id) {
-            branch = await BranchModel.findById(staff.branch_id);
+            branch = await branch_model_1.default.findById(staff.branch_id);
         }
         const earnings = typeof payrollRecord.earnings === 'string'
             ? JSON.parse(payrollRecord.earnings)
@@ -295,5 +300,5 @@ class PayslipGenerator {
         }
     }
 }
-export default PayslipGenerator;
+exports.default = PayslipGenerator;
 //# sourceMappingURL=payslip-generator.util.js.map

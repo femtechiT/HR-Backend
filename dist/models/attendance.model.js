@@ -1,5 +1,8 @@
-import { pool } from '../config/database';
-export function locationToWKT(location) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.locationToWKT = locationToWKT;
+const database_1 = require("../config/database");
+function locationToWKT(location) {
     if (!location)
         return null;
     if (typeof location === 'string')
@@ -12,27 +15,27 @@ export function locationToWKT(location) {
 class AttendanceModel {
     static tableName = 'attendance';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY date DESC, created_at DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY date DESC, created_at DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByUserId(userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY date DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY date DESC`, [userId]);
         return rows;
     }
     static async findByUserIdAndDate(userId, date) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? AND date = ?`, [userId, date]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? AND date = ?`, [userId, date]);
         return rows[0] || null;
     }
     static async findByDate(date) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE date = ? ORDER BY user_id`, [date]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE date = ? ORDER BY user_id`, [date]);
         return rows;
     }
     static async create(attendanceData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (user_id, date, status, check_in_time, check_out_time, location_coordinates, location_verified, location_address, notes)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (user_id, date, status, check_in_time, check_out_time, location_coordinates, location_verified, location_address, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             attendanceData.user_id,
             attendanceData.date,
@@ -86,23 +89,23 @@ class AttendanceModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async hasMarkedAttendance(userId, date) {
-        const [rows] = await pool.execute(`SELECT id FROM ${this.tableName} WHERE user_id = ? AND date = ?`, [userId, date]);
+        const [rows] = await database_1.pool.execute(`SELECT id FROM ${this.tableName} WHERE user_id = ? AND date = ?`, [userId, date]);
         return rows.length > 0;
     }
     static async findByDateRange(userId, startDate, endDate) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date`, [userId, startDate, endDate]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date`, [userId, startDate, endDate]);
         return rows;
     }
     static async getAttendancePercentage(userId, startDate, endDate) {
-        const [rows] = await pool.execute(`SELECT
+        const [rows] = await database_1.pool.execute(`SELECT
         COUNT(*) as total_days,
         SUM(CASE WHEN status IN ('present', 'late', 'half_day') THEN 1 ELSE 0 END) as working_days
        FROM ${this.tableName}
@@ -113,7 +116,7 @@ class AttendanceModel {
         return ((result.working_days || 0) / result.total_days) * 100;
     }
     static async getAttendanceSummary(userId, startDate, endDate) {
-        const [rows] = await pool.execute(`SELECT
+        const [rows] = await database_1.pool.execute(`SELECT
         COUNT(*) as total_days,
         SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present_days,
         SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_days,
@@ -131,5 +134,5 @@ class AttendanceModel {
         };
     }
 }
-export default AttendanceModel;
+exports.default = AttendanceModel;
 //# sourceMappingURL=attendance.model.js.map

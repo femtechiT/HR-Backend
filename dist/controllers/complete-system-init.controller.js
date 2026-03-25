@@ -1,12 +1,18 @@
-import fs from 'fs/promises';
-import path from 'path';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { pool } from '../config/database';
-import { sendWelcomeEmail } from '../services/email.service';
-export const isSystemInitialized = async () => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.checkSystemReadiness = exports.initializeCompleteSystem = exports.runMigrations = exports.checkDatabaseSchema = exports.isSystemInitialized = void 0;
+const promises_1 = __importDefault(require("fs/promises"));
+const path_1 = __importDefault(require("path"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const database_1 = require("../config/database");
+const email_service_1 = require("../services/email.service");
+const isSystemInitialized = async () => {
     try {
-        const [rows] = await pool.execute('SELECT COUNT(*) as count FROM users');
+        const [rows] = await database_1.pool.execute('SELECT COUNT(*) as count FROM users');
         const userCount = rows[0].count;
         return userCount > 0;
     }
@@ -18,12 +24,13 @@ export const isSystemInitialized = async () => {
         return true;
     }
 };
-export const checkDatabaseSchema = async () => {
+exports.isSystemInitialized = isSystemInitialized;
+const checkDatabaseSchema = async () => {
     try {
         const tablesToCheck = ['users', 'roles', 'branches'];
         for (const table of tablesToCheck) {
             try {
-                await pool.execute(`SELECT 1 FROM ${table} LIMIT 1`);
+                await database_1.pool.execute(`SELECT 1 FROM ${table} LIMIT 1`);
             }
             catch (error) {
                 if (error.code === 'ER_NO_SUCH_TABLE') {
@@ -39,18 +46,19 @@ export const checkDatabaseSchema = async () => {
         return false;
     }
 };
-export const runMigrations = async () => {
+exports.checkDatabaseSchema = checkDatabaseSchema;
+const runMigrations = async () => {
     try {
-        const migrationsDir = path.join(process.cwd(), 'migrations');
-        const migrationFiles = await fs.readdir(migrationsDir);
+        const migrationsDir = path_1.default.join(process.cwd(), 'migrations');
+        const migrationFiles = await promises_1.default.readdir(migrationsDir);
         const sortedMigrationFiles = migrationFiles
             .filter(file => file.endsWith('.sql'))
             .sort();
         console.log(`Found ${sortedMigrationFiles.length} migration files to run`);
         for (const migrationFile of sortedMigrationFiles) {
             console.log(`Running migration: ${migrationFile}`);
-            const migrationPath = path.join(migrationsDir, migrationFile);
-            const migrationSql = await fs.readFile(migrationPath, 'utf8');
+            const migrationPath = path_1.default.join(migrationsDir, migrationFile);
+            const migrationSql = await promises_1.default.readFile(migrationPath, 'utf8');
             const statements = [];
             let currentStatement = '';
             let inSingleQuote = false;
@@ -119,7 +127,7 @@ export const runMigrations = async () => {
             for (const statement of statements) {
                 if (statement) {
                     try {
-                        await pool.execute(statement);
+                        await database_1.pool.execute(statement);
                     }
                     catch (stmtError) {
                         if (stmtError.errno === 1060) {
@@ -150,9 +158,10 @@ export const runMigrations = async () => {
         throw error;
     }
 };
-export const initializeCompleteSystem = async (req, res) => {
+exports.runMigrations = runMigrations;
+const initializeCompleteSystem = async (req, res) => {
     try {
-        const systemInitialized = await isSystemInitialized();
+        const systemInitialized = await (0, exports.isSystemInitialized)();
         if (systemInitialized) {
             return res.status(400).json({
                 success: false,
@@ -179,20 +188,20 @@ export const initializeCompleteSystem = async (req, res) => {
                 message: 'Password must be at least 8 characters long'
             });
         }
-        let schemaExists = await checkDatabaseSchema();
+        let schemaExists = await (0, exports.checkDatabaseSchema)();
         if (!schemaExists) {
             console.log('Database schema not found. Running migrations...');
-            await runMigrations();
+            await (0, exports.runMigrations)();
             console.log('Migrations completed successfully');
         }
         else {
             console.log('Database schema already exists');
         }
         const saltRounds = 10;
-        const passwordHash = await bcrypt.hash(password, saltRounds);
-        const [roleResult] = await pool.execute('INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', ['Super Admin', 'System super administrator with all privileges', JSON.stringify(['*'])]);
+        const passwordHash = await bcryptjs_1.default.hash(password, saltRounds);
+        const [roleResult] = await database_1.pool.execute('INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', ['Super Admin', 'System super administrator with all privileges', JSON.stringify(['*'])]);
         const superAdminRoleId = roleResult.insertId;
-        const [userResult] = await pool.execute(`INSERT INTO users 
+        const [userResult] = await database_1.pool.execute(`INSERT INTO users 
        (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password, created_at, updated_at) 
        VALUES (?, ?, ?, ?, ?, NULL, 'active', 0, NOW(), NOW())`, [email, passwordHash, fullName, phone || null, superAdminRoleId]);
         const userId = userResult.insertId;
@@ -201,9 +210,9 @@ export const initializeCompleteSystem = async (req, res) => {
             email: email,
             role_id: superAdminRoleId
         };
-        const token = jwt.sign(tokenPayload, process.env.JWT_SECRET || 'fallback_secret_key', { expiresIn: '24h' });
+        const token = jsonwebtoken_1.default.sign(tokenPayload, process.env.JWT_SECRET || 'fallback_secret_key', { expiresIn: '24h' });
         try {
-            await sendWelcomeEmail({ to: email, fullName });
+            await (0, email_service_1.sendWelcomeEmail)({ to: email, fullName });
         }
         catch (emailError) {
             console.error('Error sending welcome email:', emailError);
@@ -230,10 +239,11 @@ export const initializeCompleteSystem = async (req, res) => {
         });
     }
 };
-export const checkSystemReadiness = async (req, res) => {
+exports.initializeCompleteSystem = initializeCompleteSystem;
+const checkSystemReadiness = async (req, res) => {
     try {
-        const schemaExists = await checkDatabaseSchema();
-        const systemInitialized = await isSystemInitialized();
+        const schemaExists = await (0, exports.checkDatabaseSchema)();
+        const systemInitialized = await (0, exports.isSystemInitialized)();
         return res.json({
             success: true,
             data: {
@@ -252,4 +262,5 @@ export const checkSystemReadiness = async (req, res) => {
         });
     }
 };
+exports.checkSystemReadiness = checkSystemReadiness;
 //# sourceMappingURL=complete-system-init.controller.js.map

@@ -1,5 +1,11 @@
-import PermissionService from '../services/permission.service';
-export const checkPermission = (permission) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.attachPermissions = exports.checkPermission = void 0;
+const permission_service_1 = __importDefault(require("../services/permission.service"));
+const checkPermission = (permission) => {
     return async (req, res, next) => {
         try {
             if (!req.currentUser) {
@@ -8,7 +14,7 @@ export const checkPermission = (permission) => {
                     message: 'Authentication required'
                 });
             }
-            const permissionResult = await PermissionService.hasPermission(req.currentUser.id, permission);
+            const permissionResult = await permission_service_1.default.hasPermission(req.currentUser.id, permission);
             if (!permissionResult.hasPermission) {
                 return res.status(403).json({
                     success: false,
@@ -28,10 +34,11 @@ export const checkPermission = (permission) => {
         }
     };
 };
-export const attachPermissions = async (req, res, next) => {
+exports.checkPermission = checkPermission;
+const attachPermissions = async (req, res, next) => {
     try {
         if (req.currentUser) {
-            const permissions = await PermissionService.generatePermissionManifest(req.currentUser.id);
+            const permissions = await permission_service_1.default.generatePermissionManifest(req.currentUser.id);
             req.currentUser.permissions = permissions;
         }
         return next();
@@ -41,4 +48,5 @@ export const attachPermissions = async (req, res, next) => {
         return next();
     }
 };
+exports.attachPermissions = attachPermissions;
 //# sourceMappingURL=permission.middleware.js.map

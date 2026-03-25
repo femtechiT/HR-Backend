@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class StaffDocumentModel {
     static tableName = 'staff_documents';
     static async findAll(staffId) {
@@ -9,23 +11,23 @@ class StaffDocumentModel {
             params.push(staffId);
         }
         query += ' ORDER BY uploaded_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByStaffId(staffId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? ORDER BY uploaded_at DESC`, [staffId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? ORDER BY uploaded_at DESC`, [staffId]);
         return rows;
     }
     static async findByType(staffId, documentType) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? AND document_type = ? ORDER BY uploaded_at DESC`, [staffId, documentType]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? AND document_type = ? ORDER BY uploaded_at DESC`, [staffId, documentType]);
         return rows;
     }
     static async create(documentData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (staff_id, document_type, document_name, file_path, file_size, mime_type, uploaded_by, expiry_date)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (staff_id, document_type, document_name, file_path, file_size, mime_type, uploaded_by, expiry_date)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
             documentData.staff_id,
             documentData.document_type,
@@ -66,22 +68,22 @@ class StaffDocumentModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async verifyDocument(id, verifiedBy) {
-        const [result] = await pool.execute(`UPDATE ${this.tableName} SET is_verified = TRUE, verified_by = ?, verified_at = NOW() WHERE id = ?`, [verifiedBy, id]);
+        const [result] = await database_1.pool.execute(`UPDATE ${this.tableName} SET is_verified = TRUE, verified_by = ?, verified_at = NOW() WHERE id = ?`, [verifiedBy, id]);
         if (result.affectedRows > 0) {
             return await this.findById(id);
         }
         return null;
     }
     static async getExpiringDocuments(days = 30) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} 
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} 
        WHERE expiry_date IS NOT NULL 
        AND expiry_date <= DATE_ADD(NOW(), INTERVAL ? DAY)
        AND expiry_date >= NOW()
@@ -90,5 +92,5 @@ class StaffDocumentModel {
         return rows;
     }
 }
-export default StaffDocumentModel;
+exports.default = StaffDocumentModel;
 //# sourceMappingURL=staff-document.model.js.map

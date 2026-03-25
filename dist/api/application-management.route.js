@@ -1,12 +1,14 @@
-import { Router } from 'express';
-import { updateApplicationStatus, getAllApplications, withdrawApplication, addCommentToApplication, getCommentsForApplication } from '../controllers/application-management.controller';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-const router = Router();
-router.use(authenticateJWT);
-router.put('/:id/status', checkPermission('job_application:update'), updateApplicationStatus);
-router.get('/', checkPermission('job_application:read'), getAllApplications);
-router.put('/:id/withdraw', withdrawApplication);
-router.post('/:id/comment', checkPermission('job_application:comment'), addCommentToApplication);
-router.get('/:id/comments', getCommentsForApplication);
-export default router;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const application_management_controller_1 = require("../controllers/application-management.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authenticateJWT);
+router.put('/:id/status', (0, auth_middleware_1.checkPermission)('job_application:update'), application_management_controller_1.updateApplicationStatus);
+router.get('/', (0, auth_middleware_1.checkPermission)('job_application:read'), application_management_controller_1.getAllApplications);
+router.put('/:id/withdraw', application_management_controller_1.withdrawApplication);
+router.post('/:id/comment', (0, auth_middleware_1.checkPermission)('job_application:comment'), application_management_controller_1.addCommentToApplication);
+router.get('/:id/comments', application_management_controller_1.getCommentsForApplication);
+exports.default = router;
 //# sourceMappingURL=application-management.route.js.map

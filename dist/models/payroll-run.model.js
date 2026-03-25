@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class PayrollRunModel {
     static tableName = 'payroll_runs';
     static async findAll(month, year, branchId, status) {
@@ -25,11 +27,11 @@ class PayrollRunModel {
             query += ' WHERE ' + conditions.join(' AND ');
         }
         query += ' ORDER BY year DESC, month DESC, created_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByMonthYear(month, year, branchId) {
@@ -39,11 +41,11 @@ class PayrollRunModel {
             query += ' AND branch_id = ?';
             params.push(branchId);
         }
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows[0] || null;
     }
     static async create(payrollRunData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (month, year, branch_id, status, processed_by, notes)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (month, year, branch_id, status, processed_by, notes)
        VALUES (?, ?, ?, ?, ?, ?)`, [
             payrollRunData.month,
             payrollRunData.year,
@@ -82,20 +84,20 @@ class PayrollRunModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async updateStatus(id, status) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [status, id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [status, id]);
         if (result.affectedRows > 0) {
             return await this.findById(id);
         }
         return null;
     }
 }
-export default PayrollRunModel;
+exports.default = PayrollRunModel;
 //# sourceMappingURL=payroll-run.model.js.map

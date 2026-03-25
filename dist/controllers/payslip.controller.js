@@ -1,8 +1,14 @@
-import PayslipGenerator from '../utils/payslip-generator.util';
-import PayrollRecordModel from '../models/payroll-record.model';
-import PayrollRunModel from '../models/payroll-run.model';
-import StaffModel from '../models/staff.model';
-export const generatePayslip = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.downloadPayslip = exports.generatePayslip = void 0;
+const payslip_generator_util_1 = __importDefault(require("../utils/payslip-generator.util"));
+const payroll_record_model_1 = __importDefault(require("../models/payroll-record.model"));
+const payroll_run_model_1 = __importDefault(require("../models/payroll-run.model"));
+const staff_model_1 = __importDefault(require("../models/staff.model"));
+const generatePayslip = async (req, res) => {
     try {
         const { staffId, payrollRunId } = req.params;
         const parsedStaffId = parseInt(Array.isArray(staffId) ? staffId[0] : staffId);
@@ -19,14 +25,14 @@ export const generatePayslip = async (req, res) => {
                 message: 'Authentication required'
             });
         }
-        const payrollRecord = await PayrollRecordModel.findByStaffIdAndPayrollRun(parsedStaffId, parsedPayrollRunId);
+        const payrollRecord = await payroll_record_model_1.default.findByStaffIdAndPayrollRun(parsedStaffId, parsedPayrollRunId);
         if (!payrollRecord) {
             return res.status(404).json({
                 success: false,
                 message: 'Payroll record not found for this staff and payroll run'
             });
         }
-        const payrollRun = await PayrollRunModel.findById(parsedPayrollRunId);
+        const payrollRun = await payroll_run_model_1.default.findById(parsedPayrollRunId);
         if (!payrollRun || payrollRun.status !== 'completed') {
             return res.status(400).json({
                 success: false,
@@ -35,7 +41,7 @@ export const generatePayslip = async (req, res) => {
         }
         const currentUserId = req.currentUser.id;
         const currentUserRole = req.currentUser.role_id;
-        const staff = await StaffModel.findById(parsedStaffId);
+        const staff = await staff_model_1.default.findById(parsedStaffId);
         if (!staff) {
             return res.status(404).json({
                 success: false,
@@ -49,7 +55,7 @@ export const generatePayslip = async (req, res) => {
                 message: 'Not authorized to view this payslip'
             });
         }
-        const payslipHtml = await PayslipGenerator.generatePayslipHTMLString(parsedStaffId, parsedPayrollRunId);
+        const payslipHtml = await payslip_generator_util_1.default.generatePayslipHTMLString(parsedStaffId, parsedPayrollRunId);
         if (!payslipHtml) {
             return res.status(500).json({
                 success: false,
@@ -68,7 +74,8 @@ export const generatePayslip = async (req, res) => {
         });
     }
 };
-export const downloadPayslip = async (req, res) => {
+exports.generatePayslip = generatePayslip;
+const downloadPayslip = async (req, res) => {
     try {
         const { staffId, payrollRunId } = req.params;
         const parsedStaffId = parseInt(Array.isArray(staffId) ? staffId[0] : staffId);
@@ -85,14 +92,14 @@ export const downloadPayslip = async (req, res) => {
                 message: 'Authentication required'
             });
         }
-        const payrollRecord = await PayrollRecordModel.findByStaffIdAndPayrollRun(parsedStaffId, parsedPayrollRunId);
+        const payrollRecord = await payroll_record_model_1.default.findByStaffIdAndPayrollRun(parsedStaffId, parsedPayrollRunId);
         if (!payrollRecord) {
             return res.status(404).json({
                 success: false,
                 message: 'Payroll record not found for this staff and payroll run'
             });
         }
-        const payrollRun = await PayrollRunModel.findById(parsedPayrollRunId);
+        const payrollRun = await payroll_run_model_1.default.findById(parsedPayrollRunId);
         if (!payrollRun || payrollRun.status !== 'completed') {
             return res.status(400).json({
                 success: false,
@@ -101,7 +108,7 @@ export const downloadPayslip = async (req, res) => {
         }
         const currentUserId = req.currentUser.id;
         const currentUserRole = req.currentUser.role_id;
-        const staff = await StaffModel.findById(parsedStaffId);
+        const staff = await staff_model_1.default.findById(parsedStaffId);
         if (!staff) {
             return res.status(404).json({
                 success: false,
@@ -115,7 +122,7 @@ export const downloadPayslip = async (req, res) => {
                 message: 'Not authorized to download this payslip'
             });
         }
-        const payslipHtml = await PayslipGenerator.generatePayslipHTMLString(parsedStaffId, parsedPayrollRunId);
+        const payslipHtml = await payslip_generator_util_1.default.generatePayslipHTMLString(parsedStaffId, parsedPayrollRunId);
         if (!payslipHtml) {
             return res.status(500).json({
                 success: false,
@@ -135,4 +142,5 @@ export const downloadPayslip = async (req, res) => {
         });
     }
 };
+exports.downloadPayslip = downloadPayslip;
 //# sourceMappingURL=payslip.controller.js.map

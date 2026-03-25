@@ -1,8 +1,14 @@
-import GuarantorModel from '../models/guarantor.model';
-import StaffModel from '../models/staff.model';
-import path from 'path';
-import fs from 'fs';
-export const getGuarantors = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.uploadGuarantorDocument = exports.verifyGuarantor = exports.deleteGuarantor = exports.updateGuarantor = exports.createGuarantor = exports.getGuarantor = exports.getGuarantors = void 0;
+const guarantor_model_1 = __importDefault(require("../models/guarantor.model"));
+const staff_model_1 = __importDefault(require("../models/staff.model"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const getGuarantors = async (req, res) => {
     try {
         const staffId = req.params.staffId ? parseInt(req.params.staffId) : undefined;
         const isActiveOnly = req.query.isActiveOnly === 'true';
@@ -12,7 +18,7 @@ export const getGuarantors = async (req, res) => {
                 message: 'Staff ID is required'
             });
         }
-        const guarantors = await GuarantorModel.findByStaffId(staffId, isActiveOnly);
+        const guarantors = await guarantor_model_1.default.findByStaffId(staffId, isActiveOnly);
         return res.json({
             success: true,
             message: 'Guarantors retrieved successfully',
@@ -27,7 +33,8 @@ export const getGuarantors = async (req, res) => {
         });
     }
 };
-export const getGuarantor = async (req, res) => {
+exports.getGuarantors = getGuarantors;
+const getGuarantor = async (req, res) => {
     try {
         const guarantorId = parseInt(req.params.id);
         if (isNaN(guarantorId)) {
@@ -36,7 +43,7 @@ export const getGuarantor = async (req, res) => {
                 message: 'Invalid guarantor ID'
             });
         }
-        const guarantor = await GuarantorModel.findById(guarantorId);
+        const guarantor = await guarantor_model_1.default.findById(guarantorId);
         if (!guarantor) {
             return res.status(404).json({
                 success: false,
@@ -57,7 +64,8 @@ export const getGuarantor = async (req, res) => {
         });
     }
 };
-export const createGuarantor = async (req, res) => {
+exports.getGuarantor = getGuarantor;
+const createGuarantor = async (req, res) => {
     try {
         const { staff_id, first_name, last_name, middle_name, date_of_birth, gender, phone_number, alternate_phone, email, address_line_1, address_line_2, city, state, postal_code, country, id_type, id_number, id_issuing_authority, id_issue_date, id_expiry_date, relationship, occupation, employer_name, employer_address, employer_phone, guarantee_type, guarantee_amount, guarantee_start_date, guarantee_end_date, guarantee_terms, is_active } = req.body;
         if (!staff_id || !first_name || !last_name || !phone_number || !address_line_1) {
@@ -66,7 +74,7 @@ export const createGuarantor = async (req, res) => {
                 message: 'Staff ID, first name, last name, phone number, and address are required'
             });
         }
-        const staff = await StaffModel.findById(staff_id);
+        const staff = await staff_model_1.default.findById(staff_id);
         if (!staff) {
             return res.status(404).json({
                 success: false,
@@ -106,7 +114,7 @@ export const createGuarantor = async (req, res) => {
             guarantee_terms,
             is_active: is_active !== undefined ? is_active : true
         };
-        const guarantor = await GuarantorModel.create(guarantorData);
+        const guarantor = await guarantor_model_1.default.create(guarantorData);
         return res.status(201).json({
             success: true,
             message: 'Guarantor created successfully',
@@ -121,7 +129,8 @@ export const createGuarantor = async (req, res) => {
         });
     }
 };
-export const updateGuarantor = async (req, res) => {
+exports.createGuarantor = createGuarantor;
+const updateGuarantor = async (req, res) => {
     try {
         const guarantorId = parseInt(req.params.id);
         if (isNaN(guarantorId)) {
@@ -130,7 +139,7 @@ export const updateGuarantor = async (req, res) => {
                 message: 'Invalid guarantor ID'
             });
         }
-        const guarantor = await GuarantorModel.findById(guarantorId);
+        const guarantor = await guarantor_model_1.default.findById(guarantorId);
         if (!guarantor) {
             return res.status(404).json({
                 success: false,
@@ -158,7 +167,7 @@ export const updateGuarantor = async (req, res) => {
                 }
             }
         }
-        const updatedGuarantor = await GuarantorModel.update(guarantorId, updateData);
+        const updatedGuarantor = await guarantor_model_1.default.update(guarantorId, updateData);
         return res.json({
             success: true,
             message: 'Guarantor updated successfully',
@@ -173,7 +182,8 @@ export const updateGuarantor = async (req, res) => {
         });
     }
 };
-export const deleteGuarantor = async (req, res) => {
+exports.updateGuarantor = updateGuarantor;
+const deleteGuarantor = async (req, res) => {
     try {
         const guarantorId = parseInt(req.params.id);
         if (isNaN(guarantorId)) {
@@ -182,7 +192,7 @@ export const deleteGuarantor = async (req, res) => {
                 message: 'Invalid guarantor ID'
             });
         }
-        const guarantor = await GuarantorModel.findById(guarantorId);
+        const guarantor = await guarantor_model_1.default.findById(guarantorId);
         if (!guarantor) {
             return res.status(404).json({
                 success: false,
@@ -190,18 +200,18 @@ export const deleteGuarantor = async (req, res) => {
             });
         }
         if (guarantor.guarantor_form_path) {
-            const formPath = path.join(process.cwd(), guarantor.guarantor_form_path);
-            if (fs.existsSync(formPath)) {
-                fs.unlinkSync(formPath);
+            const formPath = path_1.default.join(process.cwd(), guarantor.guarantor_form_path);
+            if (fs_1.default.existsSync(formPath)) {
+                fs_1.default.unlinkSync(formPath);
             }
         }
         if (guarantor.id_document_path) {
-            const idPath = path.join(process.cwd(), guarantor.id_document_path);
-            if (fs.existsSync(idPath)) {
-                fs.unlinkSync(idPath);
+            const idPath = path_1.default.join(process.cwd(), guarantor.id_document_path);
+            if (fs_1.default.existsSync(idPath)) {
+                fs_1.default.unlinkSync(idPath);
             }
         }
-        await GuarantorModel.delete(guarantorId);
+        await guarantor_model_1.default.delete(guarantorId);
         return res.json({
             success: true,
             message: 'Guarantor deleted successfully'
@@ -215,7 +225,8 @@ export const deleteGuarantor = async (req, res) => {
         });
     }
 };
-export const verifyGuarantor = async (req, res) => {
+exports.deleteGuarantor = deleteGuarantor;
+const verifyGuarantor = async (req, res) => {
     try {
         const guarantorId = parseInt(req.params.id);
         const { verification_notes } = req.body;
@@ -232,14 +243,14 @@ export const verifyGuarantor = async (req, res) => {
                 message: 'Unauthorized: No user information'
             });
         }
-        const guarantor = await GuarantorModel.findById(guarantorId);
+        const guarantor = await guarantor_model_1.default.findById(guarantorId);
         if (!guarantor) {
             return res.status(404).json({
                 success: false,
                 message: 'Guarantor not found'
             });
         }
-        const updatedGuarantor = await GuarantorModel.verify(guarantorId, verifiedBy, verification_notes);
+        const updatedGuarantor = await guarantor_model_1.default.verify(guarantorId, verifiedBy, verification_notes);
         return res.json({
             success: true,
             message: 'Guarantor verified successfully',
@@ -254,7 +265,8 @@ export const verifyGuarantor = async (req, res) => {
         });
     }
 };
-export const uploadGuarantorDocument = async (req, res) => {
+exports.verifyGuarantor = verifyGuarantor;
+const uploadGuarantorDocument = async (req, res) => {
     try {
         const guarantorId = parseInt(req.params.id);
         const documentType = req.params.documentType;
@@ -264,7 +276,7 @@ export const uploadGuarantorDocument = async (req, res) => {
                 message: 'Invalid guarantor ID'
             });
         }
-        const guarantor = await GuarantorModel.findById(guarantorId);
+        const guarantor = await guarantor_model_1.default.findById(guarantorId);
         if (!guarantor) {
             return res.status(404).json({
                 success: false,
@@ -283,15 +295,15 @@ export const uploadGuarantorDocument = async (req, res) => {
             ? guarantor.id_document_path
             : guarantor.guarantor_form_path;
         if (oldFilePath) {
-            const oldFileFullPath = path.join(process.cwd(), oldFilePath);
-            if (fs.existsSync(oldFileFullPath)) {
-                fs.unlinkSync(oldFileFullPath);
+            const oldFileFullPath = path_1.default.join(process.cwd(), oldFilePath);
+            if (fs_1.default.existsSync(oldFileFullPath)) {
+                fs_1.default.unlinkSync(oldFileFullPath);
             }
         }
         const updateData = documentType === 'id'
             ? { id_document_path: filePath }
             : { guarantor_form_path: filePath };
-        const updatedGuarantor = await GuarantorModel.update(guarantorId, updateData);
+        const updatedGuarantor = await guarantor_model_1.default.update(guarantorId, updateData);
         return res.json({
             success: true,
             message: 'Document uploaded successfully',
@@ -309,4 +321,5 @@ export const uploadGuarantorDocument = async (req, res) => {
         });
     }
 };
+exports.uploadGuarantorDocument = uploadGuarantorDocument;
 //# sourceMappingURL=guarantor.controller.js.map

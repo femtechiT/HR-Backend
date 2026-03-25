@@ -1,20 +1,22 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class AttendanceLocationModel {
     static tableName = 'attendance_locations';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE is_active = TRUE ORDER BY name`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE is_active = TRUE ORDER BY name`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findActiveLocations() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE is_active = TRUE ORDER BY name`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE is_active = TRUE ORDER BY name`);
         return rows;
     }
     static async findByBranch(branchId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id = ? AND is_active = TRUE ORDER BY name`, [branchId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE branch_id = ? AND is_active = TRUE ORDER BY name`, [branchId]);
         return rows;
     }
     static async create(locationData) {
@@ -37,7 +39,7 @@ class AttendanceLocationModel {
             console.error('📍 Invalid coordinates format:', coordinatesValue);
             throw new Error('Invalid coordinates format. Expected: "POINT(lng lat)" or "lng,lat"');
         }
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (name, location_coordinates, location_radius_meters, branch_id, is_active, created_by)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, location_coordinates, location_radius_meters, branch_id, is_active, created_by)
        VALUES (?, ST_GeomFromText(?), ?, ?, ?, ?)`, [
             locationData.name,
             coordinatesValue,
@@ -94,11 +96,11 @@ class AttendanceLocationModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async isWithinAttendanceLocation(lat, lng, branchId) {
@@ -120,7 +122,7 @@ class AttendanceLocationModel {
         AND ST_Distance_Sphere(location_coordinates, ST_GeomFromText(?)) <= location_radius_meters
         LIMIT 1`;
         }
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows[0] || null;
     }
     static async getLocationsNearby(lat, lng, maxDistanceMeters = 1000, branchId) {
@@ -144,11 +146,11 @@ class AttendanceLocationModel {
         AND ST_Distance_Sphere(location_coordinates, ST_GeomFromText(?)) <= ?
         ORDER BY distance_meters ASC`;
         }
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async isWithinSpecificLocation(locationId, lat, lng) {
-        const [rows] = await pool.execute(`
+        const [rows] = await database_1.pool.execute(`
       SELECT id FROM ${this.tableName}
       WHERE id = ?
       AND is_active = TRUE
@@ -157,9 +159,9 @@ class AttendanceLocationModel {
         return rows.length > 0;
     }
     static async findByActiveStatus(isActive) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE is_active = ? ORDER BY name`, [isActive]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE is_active = ? ORDER BY name`, [isActive]);
         return rows;
     }
 }
-export default AttendanceLocationModel;
+exports.default = AttendanceLocationModel;
 //# sourceMappingURL=attendance-location.model.js.map

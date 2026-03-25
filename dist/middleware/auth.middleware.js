@@ -1,7 +1,13 @@
-import JwtUtil from '../utils/jwt.util';
-import UserModel from '../models/user.model';
-import PermissionService from '../services/permission.service';
-export const authenticateJWT = async (req, res, next) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.attachPermissions = exports.checkPermission = exports.authenticateJWT = void 0;
+const jwt_util_1 = __importDefault(require("../utils/jwt.util"));
+const user_model_1 = __importDefault(require("../models/user.model"));
+const permission_service_1 = __importDefault(require("../services/permission.service"));
+const authenticateJWT = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) {
@@ -20,7 +26,7 @@ export const authenticateJWT = async (req, res, next) => {
             }
             let decoded;
             try {
-                decoded = JwtUtil.verifyAccessToken(token);
+                decoded = jwt_util_1.default.verifyAccessToken(token);
             }
             catch (verifyError) {
                 return res.status(403).json({
@@ -28,7 +34,7 @@ export const authenticateJWT = async (req, res, next) => {
                     message: 'Invalid or expired token'
                 });
             }
-            const user = await UserModel.findById(decoded.userId);
+            const user = await user_model_1.default.findById(decoded.userId);
             if (!user || user.status !== 'active') {
                 return res.status(401).json({
                     success: false,
@@ -64,11 +70,12 @@ export const authenticateJWT = async (req, res, next) => {
         });
     }
 };
-export const checkPermission = (permission) => {
+exports.authenticateJWT = authenticateJWT;
+const checkPermission = (permission) => {
     return async (req, res, next) => {
         try {
             if (req.currentUser) {
-                const permissionResult = await PermissionService.hasPermission(req.currentUser.id, permission);
+                const permissionResult = await permission_service_1.default.hasPermission(req.currentUser.id, permission);
                 if (!permissionResult.hasPermission) {
                     return res.status(403).json({
                         success: false,
@@ -95,10 +102,11 @@ export const checkPermission = (permission) => {
         }
     };
 };
-export const attachPermissions = async (req, res, next) => {
+exports.checkPermission = checkPermission;
+const attachPermissions = async (req, res, next) => {
     try {
         if (req.currentUser) {
-            const permissions = await PermissionService.generatePermissionManifest(req.currentUser.id);
+            const permissions = await permission_service_1.default.generatePermissionManifest(req.currentUser.id);
             req.currentUser.permissions = permissions;
         }
         return next();
@@ -108,4 +116,5 @@ export const attachPermissions = async (req, res, next) => {
         return next();
     }
 };
+exports.attachPermissions = attachPermissions;
 //# sourceMappingURL=auth.middleware.js.map

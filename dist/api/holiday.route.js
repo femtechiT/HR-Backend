@@ -1,8 +1,13 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import HolidayModel from '../models/holiday.model';
-const router = Router();
-router.get('/', authenticateJWT, checkPermission('holiday:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const holiday_model_1 = __importDefault(require("../models/holiday.model"));
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('holiday:read'), async (req, res) => {
     try {
         const { branchId, date, startDate, endDate } = req.query;
         let holidays;
@@ -13,20 +18,20 @@ router.get('/', authenticateJWT, checkPermission('holiday:read'), async (req, re
             const startDateStr = typeof startDateVal === 'string' ? startDateVal : '';
             const endDateStr = typeof endDateVal === 'string' ? endDateVal : '';
             const branchIdStr = typeof branchIdVal === 'string' ? branchIdVal : '';
-            holidays = await HolidayModel.getHolidaysInRange(new Date(startDateStr), new Date(endDateStr), branchIdStr ? parseInt(branchIdStr) : undefined);
+            holidays = await holiday_model_1.default.getHolidaysInRange(new Date(startDateStr), new Date(endDateStr), branchIdStr ? parseInt(branchIdStr) : undefined);
         }
         else if (branchId) {
             const branchIdVal = Array.isArray(branchId) ? branchId[0] : branchId;
             const branchIdStr = typeof branchIdVal === 'string' ? branchIdVal : '';
-            holidays = await HolidayModel.findByBranch(parseInt(branchIdStr));
+            holidays = await holiday_model_1.default.findByBranch(parseInt(branchIdStr));
         }
         else if (date) {
             const dateVal = Array.isArray(date) ? date[0] : date;
             const dateStr = typeof dateVal === 'string' ? dateVal : '';
-            holidays = await HolidayModel.findByDate(new Date(dateStr));
+            holidays = await holiday_model_1.default.findByDate(new Date(dateStr));
         }
         else {
-            holidays = await HolidayModel.findAll();
+            holidays = await holiday_model_1.default.findAll();
         }
         return res.json({
             success: true,
@@ -42,7 +47,7 @@ router.get('/', authenticateJWT, checkPermission('holiday:read'), async (req, re
         });
     }
 });
-router.get('/:id', authenticateJWT, checkPermission('holiday:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('holiday:read'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -53,7 +58,7 @@ router.get('/:id', authenticateJWT, checkPermission('holiday:read'), async (req,
                 message: 'Invalid holiday ID'
             });
         }
-        const holiday = await HolidayModel.findById(holidayId);
+        const holiday = await holiday_model_1.default.findById(holidayId);
         if (!holiday) {
             return res.status(404).json({
                 success: false,
@@ -74,7 +79,7 @@ router.get('/:id', authenticateJWT, checkPermission('holiday:read'), async (req,
         });
     }
 });
-router.post('/', authenticateJWT, checkPermission('holiday:create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('holiday:create'), async (req, res) => {
     try {
         const { holiday_name, date, branch_id, is_mandatory, description } = req.body;
         if (!holiday_name || !date) {
@@ -91,7 +96,7 @@ router.post('/', authenticateJWT, checkPermission('holiday:create'), async (req,
             description: description || null,
             created_by: req.currentUser?.id || null
         };
-        const newHoliday = await HolidayModel.create(holidayData);
+        const newHoliday = await holiday_model_1.default.create(holidayData);
         return res.status(201).json({
             success: true,
             message: 'Holiday created successfully',
@@ -106,7 +111,7 @@ router.post('/', authenticateJWT, checkPermission('holiday:create'), async (req,
         });
     }
 });
-router.put('/:id', authenticateJWT, checkPermission('holiday:update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('holiday:update'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -118,7 +123,7 @@ router.put('/:id', authenticateJWT, checkPermission('holiday:update'), async (re
                 message: 'Invalid holiday ID'
             });
         }
-        const existingHoliday = await HolidayModel.findById(holidayId);
+        const existingHoliday = await holiday_model_1.default.findById(holidayId);
         if (!existingHoliday) {
             return res.status(404).json({
                 success: false,
@@ -136,7 +141,7 @@ router.put('/:id', authenticateJWT, checkPermission('holiday:update'), async (re
             updateData.is_mandatory = Boolean(is_mandatory);
         if (description !== undefined)
             updateData.description = description;
-        const updatedHoliday = await HolidayModel.update(holidayId, updateData);
+        const updatedHoliday = await holiday_model_1.default.update(holidayId, updateData);
         return res.json({
             success: true,
             message: 'Holiday updated successfully',
@@ -151,7 +156,7 @@ router.put('/:id', authenticateJWT, checkPermission('holiday:update'), async (re
         });
     }
 });
-router.delete('/:id', authenticateJWT, checkPermission('holiday:delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('holiday:delete'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -162,7 +167,7 @@ router.delete('/:id', authenticateJWT, checkPermission('holiday:delete'), async 
                 message: 'Invalid holiday ID'
             });
         }
-        const deleted = await HolidayModel.delete(holidayId);
+        const deleted = await holiday_model_1.default.delete(holidayId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -182,5 +187,5 @@ router.delete('/:id', authenticateJWT, checkPermission('holiday:delete'), async 
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=holiday.route.js.map

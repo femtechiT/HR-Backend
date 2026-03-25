@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class LeaveCleanupWorker {
     static isRunning = false;
     static intervalId = null;
@@ -56,7 +58,7 @@ class LeaveCleanupWorker {
         this.lastRunTime = new Date();
         try {
             console.log('🕐 Leave Cleanup Worker: Starting cleanup process...');
-            const [pendingLeaves] = await pool.execute(`
+            const [pendingLeaves] = await database_1.pool.execute(`
         SELECT id, user_id, start_date, end_date, status
         FROM leave_requests
         WHERE status IN ('pending', 'submitted')
@@ -79,7 +81,7 @@ class LeaveCleanupWorker {
                     const leaveEndDate = new Date(leave.end_date);
                     leaveEndDate.setHours(0, 0, 0, 0);
                     if (leaveEndDate < today) {
-                        await pool.execute(`
+                        await database_1.pool.execute(`
               UPDATE leave_requests
               SET
                 status = 'rejected',
@@ -127,7 +129,7 @@ class LeaveCleanupWorker {
         this.isRunning = true;
         this.lastRunTime = new Date();
         try {
-            const [pendingLeaves] = await pool.execute(`
+            const [pendingLeaves] = await database_1.pool.execute(`
         SELECT id, user_id, start_date, end_date, status
         FROM leave_requests
         WHERE status IN ('pending', 'submitted')
@@ -142,7 +144,7 @@ class LeaveCleanupWorker {
                     const leaveEndDate = new Date(leave.end_date);
                     leaveEndDate.setHours(0, 0, 0, 0);
                     if (leaveEndDate < today) {
-                        await pool.execute(`
+                        await database_1.pool.execute(`
               UPDATE leave_requests
               SET
                 status = 'rejected',
@@ -182,5 +184,5 @@ class LeaveCleanupWorker {
         }
     }
 }
-export default LeaveCleanupWorker;
+exports.default = LeaveCleanupWorker;
 //# sourceMappingURL=leave-cleanup.worker.js.map

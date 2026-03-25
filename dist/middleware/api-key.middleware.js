@@ -1,12 +1,18 @@
-import ApiKeyModel from '../models/api-key.model';
-export const authenticateApiKey = async (req, res, next) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.requireApiKey = exports.checkApiKeyPermission = exports.authenticateApiKey = void 0;
+const api_key_model_1 = __importDefault(require("../models/api-key.model"));
+const authenticateApiKey = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return next();
         }
         const apiKeyValue = authHeader.substring(7).trim();
-        const apiKey = await ApiKeyModel.findByKey(apiKeyValue);
+        const apiKey = await api_key_model_1.default.findByKey(apiKeyValue);
         if (!apiKey) {
             return res.status(401).json({
                 success: false,
@@ -24,13 +30,14 @@ export const authenticateApiKey = async (req, res, next) => {
         });
     }
 };
-export const checkApiKeyPermission = (requiredPermission) => {
+exports.authenticateApiKey = authenticateApiKey;
+const checkApiKeyPermission = (requiredPermission) => {
     return async (req, res, next) => {
         try {
             if (!req.apiKey) {
                 return next();
             }
-            const hasPermission = await ApiKeyModel.hasPermission(req.apiKey.id, requiredPermission);
+            const hasPermission = await api_key_model_1.default.hasPermission(req.apiKey.id, requiredPermission);
             if (!hasPermission) {
                 return res.status(403).json({
                     success: false,
@@ -48,7 +55,8 @@ export const checkApiKeyPermission = (requiredPermission) => {
         }
     };
 };
-export const requireApiKey = async (req, res, next) => {
+exports.checkApiKeyPermission = checkApiKeyPermission;
+const requireApiKey = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -58,7 +66,7 @@ export const requireApiKey = async (req, res, next) => {
             });
         }
         const apiKeyValue = authHeader.substring(7).trim();
-        const apiKey = await ApiKeyModel.findByKey(apiKeyValue);
+        const apiKey = await api_key_model_1.default.findByKey(apiKeyValue);
         if (!apiKey) {
             return res.status(401).json({
                 success: false,
@@ -76,4 +84,5 @@ export const requireApiKey = async (req, res, next) => {
         });
     }
 };
+exports.requireApiKey = requireApiKey;
 //# sourceMappingURL=api-key.middleware.js.map

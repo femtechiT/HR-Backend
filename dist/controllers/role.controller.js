@@ -1,6 +1,12 @@
-import RoleModel from '../models/role.model';
-import RolePermissionModel from '../models/role-permission.model';
-export const getAllRoles = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.removeRolePermission = exports.addRolePermission = exports.getRolePermissions = exports.deleteRole = exports.updateRole = exports.createRole = exports.getRoleById = exports.getAllRoles = void 0;
+const role_model_1 = __importDefault(require("../models/role.model"));
+const role_permission_model_1 = __importDefault(require("../models/role-permission.model"));
+const getAllRoles = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -18,7 +24,7 @@ export const getAllRoles = async (req, res) => {
                 message: 'Limit must be between 1 and 100'
             });
         }
-        const { roles, totalCount } = await RoleModel.findAllWithFilters(limit, offset, typeof name === 'string' ? name : undefined);
+        const { roles, totalCount } = await role_model_1.default.findAllWithFilters(limit, offset, typeof name === 'string' ? name : undefined);
         const totalPages = Math.ceil(totalCount / limit);
         return res.json({
             success: true,
@@ -46,7 +52,8 @@ export const getAllRoles = async (req, res) => {
         });
     }
 };
-export const getRoleById = async (req, res) => {
+exports.getAllRoles = getAllRoles;
+const getRoleById = async (req, res) => {
     try {
         const idParam = req.params.id;
         const roleIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -57,7 +64,7 @@ export const getRoleById = async (req, res) => {
                 message: 'Invalid role ID'
             });
         }
-        const role = await RoleModel.findById(roleId);
+        const role = await role_model_1.default.findById(roleId);
         if (!role) {
             return res.status(404).json({
                 success: false,
@@ -78,7 +85,8 @@ export const getRoleById = async (req, res) => {
         });
     }
 };
-export const createRole = async (req, res) => {
+exports.getRoleById = getRoleById;
+const createRole = async (req, res) => {
     try {
         const { name, description, permissions } = req.body;
         if (!name) {
@@ -87,7 +95,7 @@ export const createRole = async (req, res) => {
                 message: 'Role name is required'
             });
         }
-        const existingRole = await RoleModel.findByName(name);
+        const existingRole = await role_model_1.default.findByName(name);
         if (existingRole) {
             return res.status(409).json({
                 success: false,
@@ -99,7 +107,7 @@ export const createRole = async (req, res) => {
             description: description || '',
             permissions: permissions || []
         };
-        const newRole = await RoleModel.create(roleData);
+        const newRole = await role_model_1.default.create(roleData);
         return res.status(201).json({
             success: true,
             message: 'Role created successfully',
@@ -114,7 +122,8 @@ export const createRole = async (req, res) => {
         });
     }
 };
-export const updateRole = async (req, res) => {
+exports.createRole = createRole;
+const updateRole = async (req, res) => {
     try {
         const idParam = req.params.id;
         const roleIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -126,7 +135,7 @@ export const updateRole = async (req, res) => {
                 message: 'Invalid role ID'
             });
         }
-        const existingRole = await RoleModel.findById(roleId);
+        const existingRole = await role_model_1.default.findById(roleId);
         if (!existingRole) {
             return res.status(404).json({
                 success: false,
@@ -140,7 +149,7 @@ export const updateRole = async (req, res) => {
             updateData.description = description;
         if (permissions !== undefined)
             updateData.permissions = permissions;
-        const updatedRole = await RoleModel.update(roleId, updateData);
+        const updatedRole = await role_model_1.default.update(roleId, updateData);
         return res.json({
             success: true,
             message: 'Role updated successfully',
@@ -155,7 +164,8 @@ export const updateRole = async (req, res) => {
         });
     }
 };
-export const deleteRole = async (req, res) => {
+exports.updateRole = updateRole;
+const deleteRole = async (req, res) => {
     try {
         const idParam = req.params.id;
         const roleIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -166,7 +176,7 @@ export const deleteRole = async (req, res) => {
                 message: 'Invalid role ID'
             });
         }
-        const deleted = await RoleModel.delete(roleId);
+        const deleted = await role_model_1.default.delete(roleId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -186,7 +196,8 @@ export const deleteRole = async (req, res) => {
         });
     }
 };
-export const getRolePermissions = async (req, res) => {
+exports.deleteRole = deleteRole;
+const getRolePermissions = async (req, res) => {
     try {
         const idParam = req.params.id;
         const roleIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -197,7 +208,7 @@ export const getRolePermissions = async (req, res) => {
                 message: 'Invalid role ID'
             });
         }
-        const permissions = await RolePermissionModel.getRolePermissions(roleId);
+        const permissions = await role_permission_model_1.default.getRolePermissions(roleId);
         return res.json({
             success: true,
             message: 'Role permissions retrieved successfully',
@@ -212,7 +223,8 @@ export const getRolePermissions = async (req, res) => {
         });
     }
 };
-export const addRolePermission = async (req, res) => {
+exports.getRolePermissions = getRolePermissions;
+const addRolePermission = async (req, res) => {
     try {
         const idParam = req.params.id;
         const roleIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -230,7 +242,7 @@ export const addRolePermission = async (req, res) => {
                 message: 'Permission is required'
             });
         }
-        const existingPermission = await RolePermissionModel.findByRoleAndPermission(roleId, permission);
+        const existingPermission = await role_permission_model_1.default.findByRoleAndPermission(roleId, permission);
         if (existingPermission) {
             return res.status(409).json({
                 success: false,
@@ -242,7 +254,7 @@ export const addRolePermission = async (req, res) => {
             permission,
             allow_deny: allow_deny || 'allow'
         };
-        const newPermission = await RolePermissionModel.create(permissionData);
+        const newPermission = await role_permission_model_1.default.create(permissionData);
         return res.status(201).json({
             success: true,
             message: 'Role permission added successfully',
@@ -257,7 +269,8 @@ export const addRolePermission = async (req, res) => {
         });
     }
 };
-export const removeRolePermission = async (req, res) => {
+exports.addRolePermission = addRolePermission;
+const removeRolePermission = async (req, res) => {
     try {
         const { id } = req.params;
         const permissionParam = req.params.permission;
@@ -277,7 +290,7 @@ export const removeRolePermission = async (req, res) => {
                 message: 'Permission is required'
             });
         }
-        const deleted = await RolePermissionModel.deleteRolePermission(roleId, permissionStr);
+        const deleted = await role_permission_model_1.default.deleteRolePermission(roleId, permissionStr);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -297,4 +310,5 @@ export const removeRolePermission = async (req, res) => {
         });
     }
 };
+exports.removeRolePermission = removeRolePermission;
 //# sourceMappingURL=role.controller.js.map

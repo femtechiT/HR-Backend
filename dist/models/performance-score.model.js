@@ -1,44 +1,47 @@
-import { pool } from '../config/database';
-export const PerformanceScoreModel = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PerformanceScoreModel = void 0;
+const database_1 = require("../config/database");
+exports.PerformanceScoreModel = {
     tableName: 'performance_scores',
     async findAll() {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} ORDER BY calculated_at DESC`);
         connection.release();
         return rows;
     },
     async findById(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return rows[0] || null;
     },
     async findByEmployeeId(employeeId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE employee_id = ? ORDER BY calculated_at DESC`, [employeeId]);
         connection.release();
         return rows;
     },
     async findByKpiId(kpiId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE kpi_id = ? ORDER BY calculated_at DESC`, [kpiId]);
         connection.release();
         return rows;
     },
     async findByTemplateId(templateId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE template_id = ? ORDER BY calculated_at DESC`, [templateId]);
         connection.release();
         return rows;
     },
     async findByPeriod(startDate, endDate) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE period_start >= ? AND period_end <= ? ORDER BY calculated_at DESC`, [startDate, endDate]);
         connection.release();
         return rows;
     },
     async findByCategory(category) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT ps.* FROM ${this.tableName} ps
        JOIN appraisal_templates at ON ps.template_id = at.id
        WHERE at.category = ? ORDER BY ps.calculated_at DESC`, [category]);
@@ -46,7 +49,7 @@ export const PerformanceScoreModel = {
         return rows;
     },
     async create(score) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`INSERT INTO ${this.tableName}
        (employee_id, kpi_id, template_id, score, achieved_value, period_start, period_end, calculated_at, calculated_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, NOW(), NOW())`, [
@@ -69,7 +72,7 @@ export const PerformanceScoreModel = {
         };
     },
     async update(id, score) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const fields = [];
         const values = [];
         if (score.employee_id !== undefined) {
@@ -114,7 +117,7 @@ export const PerformanceScoreModel = {
         return result.affectedRows > 0;
     },
     async delete(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return result.affectedRows > 0;

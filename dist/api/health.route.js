@@ -1,12 +1,14 @@
-import { Router } from 'express';
-import { redisService } from '../services/redis.service';
-import { pool } from '../config/database';
-const router = Router();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const redis_service_1 = require("../services/redis.service");
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
 router.get('/', async (req, res) => {
     try {
         let dbHealthy = false;
         try {
-            const connection = await pool.getConnection();
+            const connection = await database_1.pool.getConnection();
             await connection.query('SELECT 1');
             connection.release();
             dbHealthy = true;
@@ -15,11 +17,11 @@ router.get('/', async (req, res) => {
             console.error('Database health check failed:', error);
             dbHealthy = false;
         }
-        const redisEnabled = redisService.isEnabled();
+        const redisEnabled = redis_service_1.redisService.isEnabled();
         let redisHealthy = false;
         if (redisEnabled) {
             try {
-                const client = redisService.getClient();
+                const client = redis_service_1.redisService.getClient();
                 if (client) {
                     await client.ping();
                     redisHealthy = true;
@@ -77,7 +79,7 @@ router.get('/details', async (req, res) => {
         let dbHealthy = false;
         let dbDetails = {};
         try {
-            const connection = await pool.getConnection();
+            const connection = await database_1.pool.getConnection();
             const [result] = await connection.query('SELECT 1 as test');
             connection.release();
             dbHealthy = true;
@@ -94,12 +96,12 @@ router.get('/details', async (req, res) => {
                 error: error.message
             };
         }
-        const redisEnabled = redisService.isEnabled();
+        const redisEnabled = redis_service_1.redisService.isEnabled();
         let redisHealthy = false;
         let redisStats = null;
         if (redisEnabled) {
             try {
-                const client = redisService.getClient();
+                const client = redis_service_1.redisService.getClient();
                 if (client) {
                     await client.ping();
                     redisHealthy = true;
@@ -147,5 +149,5 @@ router.get('/details', async (req, res) => {
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=health.route.js.map

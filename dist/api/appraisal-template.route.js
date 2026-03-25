@@ -1,12 +1,17 @@
-import express from 'express';
-import { authenticateJWT } from '../middleware/auth.middleware';
-import { checkPermission } from '../middleware/permission.middleware';
-import { AppraisalTemplateModel } from '../models/appraisal-template.model';
-import UserModel from '../models/user.model';
-const router = express.Router();
-router.get('/', authenticateJWT, checkPermission('appraisal_template:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const permission_middleware_1 = require("../middleware/permission.middleware");
+const appraisal_template_model_1 = require("../models/appraisal-template.model");
+const user_model_1 = __importDefault(require("../models/user.model"));
+const router = express_1.default.Router();
+router.get('/', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal_template:read'), async (req, res) => {
     try {
-        const templates = await AppraisalTemplateModel.findAll();
+        const templates = await appraisal_template_model_1.AppraisalTemplateModel.findAll();
         res.json({
             success: true,
             data: templates
@@ -22,7 +27,7 @@ router.get('/', authenticateJWT, checkPermission('appraisal_template:read'), asy
     }
     return;
 });
-router.get('/:id', authenticateJWT, checkPermission('appraisal_template:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal_template:read'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -32,7 +37,7 @@ router.get('/:id', authenticateJWT, checkPermission('appraisal_template:read'), 
                 message: 'Invalid template ID'
             });
         }
-        const template = await AppraisalTemplateModel.findById(id);
+        const template = await appraisal_template_model_1.AppraisalTemplateModel.findById(id);
         if (!template) {
             return res.status(404).json({
                 success: false,
@@ -54,7 +59,7 @@ router.get('/:id', authenticateJWT, checkPermission('appraisal_template:read'), 
     }
     return;
 });
-router.get('/categories/:category', authenticateJWT, checkPermission('appraisal_template:read'), async (req, res) => {
+router.get('/categories/:category', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal_template:read'), async (req, res) => {
     try {
         const categoryParam = Array.isArray(req.params.category) ? req.params.category[0] : req.params.category;
         const category = categoryParam;
@@ -64,7 +69,7 @@ router.get('/categories/:category', authenticateJWT, checkPermission('appraisal_
                 message: 'Category parameter is required'
             });
         }
-        const templates = await AppraisalTemplateModel.findByCategory(category);
+        const templates = await appraisal_template_model_1.AppraisalTemplateModel.findByCategory(category);
         res.json({
             success: true,
             data: templates
@@ -80,7 +85,7 @@ router.get('/categories/:category', authenticateJWT, checkPermission('appraisal_
     }
     return;
 });
-router.post('/', authenticateJWT, checkPermission('appraisal_template.create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal_template.create'), async (req, res) => {
     try {
         const { name, description, category, kpi_ids } = req.body;
         if (!name || !description || !category || !kpi_ids) {
@@ -89,7 +94,7 @@ router.post('/', authenticateJWT, checkPermission('appraisal_template.create'), 
                 message: 'Missing required fields: name, description, category, kpi_ids'
             });
         }
-        const user = await UserModel.findById(req.currentUser.id);
+        const user = await user_model_1.default.findById(req.currentUser.id);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -104,7 +109,7 @@ router.post('/', authenticateJWT, checkPermission('appraisal_template.create'), 
             is_active: true,
             created_by: req.currentUser.id
         };
-        const createdTemplate = await AppraisalTemplateModel.create(newTemplate);
+        const createdTemplate = await appraisal_template_model_1.AppraisalTemplateModel.create(newTemplate);
         res.status(201).json({
             success: true,
             message: 'Appraisal template created successfully',
@@ -121,7 +126,7 @@ router.post('/', authenticateJWT, checkPermission('appraisal_template.create'), 
     }
     return;
 });
-router.put('/:id', authenticateJWT, checkPermission('appraisal_template.update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal_template.update'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -131,7 +136,7 @@ router.put('/:id', authenticateJWT, checkPermission('appraisal_template.update')
                 message: 'Invalid template ID'
             });
         }
-        const template = await AppraisalTemplateModel.findById(id);
+        const template = await appraisal_template_model_1.AppraisalTemplateModel.findById(id);
         if (!template) {
             return res.status(404).json({
                 success: false,
@@ -140,14 +145,14 @@ router.put('/:id', authenticateJWT, checkPermission('appraisal_template.update')
         }
         const updatedFields = req.body;
         delete updatedFields.created_by;
-        const success = await AppraisalTemplateModel.update(id, updatedFields);
+        const success = await appraisal_template_model_1.AppraisalTemplateModel.update(id, updatedFields);
         if (!success) {
             return res.status(400).json({
                 success: false,
                 message: 'Failed to update appraisal template'
             });
         }
-        const updatedTemplate = await AppraisalTemplateModel.findById(id);
+        const updatedTemplate = await appraisal_template_model_1.AppraisalTemplateModel.findById(id);
         res.json({
             success: true,
             message: 'Appraisal template updated successfully',
@@ -164,7 +169,7 @@ router.put('/:id', authenticateJWT, checkPermission('appraisal_template.update')
     }
     return;
 });
-router.delete('/:id', authenticateJWT, checkPermission('appraisal_template.delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal_template.delete'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -174,14 +179,14 @@ router.delete('/:id', authenticateJWT, checkPermission('appraisal_template.delet
                 message: 'Invalid template ID'
             });
         }
-        const template = await AppraisalTemplateModel.findById(id);
+        const template = await appraisal_template_model_1.AppraisalTemplateModel.findById(id);
         if (!template) {
             return res.status(404).json({
                 success: false,
                 message: 'Appraisal template not found'
             });
         }
-        const success = await AppraisalTemplateModel.delete(id);
+        const success = await appraisal_template_model_1.AppraisalTemplateModel.delete(id);
         if (!success) {
             return res.status(400).json({
                 success: false,
@@ -203,5 +208,5 @@ router.delete('/:id', authenticateJWT, checkPermission('appraisal_template.delet
     }
     return;
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=appraisal-template.route.js.map

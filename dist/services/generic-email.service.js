@@ -1,7 +1,13 @@
-import { Resend } from 'resend';
-import { sendWelcomeEmail, sendStaffInvitationEmail, sendPayrollReady } from './email.service';
-const resend = new Resend(process.env.RESEND_API_KEY);
-export const sendGenericEmail = async ({ to, subject, html }) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.sendPayrollReady = exports.sendStaffInvitationEmail = exports.sendWelcomeEmail = exports.sendGenericEmail = void 0;
+const resend_1 = require("resend");
+const email_service_1 = require("./email.service");
+Object.defineProperty(exports, "sendWelcomeEmail", { enumerable: true, get: function () { return email_service_1.sendWelcomeEmail; } });
+Object.defineProperty(exports, "sendStaffInvitationEmail", { enumerable: true, get: function () { return email_service_1.sendStaffInvitationEmail; } });
+Object.defineProperty(exports, "sendPayrollReady", { enumerable: true, get: function () { return email_service_1.sendPayrollReady; } });
+const resend = new resend_1.Resend(process.env.RESEND_API_KEY);
+const sendGenericEmail = async ({ to, subject, html }) => {
     try {
         const { error } = await resend.emails.send({
             from: process.env.FROM_EMAIL || 'noreply@tripa.com.ng',
@@ -20,5 +26,5 @@ export const sendGenericEmail = async ({ to, subject, html }) => {
         throw error;
     }
 };
-export { sendWelcomeEmail, sendStaffInvitationEmail, sendPayrollReady };
+exports.sendGenericEmail = sendGenericEmail;
 //# sourceMappingURL=generic-email.service.js.map

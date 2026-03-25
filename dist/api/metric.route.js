@@ -1,12 +1,17 @@
-import express from 'express';
-import { authenticateJWT } from '../middleware/auth.middleware';
-import { checkPermission } from '../middleware/permission.middleware';
-import { MetricsLibraryModel } from '../models/metrics-library.model';
-import UserModel from '../models/user.model';
-const router = express.Router();
-router.get('/', authenticateJWT, checkPermission('metric:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const permission_middleware_1 = require("../middleware/permission.middleware");
+const metrics_library_model_1 = require("../models/metrics-library.model");
+const user_model_1 = __importDefault(require("../models/user.model"));
+const router = express_1.default.Router();
+router.get('/', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('metric:read'), async (req, res) => {
     try {
-        const metrics = await MetricsLibraryModel.findAll();
+        const metrics = await metrics_library_model_1.MetricsLibraryModel.findAll();
         res.json({
             success: true,
             data: metrics
@@ -21,7 +26,7 @@ router.get('/', authenticateJWT, checkPermission('metric:read'), async (req, res
         });
     }
 });
-router.get('/:id', authenticateJWT, checkPermission('metric:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('metric:read'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -31,7 +36,7 @@ router.get('/:id', authenticateJWT, checkPermission('metric:read'), async (req, 
                 message: 'Invalid metric ID'
             });
         }
-        const metric = await MetricsLibraryModel.findById(id);
+        const metric = await metrics_library_model_1.MetricsLibraryModel.findById(id);
         if (!metric) {
             return res.status(404).json({
                 success: false,
@@ -53,7 +58,7 @@ router.get('/:id', authenticateJWT, checkPermission('metric:read'), async (req, 
     }
     return;
 });
-router.get('/categories/:category', authenticateJWT, checkPermission('metric:read'), async (req, res) => {
+router.get('/categories/:category', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('metric:read'), async (req, res) => {
     try {
         const categoryParam = Array.isArray(req.params.category) ? req.params.category[0] : req.params.category;
         const category = categoryParam;
@@ -63,7 +68,7 @@ router.get('/categories/:category', authenticateJWT, checkPermission('metric:rea
                 message: 'Category parameter is required'
             });
         }
-        const metrics = await MetricsLibraryModel.findByCategory(category);
+        const metrics = await metrics_library_model_1.MetricsLibraryModel.findByCategory(category);
         res.json({
             success: true,
             data: metrics
@@ -79,7 +84,7 @@ router.get('/categories/:category', authenticateJWT, checkPermission('metric:rea
     }
     return;
 });
-router.post('/', authenticateJWT, checkPermission('metric.create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('metric.create'), async (req, res) => {
     try {
         const { name, description, data_type, formula, data_source, categories } = req.body;
         if (!name || !description || !data_type || !formula || !data_source || !categories) {
@@ -95,7 +100,7 @@ router.post('/', authenticateJWT, checkPermission('metric.create'), async (req, 
                 message: 'Invalid data_type. Must be one of: numeric, percentage, boolean, rating'
             });
         }
-        const user = await UserModel.findById(req.currentUser.id);
+        const user = await user_model_1.default.findById(req.currentUser.id);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -112,7 +117,7 @@ router.post('/', authenticateJWT, checkPermission('metric.create'), async (req, 
             is_active: true,
             created_by: req.currentUser.id
         };
-        const createdMetric = await MetricsLibraryModel.create(newMetric);
+        const createdMetric = await metrics_library_model_1.MetricsLibraryModel.create(newMetric);
         res.status(201).json({
             success: true,
             message: 'Metric created successfully',
@@ -129,7 +134,7 @@ router.post('/', authenticateJWT, checkPermission('metric.create'), async (req, 
     }
     return;
 });
-router.put('/:id', authenticateJWT, checkPermission('metric.update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('metric.update'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -139,7 +144,7 @@ router.put('/:id', authenticateJWT, checkPermission('metric.update'), async (req
                 message: 'Invalid metric ID'
             });
         }
-        const metric = await MetricsLibraryModel.findById(id);
+        const metric = await metrics_library_model_1.MetricsLibraryModel.findById(id);
         if (!metric) {
             return res.status(404).json({
                 success: false,
@@ -157,14 +162,14 @@ router.put('/:id', authenticateJWT, checkPermission('metric.update'), async (req
                 });
             }
         }
-        const success = await MetricsLibraryModel.update(id, updatedFields);
+        const success = await metrics_library_model_1.MetricsLibraryModel.update(id, updatedFields);
         if (!success) {
             return res.status(400).json({
                 success: false,
                 message: 'Failed to update metric'
             });
         }
-        const updatedMetric = await MetricsLibraryModel.findById(id);
+        const updatedMetric = await metrics_library_model_1.MetricsLibraryModel.findById(id);
         res.json({
             success: true,
             message: 'Metric updated successfully',
@@ -181,7 +186,7 @@ router.put('/:id', authenticateJWT, checkPermission('metric.update'), async (req
     }
     return;
 });
-router.delete('/:id', authenticateJWT, checkPermission('metric.delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('metric.delete'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -191,14 +196,14 @@ router.delete('/:id', authenticateJWT, checkPermission('metric.delete'), async (
                 message: 'Invalid metric ID'
             });
         }
-        const metric = await MetricsLibraryModel.findById(id);
+        const metric = await metrics_library_model_1.MetricsLibraryModel.findById(id);
         if (!metric) {
             return res.status(404).json({
                 success: false,
                 message: 'Metric not found'
             });
         }
-        const success = await MetricsLibraryModel.delete(id);
+        const success = await metrics_library_model_1.MetricsLibraryModel.delete(id);
         if (!success) {
             return res.status(400).json({
                 success: false,
@@ -220,5 +225,5 @@ router.delete('/:id', authenticateJWT, checkPermission('metric.delete'), async (
     }
     return;
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=metric.route.js.map

@@ -1,9 +1,14 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import BranchModel from '../models/branch.model';
-import { pool } from '../config/database';
-const router = Router();
-router.get('/settings', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const branch_model_1 = __importDefault(require("../models/branch.model"));
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
+router.get('/settings', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { branchId } = req.query;
         let targetBranchId = req.currentUser?.branch_id;
@@ -23,7 +28,7 @@ router.get('/settings', authenticateJWT, checkPermission('attendance:manage'), a
                 message: 'Branch ID is required'
             });
         }
-        const branch = await BranchModel.findById(targetBranchId);
+        const branch = await branch_model_1.default.findById(targetBranchId);
         if (!branch) {
             return res.status(404).json({
                 success: false,
@@ -71,7 +76,7 @@ router.get('/settings', authenticateJWT, checkPermission('attendance:manage'), a
         });
     }
 });
-router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+router.patch('/settings', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { branchId, settings } = req.body;
         if (!settings) {
@@ -97,7 +102,7 @@ router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'),
                 message: 'Branch ID is required'
             });
         }
-        const branch = await BranchModel.findById(targetBranchId);
+        const branch = await branch_model_1.default.findById(targetBranchId);
         if (!branch) {
             return res.status(404).json({
                 success: false,
@@ -149,9 +154,9 @@ router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'),
         if (settings.enable_holiday_attendance !== undefined) {
         }
         if (Object.keys(updateData).length > 0) {
-            await BranchModel.update(targetBranchId, updateData);
+            await branch_model_1.default.update(targetBranchId, updateData);
         }
-        const [existingSettings] = await pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [targetBranchId]);
+        const [existingSettings] = await database_1.pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [targetBranchId]);
         if (existingSettings.length > 0) {
             const updateFields = [];
             const updateValues = [];
@@ -171,7 +176,7 @@ router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'),
             }
             if (updateFields.length > 0) {
                 updateValues.push(targetBranchId);
-                await pool.execute(`UPDATE attendance_settings SET ${updateFields.join(', ')} WHERE branch_id = ?`, updateValues);
+                await database_1.pool.execute(`UPDATE attendance_settings SET ${updateFields.join(', ')} WHERE branch_id = ?`, updateValues);
             }
         }
         else {
@@ -196,9 +201,9 @@ router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'),
                     placeholders.push('?');
                 }
             }
-            await pool.execute(`INSERT INTO attendance_settings (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`, values);
+            await database_1.pool.execute(`INSERT INTO attendance_settings (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`, values);
         }
-        const [updatedSettings] = await pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [targetBranchId]);
+        const [updatedSettings] = await database_1.pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [targetBranchId]);
         return res.json({
             success: true,
             message: 'Attendance settings updated successfully',
@@ -213,9 +218,9 @@ router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'),
         });
     }
 });
-router.get('/settings/global', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+router.get('/settings/global', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
-        const [globalSettings] = await pool.execute(`SELECT * FROM global_attendance_settings LIMIT 1`);
+        const [globalSettings] = await database_1.pool.execute(`SELECT * FROM global_attendance_settings LIMIT 1`);
         const settings = globalSettings[0] || {
             id: 1,
             auto_checkout_enabled: false,
@@ -246,7 +251,7 @@ router.get('/settings/global', authenticateJWT, checkPermission('attendance:mana
         });
     }
 });
-router.patch('/settings/global', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+router.patch('/settings/global', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const settings = req.body.settings;
         if (!settings) {
@@ -255,7 +260,7 @@ router.patch('/settings/global', authenticateJWT, checkPermission('attendance:ma
                 message: 'Settings object is required'
             });
         }
-        const [existingSettings] = await pool.execute(`SELECT id FROM global_attendance_settings LIMIT 1`);
+        const [existingSettings] = await database_1.pool.execute(`SELECT id FROM global_attendance_settings LIMIT 1`);
         if (existingSettings.length > 0) {
             const updateFields = [];
             const updateValues = [];
@@ -267,7 +272,7 @@ router.patch('/settings/global', authenticateJWT, checkPermission('attendance:ma
             }
             if (updateFields.length > 0) {
                 updateValues.push(existingSettings[0].id);
-                await pool.execute(`UPDATE global_attendance_settings SET ${updateFields.join(', ')} WHERE id = ?`, updateValues);
+                await database_1.pool.execute(`UPDATE global_attendance_settings SET ${updateFields.join(', ')} WHERE id = ?`, updateValues);
             }
         }
         else {
@@ -281,9 +286,9 @@ router.patch('/settings/global', authenticateJWT, checkPermission('attendance:ma
                     placeholders.push('?');
                 }
             }
-            await pool.execute(`INSERT INTO global_attendance_settings (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`, values);
+            await database_1.pool.execute(`INSERT INTO global_attendance_settings (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`, values);
         }
-        const [updatedSettings] = await pool.execute(`SELECT * FROM global_attendance_settings LIMIT 1`);
+        const [updatedSettings] = await database_1.pool.execute(`SELECT * FROM global_attendance_settings LIMIT 1`);
         return res.json({
             success: true,
             message: 'Global attendance settings updated successfully',
@@ -298,8 +303,8 @@ router.patch('/settings/global', authenticateJWT, checkPermission('attendance:ma
         });
     }
 });
-export default router;
-router.patch('/settings/auto-mark', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+exports.default = router;
+router.patch('/settings/auto-mark', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { branchId, auto_mark_absent_enabled, auto_mark_absent_time, auto_mark_absent_timezone } = req.body;
         let targetBranchId = req.currentUser?.branch_id;
@@ -319,7 +324,7 @@ router.patch('/settings/auto-mark', authenticateJWT, checkPermission('attendance
                 message: 'Branch ID is required'
             });
         }
-        const branch = await BranchModel.findById(targetBranchId);
+        const branch = await branch_model_1.default.findById(targetBranchId);
         if (!branch) {
             return res.status(404).json({
                 success: false,
@@ -343,9 +348,9 @@ router.patch('/settings/auto-mark', authenticateJWT, checkPermission('attendance
             updateData.auto_mark_absent_timezone = auto_mark_absent_timezone;
         }
         if (Object.keys(updateData).length > 0) {
-            await BranchModel.update(targetBranchId, updateData);
+            await branch_model_1.default.update(targetBranchId, updateData);
         }
-        const updatedBranch = await BranchModel.findById(targetBranchId);
+        const updatedBranch = await branch_model_1.default.findById(targetBranchId);
         return res.json({
             success: true,
             message: 'Auto-mark settings updated successfully',
@@ -369,7 +374,7 @@ router.patch('/settings/auto-mark', authenticateJWT, checkPermission('attendance
         });
     }
 });
-router.post('/settings/lock-date', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+router.post('/settings/lock-date', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { date, branchId, reason } = req.body;
         if (!date) {
@@ -397,7 +402,7 @@ router.post('/settings/lock-date', authenticateJWT, checkPermission('attendance:
         }
         const lockDate = new Date(date);
         lockDate.setHours(0, 0, 0, 0);
-        const [lockResult] = await pool.execute(`
+        const [lockResult] = await database_1.pool.execute(`
       UPDATE attendance a
       JOIN staff s ON a.user_id = s.user_id
       SET
@@ -409,12 +414,12 @@ router.post('/settings/lock-date', authenticateJWT, checkPermission('attendance:
         AND a.date = ?
         AND a.is_locked = FALSE
     `, [req.currentUser.id, reason || 'Manual lock', targetBranchId, date]);
-        await pool.execute(`
+        await database_1.pool.execute(`
       UPDATE branches
       SET attendance_lock_date = LEAST(IFNULL(attendance_lock_date, ?), ?)
       WHERE id = ?
     `, [date, date, targetBranchId]);
-        await pool.execute(`
+        await database_1.pool.execute(`
       INSERT INTO attendance_lock_log
         (branch_id, lock_date, locked_by, reason, attendance_count)
       VALUES (?, ?, ?, ?, ?)
@@ -437,7 +442,7 @@ router.post('/settings/lock-date', authenticateJWT, checkPermission('attendance:
         });
     }
 });
-router.get('/settings/lock-status', authenticateJWT, async (req, res) => {
+router.get('/settings/lock-status', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { branchId } = req.query;
         let targetBranchId = req.currentUser?.branch_id;
@@ -457,14 +462,14 @@ router.get('/settings/lock-status', authenticateJWT, async (req, res) => {
                 message: 'Branch ID is required'
             });
         }
-        const branch = await BranchModel.findById(targetBranchId);
+        const branch = await branch_model_1.default.findById(targetBranchId);
         if (!branch) {
             return res.status(404).json({
                 success: false,
                 message: 'Branch not found'
             });
         }
-        const [lockLog] = await pool.execute(`
+        const [lockLog] = await database_1.pool.execute(`
       SELECT 
         l.*,
         u.name as locked_by_name
@@ -495,10 +500,10 @@ router.get('/settings/lock-status', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.patch('/:id/unlock', authenticateJWT, checkPermission('attendance:admin'), async (req, res) => {
+router.patch('/:id/unlock', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:admin'), async (req, res) => {
     try {
         const { id } = req.params;
-        const [attendance] = await pool.execute(`
+        const [attendance] = await database_1.pool.execute(`
       SELECT * FROM attendance WHERE id = ?
     `, [id]);
         if (attendance.length === 0) {
@@ -513,7 +518,7 @@ router.patch('/:id/unlock', authenticateJWT, checkPermission('attendance:admin')
                 message: 'Attendance is not locked'
             });
         }
-        await pool.execute(`
+        await database_1.pool.execute(`
       UPDATE attendance
       SET is_locked = FALSE, locked_at = NULL, locked_by = NULL, lock_reason = NULL
       WHERE id = ?

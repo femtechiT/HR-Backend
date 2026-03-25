@@ -1,8 +1,14 @@
-import PaymentTypeModel from '../models/payment-type.model';
-import AuditLogModel from '../models/audit-log.model';
-export const getAllPaymentTypes = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.activatePaymentType = exports.deletePaymentType = exports.updatePaymentType = exports.createPaymentType = exports.getPaymentTypeById = exports.getAllPaymentTypes = void 0;
+const payment_type_model_1 = __importDefault(require("../models/payment-type.model"));
+const audit_log_model_1 = __importDefault(require("../models/audit-log.model"));
+const getAllPaymentTypes = async (req, res) => {
     try {
-        const paymentTypes = await PaymentTypeModel.findAll();
+        const paymentTypes = await payment_type_model_1.default.findAll();
         res.json({
             success: true,
             message: 'Payment types retrieved successfully',
@@ -17,7 +23,8 @@ export const getAllPaymentTypes = async (req, res) => {
         });
     }
 };
-export const getPaymentTypeById = async (req, res) => {
+exports.getAllPaymentTypes = getAllPaymentTypes;
+const getPaymentTypeById = async (req, res) => {
     try {
         const { id } = req.params;
         const paymentTypeId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -27,7 +34,7 @@ export const getPaymentTypeById = async (req, res) => {
                 message: 'Invalid payment type ID'
             });
         }
-        const paymentType = await PaymentTypeModel.findById(paymentTypeId);
+        const paymentType = await payment_type_model_1.default.findById(paymentTypeId);
         if (!paymentType) {
             return res.status(404).json({
                 success: false,
@@ -48,7 +55,8 @@ export const getPaymentTypeById = async (req, res) => {
         });
     }
 };
-export const createPaymentType = async (req, res) => {
+exports.getPaymentTypeById = getPaymentTypeById;
+const createPaymentType = async (req, res) => {
     try {
         const { name, payment_category, calculation_type, formula, applies_to_all } = req.body;
         if (!name || !payment_category || !calculation_type) {
@@ -63,7 +71,7 @@ export const createPaymentType = async (req, res) => {
                 message: 'Authentication required'
             });
         }
-        const existingPaymentType = await PaymentTypeModel.findByName(name);
+        const existingPaymentType = await payment_type_model_1.default.findByName(name);
         if (existingPaymentType) {
             return res.status(409).json({
                 success: false,
@@ -78,8 +86,8 @@ export const createPaymentType = async (req, res) => {
             applies_to_all,
             created_by: req.currentUser.id
         };
-        const newPaymentType = await PaymentTypeModel.create(paymentTypeData);
-        await AuditLogModel.create({
+        const newPaymentType = await payment_type_model_1.default.create(paymentTypeData);
+        await audit_log_model_1.default.create({
             user_id: req.currentUser.id,
             action: 'payment_type.created',
             entity_type: 'payment_type',
@@ -103,7 +111,8 @@ export const createPaymentType = async (req, res) => {
         });
     }
 };
-export const updatePaymentType = async (req, res) => {
+exports.createPaymentType = createPaymentType;
+const updatePaymentType = async (req, res) => {
     try {
         const { id } = req.params;
         const paymentTypeId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -114,7 +123,7 @@ export const updatePaymentType = async (req, res) => {
                 message: 'Invalid payment type ID'
             });
         }
-        const existingPaymentType = await PaymentTypeModel.findById(paymentTypeId);
+        const existingPaymentType = await payment_type_model_1.default.findById(paymentTypeId);
         if (!existingPaymentType) {
             return res.status(404).json({
                 success: false,
@@ -134,9 +143,9 @@ export const updatePaymentType = async (req, res) => {
             updateData.applies_to_all = applies_to_all;
         if (is_active !== undefined)
             updateData.is_active = is_active;
-        const updatedPaymentType = await PaymentTypeModel.update(paymentTypeId, updateData);
+        const updatedPaymentType = await payment_type_model_1.default.update(paymentTypeId, updateData);
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'payment_type.updated',
                 entity_type: 'payment_type',
@@ -161,7 +170,8 @@ export const updatePaymentType = async (req, res) => {
         });
     }
 };
-export const deletePaymentType = async (req, res) => {
+exports.updatePaymentType = updatePaymentType;
+const deletePaymentType = async (req, res) => {
     try {
         const { id } = req.params;
         const paymentTypeId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -171,23 +181,23 @@ export const deletePaymentType = async (req, res) => {
                 message: 'Invalid payment type ID'
             });
         }
-        const existingPaymentType = await PaymentTypeModel.findById(paymentTypeId);
+        const existingPaymentType = await payment_type_model_1.default.findById(paymentTypeId);
         if (!existingPaymentType) {
             return res.status(404).json({
                 success: false,
                 message: 'Payment type not found'
             });
         }
-        const deactivated = await PaymentTypeModel.delete(paymentTypeId);
+        const deactivated = await payment_type_model_1.default.delete(paymentTypeId);
         if (!deactivated) {
             return res.status(404).json({
                 success: false,
                 message: 'Payment type not found'
             });
         }
-        const updatedPaymentType = await PaymentTypeModel.findById(paymentTypeId);
+        const updatedPaymentType = await payment_type_model_1.default.findById(paymentTypeId);
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'payment_type.deactivated',
                 entity_type: 'payment_type',
@@ -211,7 +221,8 @@ export const deletePaymentType = async (req, res) => {
         });
     }
 };
-export const activatePaymentType = async (req, res) => {
+exports.deletePaymentType = deletePaymentType;
+const activatePaymentType = async (req, res) => {
     try {
         const { id } = req.params;
         const paymentTypeId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -221,23 +232,23 @@ export const activatePaymentType = async (req, res) => {
                 message: 'Invalid payment type ID'
             });
         }
-        const existingPaymentType = await PaymentTypeModel.findById(paymentTypeId);
+        const existingPaymentType = await payment_type_model_1.default.findById(paymentTypeId);
         if (!existingPaymentType) {
             return res.status(404).json({
                 success: false,
                 message: 'Payment type not found'
             });
         }
-        const activated = await PaymentTypeModel.activate(paymentTypeId);
+        const activated = await payment_type_model_1.default.activate(paymentTypeId);
         if (!activated) {
             return res.status(404).json({
                 success: false,
                 message: 'Payment type not found'
             });
         }
-        const updatedPaymentType = await PaymentTypeModel.findById(paymentTypeId);
+        const updatedPaymentType = await payment_type_model_1.default.findById(paymentTypeId);
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'payment_type.activated',
                 entity_type: 'payment_type',
@@ -262,4 +273,5 @@ export const activatePaymentType = async (req, res) => {
         });
     }
 };
+exports.activatePaymentType = activatePaymentType;
 //# sourceMappingURL=payment-type.controller.js.map

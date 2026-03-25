@@ -1,15 +1,21 @@
-import { getNumberQueryParam, getStringQueryParam } from '../utils/type-utils';
-import UserModel from '../models/user.model';
-import UserPermissionModel from '../models/user-permission.model';
-import CpanelEmailService from '../services/cpanel-email.service';
-export const getAllUsers = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.removeUserPermission = exports.addUserPermission = exports.getUserPermissions = exports.terminateUser = exports.deleteUser = exports.updateUser = exports.createUser = exports.getUserById = exports.getAllUsers = void 0;
+const type_utils_1 = require("../utils/type-utils");
+const user_model_1 = __importDefault(require("../models/user.model"));
+const user_permission_model_1 = __importDefault(require("../models/user-permission.model"));
+const cpanel_email_service_1 = __importDefault(require("../services/cpanel-email.service"));
+const getAllUsers = async (req, res) => {
     try {
-        const page = getNumberQueryParam(req, 'page', 1) || 1;
-        const limit = getNumberQueryParam(req, 'limit', 20) || 20;
+        const page = (0, type_utils_1.getNumberQueryParam)(req, 'page', 1) || 1;
+        const limit = (0, type_utils_1.getNumberQueryParam)(req, 'limit', 20) || 20;
         const offset = (page - 1) * limit;
-        const branchId = req.query.branchId ? getNumberQueryParam(req, 'branchId') : undefined;
-        const status = getStringQueryParam(req, 'status');
-        const roleId = req.query.roleId ? getNumberQueryParam(req, 'roleId') : undefined;
+        const branchId = req.query.branchId ? (0, type_utils_1.getNumberQueryParam)(req, 'branchId') : undefined;
+        const status = (0, type_utils_1.getStringQueryParam)(req, 'status');
+        const roleId = req.query.roleId ? (0, type_utils_1.getNumberQueryParam)(req, 'roleId') : undefined;
         if (page < 1) {
             return res.status(400).json({
                 success: false,
@@ -22,7 +28,7 @@ export const getAllUsers = async (req, res) => {
                 message: 'Limit must be between 1 and 100'
             });
         }
-        const { users, totalCount } = await UserModel.findAllWithFilters(limit, offset, branchId, status, roleId);
+        const { users, totalCount } = await user_model_1.default.findAllWithFilters(limit, offset, branchId, status, roleId);
         const totalPages = Math.ceil(totalCount / limit);
         return res.json({
             success: true,
@@ -50,7 +56,8 @@ export const getAllUsers = async (req, res) => {
         });
     }
 };
-export const getUserById = async (req, res) => {
+exports.getAllUsers = getAllUsers;
+const getUserById = async (req, res) => {
     try {
         const { id } = req.params;
         const idStr = Array.isArray(id) ? id[0] : id;
@@ -61,7 +68,7 @@ export const getUserById = async (req, res) => {
                 message: 'Invalid user ID'
             });
         }
-        const user = await UserModel.findById(userId);
+        const user = await user_model_1.default.findById(userId);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -82,7 +89,8 @@ export const getUserById = async (req, res) => {
         });
     }
 };
-export const createUser = async (req, res) => {
+exports.getUserById = getUserById;
+const createUser = async (req, res) => {
     try {
         const { email, password, full_name, phone, role_id, branch_id } = req.body;
         if (!email || !password || !full_name || !role_id) {
@@ -91,7 +99,7 @@ export const createUser = async (req, res) => {
                 message: 'Email, password, full name, and role ID are required'
             });
         }
-        const existingUser = await UserModel.findByEmail(email);
+        const existingUser = await user_model_1.default.findByEmail(email);
         if (existingUser) {
             return res.status(409).json({
                 success: false,
@@ -106,7 +114,7 @@ export const createUser = async (req, res) => {
             role_id,
             branch_id
         };
-        const newUser = await UserModel.create(userData);
+        const newUser = await user_model_1.default.create(userData);
         const { password_hash, ...userWithoutPassword } = newUser;
         return res.status(201).json({
             success: true,
@@ -122,7 +130,8 @@ export const createUser = async (req, res) => {
         });
     }
 };
-export const updateUser = async (req, res) => {
+exports.createUser = createUser;
+const updateUser = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -134,7 +143,7 @@ export const updateUser = async (req, res) => {
                 message: 'Invalid user ID'
             });
         }
-        const existingUser = await UserModel.findById(userId);
+        const existingUser = await user_model_1.default.findById(userId);
         if (!existingUser) {
             return res.status(404).json({
                 success: false,
@@ -158,7 +167,7 @@ export const updateUser = async (req, res) => {
             updateData.status = status;
         if (must_change_password !== undefined)
             updateData.must_change_password = must_change_password;
-        const updatedUser = await UserModel.update(userId, updateData);
+        const updatedUser = await user_model_1.default.update(userId, updateData);
         if (updatedUser) {
             const { password_hash, ...userWithoutPassword } = updatedUser;
             return res.json({
@@ -182,7 +191,8 @@ export const updateUser = async (req, res) => {
         });
     }
 };
-export const deleteUser = async (req, res) => {
+exports.updateUser = updateUser;
+const deleteUser = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -193,7 +203,7 @@ export const deleteUser = async (req, res) => {
                 message: 'Invalid user ID'
             });
         }
-        const deleted = await UserModel.delete(userId);
+        const deleted = await user_model_1.default.delete(userId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -213,7 +223,8 @@ export const deleteUser = async (req, res) => {
         });
     }
 };
-export const terminateUser = async (req, res) => {
+exports.deleteUser = deleteUser;
+const terminateUser = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -224,14 +235,14 @@ export const terminateUser = async (req, res) => {
                 message: 'Invalid user ID'
             });
         }
-        const user = await UserModel.findById(userId);
+        const user = await user_model_1.default.findById(userId);
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
-        const terminated = await UserModel.softDelete(userId);
+        const terminated = await user_model_1.default.softDelete(userId);
         if (!terminated) {
             return res.status(404).json({
                 success: false,
@@ -245,7 +256,7 @@ export const terminateUser = async (req, res) => {
             if (domain === companyDomain) {
                 try {
                     const emailPrefix = emailParts[0];
-                    const cpanelService = new CpanelEmailService();
+                    const cpanelService = new cpanel_email_service_1.default();
                     const deletionResult = await cpanelService.deleteEmailAccount(emailPrefix);
                     if (deletionResult.success) {
                         console.log(`Email account ${user.email} removed from cPanel successfully`);
@@ -272,7 +283,8 @@ export const terminateUser = async (req, res) => {
         });
     }
 };
-export const getUserPermissions = async (req, res) => {
+exports.terminateUser = terminateUser;
+const getUserPermissions = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -283,7 +295,7 @@ export const getUserPermissions = async (req, res) => {
                 message: 'Invalid user ID'
             });
         }
-        const permissions = await UserPermissionModel.getUserPermissions(userId);
+        const permissions = await user_permission_model_1.default.getUserPermissions(userId);
         return res.json({
             success: true,
             message: 'User permissions retrieved successfully',
@@ -298,7 +310,8 @@ export const getUserPermissions = async (req, res) => {
         });
     }
 };
-export const addUserPermission = async (req, res) => {
+exports.getUserPermissions = getUserPermissions;
+const addUserPermission = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -316,7 +329,7 @@ export const addUserPermission = async (req, res) => {
                 message: 'Permission is required'
             });
         }
-        const existingPermission = await UserPermissionModel.findByUserAndPermission(userId, permission);
+        const existingPermission = await user_permission_model_1.default.findByUserAndPermission(userId, permission);
         if (existingPermission) {
             return res.status(409).json({
                 success: false,
@@ -328,7 +341,7 @@ export const addUserPermission = async (req, res) => {
             permission,
             allow_deny: allow_deny || 'allow'
         };
-        const newPermission = await UserPermissionModel.create(permissionData);
+        const newPermission = await user_permission_model_1.default.create(permissionData);
         return res.status(201).json({
             success: true,
             message: 'User permission added successfully',
@@ -343,7 +356,8 @@ export const addUserPermission = async (req, res) => {
         });
     }
 };
-export const removeUserPermission = async (req, res) => {
+exports.addUserPermission = addUserPermission;
+const removeUserPermission = async (req, res) => {
     try {
         const idParam = req.params.id;
         const permissionParam = req.params.permission;
@@ -362,7 +376,7 @@ export const removeUserPermission = async (req, res) => {
                 message: 'Permission is required'
             });
         }
-        const deleted = await UserPermissionModel.deleteUserPermission(userId, permissionStr);
+        const deleted = await user_permission_model_1.default.deleteUserPermission(userId, permissionStr);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -382,4 +396,5 @@ export const removeUserPermission = async (req, res) => {
         });
     }
 };
+exports.removeUserPermission = removeUserPermission;
 //# sourceMappingURL=user.controller.js.map

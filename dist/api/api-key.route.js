@@ -1,8 +1,13 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import ApiKeyModel from '../models/api-key.model';
-const router = Router();
-router.get('/', authenticateJWT, checkPermission('api_key:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const api_key_model_1 = __importDefault(require("../models/api-key.model"));
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('api_key:read'), async (req, res) => {
     try {
         const userId = req.currentUser?.id;
         if (!userId) {
@@ -11,7 +16,7 @@ router.get('/', authenticateJWT, checkPermission('api_key:read'), async (req, re
                 message: 'Authentication required'
             });
         }
-        const apiKeys = await ApiKeyModel.findByUser(userId);
+        const apiKeys = await api_key_model_1.default.findByUser(userId);
         return res.json({
             success: true,
             message: 'API keys retrieved successfully',
@@ -26,7 +31,7 @@ router.get('/', authenticateJWT, checkPermission('api_key:read'), async (req, re
         });
     }
 });
-router.post('/', authenticateJWT, checkPermission('api_key:create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('api_key:create'), async (req, res) => {
     try {
         const { name, permissions, expires_at } = req.body;
         const userId = req.currentUser?.id;
@@ -48,7 +53,7 @@ router.post('/', authenticateJWT, checkPermission('api_key:create'), async (req,
                 message: 'Permissions must be an array of strings'
             });
         }
-        const { apiKey, plainTextKey } = await ApiKeyModel.create({
+        const { apiKey, plainTextKey } = await api_key_model_1.default.create({
             name,
             user_id: userId,
             permissions,
@@ -79,7 +84,7 @@ router.post('/', authenticateJWT, checkPermission('api_key:create'), async (req,
         });
     }
 });
-router.put('/:id', authenticateJWT, checkPermission('api_key:update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('api_key:update'), async (req, res) => {
     try {
         const apiKeyId = parseInt(req.params.id);
         const { name, permissions, is_active, expires_at } = req.body;
@@ -96,7 +101,7 @@ router.put('/:id', authenticateJWT, checkPermission('api_key:update'), async (re
                 message: 'Invalid API key ID'
             });
         }
-        const existingKey = await ApiKeyModel.findById(apiKeyId);
+        const existingKey = await api_key_model_1.default.findById(apiKeyId);
         if (!existingKey || existingKey.user_id !== userId) {
             return res.status(404).json({
                 success: false,
@@ -112,7 +117,7 @@ router.put('/:id', authenticateJWT, checkPermission('api_key:update'), async (re
             updateData.is_active = is_active;
         if (expires_at !== undefined)
             updateData.expires_at = expires_at;
-        const updatedApiKey = await ApiKeyModel.update(apiKeyId, updateData);
+        const updatedApiKey = await api_key_model_1.default.update(apiKeyId, updateData);
         if (!updatedApiKey) {
             return res.status(404).json({
                 success: false,
@@ -133,7 +138,7 @@ router.put('/:id', authenticateJWT, checkPermission('api_key:update'), async (re
         });
     }
 });
-router.delete('/:id', authenticateJWT, checkPermission('api_key:delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('api_key:delete'), async (req, res) => {
     try {
         const apiKeyId = parseInt(req.params.id);
         const userId = req.currentUser?.id;
@@ -149,14 +154,14 @@ router.delete('/:id', authenticateJWT, checkPermission('api_key:delete'), async 
                 message: 'Invalid API key ID'
             });
         }
-        const existingKey = await ApiKeyModel.findById(apiKeyId);
+        const existingKey = await api_key_model_1.default.findById(apiKeyId);
         if (!existingKey || existingKey.user_id !== userId) {
             return res.status(404).json({
                 success: false,
                 message: 'API key not found or does not belong to current user'
             });
         }
-        const success = await ApiKeyModel.delete(apiKeyId);
+        const success = await api_key_model_1.default.delete(apiKeyId);
         if (!success) {
             return res.status(404).json({
                 success: false,
@@ -176,5 +181,5 @@ router.delete('/:id', authenticateJWT, checkPermission('api_key:delete'), async 
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=api-key.route.js.map

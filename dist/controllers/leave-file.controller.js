@@ -1,8 +1,14 @@
-import path from 'path';
-import fs from 'fs';
-import { pool } from '../config/database';
-import AttachmentService from '../services/attachment.service';
-export const uploadLeaveFiles = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.serveLeaveFile = exports.deleteLeaveRequestFile = exports.getLeaveRequestFiles = exports.uploadLeaveFiles = void 0;
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const database_1 = require("../config/database");
+const attachment_service_1 = __importDefault(require("../services/attachment.service"));
+const uploadLeaveFiles = async (req, res) => {
     try {
         if (!req.files || !Array.isArray(req.files)) {
             return res.status(400).json({
@@ -15,7 +21,7 @@ export const uploadLeaveFiles = async (req, res) => {
         for (const file of files) {
             const uploadedFile = {
                 file_name: file.originalname,
-                file_path: `/uploads/leave-requests/${path.basename(file.filename)}`,
+                file_path: `/uploads/leave-requests/${path_1.default.basename(file.filename)}`,
                 file_size: file.size,
                 mime_type: file.mimetype,
                 uploaded_at: new Date().toISOString()
@@ -38,7 +44,8 @@ export const uploadLeaveFiles = async (req, res) => {
         });
     }
 };
-export const getLeaveRequestFiles = async (req, res) => {
+exports.uploadLeaveFiles = uploadLeaveFiles;
+const getLeaveRequestFiles = async (req, res) => {
     try {
         const idParam = req.params.id;
         const leaveRequestId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
@@ -48,7 +55,7 @@ export const getLeaveRequestFiles = async (req, res) => {
                 message: 'Invalid leave request ID'
             });
         }
-        const [rows] = await pool.execute('SELECT user_id FROM leave_requests WHERE id = ?', [leaveRequestId]);
+        const [rows] = await database_1.pool.execute('SELECT user_id FROM leave_requests WHERE id = ?', [leaveRequestId]);
         if (rows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -57,17 +64,30 @@ export const getLeaveRequestFiles = async (req, res) => {
         }
         const leaveRequest = rows[0];
         const currentUserId = req.currentUser?.id;
+        const currentUserRole = req.currentUser?.role_id;
+        const isAdmin = currentUserRole === 1 || currentUserRole === 2;
+        const isOwner = leaveRequest.user_id === currentUserId;
         const userHasPermission = req.permissions?.includes('leave:read');
-        if (leaveRequest.user_id !== currentUserId && !userHasPermission) {
+        console.log('[Leave Files] Access check:', {
+            leaveRequestId,
+            leaveRequestUserId: leaveRequest.user_id,
+            currentUserId,
+            currentUserRole,
+            isAdmin,
+            isOwner,
+            hasPermission: userHasPermission
+        });
+        if (!isOwner && !isAdmin && !userHasPermission) {
             return res.status(403).json({
                 success: false,
                 message: 'Not authorized to view this request'
             });
         }
-        const attachments = await AttachmentService.getAttachments({
+        const attachments = await attachment_service_1.default.getAttachments({
             entityType: 'leave_request',
             entityId: leaveRequestId
         });
+        console.log('[Leave Files] Found attachments:', attachments.length);
         return res.json({
             success: true,
             data: {
@@ -83,7 +103,8 @@ export const getLeaveRequestFiles = async (req, res) => {
         });
     }
 };
-export const deleteLeaveRequestFile = async (req, res) => {
+exports.getLeaveRequestFiles = getLeaveRequestFiles;
+const deleteLeaveRequestFile = async (req, res) => {
     try {
         const idParam = req.params.id;
         const fileIndexParam = req.params.fileIndex;
@@ -95,7 +116,7 @@ export const deleteLeaveRequestFile = async (req, res) => {
                 message: 'Invalid ID or file index'
             });
         }
-        const [rows] = await pool.execute('SELECT user_id, status FROM leave_requests WHERE id = ?', [leaveRequestId]);
+        const [rows] = await database_1.pool.execute('SELECT user_id, status FROM leave_requests WHERE id = ?', [leaveRequestId]);
         if (rows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -117,7 +138,7 @@ export const deleteLeaveRequestFile = async (req, res) => {
                 message: 'Cannot delete files from approved/rejected requests'
             });
         }
-        const attachments = await AttachmentService.getAttachments({
+        const attachments = await attachment_service_1.default.getAttachments({
             entityType: 'leave_request',
             entityId: leaveRequestId
         });
@@ -128,7 +149,7 @@ export const deleteLeaveRequestFile = async (req, res) => {
             });
         }
         const fileToDelete = attachments[fileIndex];
-        const deleted = await AttachmentService.deleteAttachment(fileToDelete.id);
+        const deleted = await attachment_service_1.default.deleteAttachment(fileToDelete.id);
         if (!deleted) {
             return res.status(500).json({
                 success: false,
@@ -148,16 +169,17 @@ export const deleteLeaveRequestFile = async (req, res) => {
         });
     }
 };
-export const serveLeaveFile = async (req, res) => {
+exports.deleteLeaveRequestFile = deleteLeaveRequestFile;
+const serveLeaveFile = async (req, res) => {
     try {
         const filename = Array.isArray(req.params.filename)
             ? req.params.filename[0]
             : req.params.filename;
         const possiblePaths = [
-            path.join(process.cwd(), 'uploads', 'leave-requests', filename),
-            path.join(process.cwd(), 'uploads', 'attachments', filename)
+            path_1.default.join(process.cwd(), 'uploads', 'leave-requests', filename),
+            path_1.default.join(process.cwd(), 'uploads', 'attachments', filename)
         ];
-        const filePath = possiblePaths.find(p => fs.existsSync(p));
+        const filePath = possiblePaths.find(p => fs_1.default.existsSync(p));
         if (!filePath) {
             return res.status(404).json({
                 success: false,
@@ -174,4 +196,5 @@ export const serveLeaveFile = async (req, res) => {
         });
     }
 };
+exports.serveLeaveFile = serveLeaveFile;
 //# sourceMappingURL=leave-file.controller.js.map

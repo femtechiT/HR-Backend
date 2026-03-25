@@ -1,7 +1,14 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
-import { redisService } from '../services/redis.service';
-dotenv.config();
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.dbConfig = exports.testConnection = exports.pool = void 0;
+exports.initializeRedis = initializeRedis;
+const promise_1 = __importDefault(require("mysql2/promise"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const redis_service_1 = require("../services/redis.service");
+dotenv_1.default.config();
 const parseConnectionString = (connectionString) => {
     if (!connectionString) {
         return null;
@@ -43,9 +50,11 @@ const dbConfig = parseConnectionString(process.env.DATABASE_URL) || {
     keepAliveInitialDelay: 0,
     namedPlaceholders: true,
 };
-const pool = mysql.createPool(dbConfig);
-export async function initializeRedis() {
-    await redisService.connect();
+exports.dbConfig = dbConfig;
+const pool = promise_1.default.createPool(dbConfig);
+exports.pool = pool;
+async function initializeRedis() {
+    await redis_service_1.redisService.connect();
 }
 const testConnection = async () => {
     try {
@@ -58,5 +67,5 @@ const testConnection = async () => {
         console.warn('Some features may not be available until the database is connected.');
     }
 };
-export { pool, testConnection, dbConfig };
+exports.testConnection = testConnection;
 //# sourceMappingURL=database.js.map

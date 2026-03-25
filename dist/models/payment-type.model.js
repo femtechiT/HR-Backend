@@ -1,24 +1,26 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class PaymentTypeModel {
     static tableName = 'payment_types';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByName(name) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE name = ?`, [name]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE name = ?`, [name]);
         return rows[0] || null;
     }
     static async findByCategory(category) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE payment_category = ? ORDER BY name`, [category]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE payment_category = ? ORDER BY name`, [category]);
         return rows;
     }
     static async create(paymentTypeData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (name, payment_category, calculation_type, formula, applies_to_all, created_by)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, payment_category, calculation_type, formula, applies_to_all, created_by)
        VALUES (?, ?, ?, ?, ?, ?)`, [
             paymentTypeData.name,
             paymentTypeData.payment_category,
@@ -65,17 +67,17 @@ class PaymentTypeModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async activate(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET is_active = TRUE WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET is_active = TRUE WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
 }
-export default PaymentTypeModel;
+exports.default = PaymentTypeModel;
 //# sourceMappingURL=payment-type.model.js.map

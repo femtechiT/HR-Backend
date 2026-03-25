@@ -1,38 +1,41 @@
-import { pool } from '../config/database';
-export const AppraisalAssignmentModel = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AppraisalAssignmentModel = void 0;
+const database_1 = require("../config/database");
+exports.AppraisalAssignmentModel = {
     tableName: 'appraisal_assignments',
     async findAll() {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} ORDER BY assigned_at DESC`);
         connection.release();
         return rows;
     },
     async findById(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return rows[0] || null;
     },
     async findByEmployeeId(employeeId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE employee_id = ? ORDER BY assigned_at DESC`, [employeeId]);
         connection.release();
         return rows;
     },
     async findByAppraisalCycleId(cycleId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE appraisal_cycle_id = ? ORDER BY assigned_at DESC`, [cycleId]);
         connection.release();
         return rows;
     },
     async findByStatus(status) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE status = ? ORDER BY assigned_at DESC`, [status]);
         connection.release();
         return rows;
     },
     async create(assignment) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`INSERT INTO ${this.tableName}
        (employee_id, appraisal_cycle_id, status, assigned_by, assigned_at, completed_at, created_at, updated_at)
        VALUES (?, ?, ?, ?, NOW(), ?, NOW(), NOW())`, [
@@ -52,7 +55,7 @@ export const AppraisalAssignmentModel = {
         };
     },
     async update(id, assignment) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const fields = [];
         const values = [];
         if (assignment.employee_id !== undefined) {
@@ -85,7 +88,7 @@ export const AppraisalAssignmentModel = {
         return result.affectedRows > 0;
     },
     async delete(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return result.affectedRows > 0;

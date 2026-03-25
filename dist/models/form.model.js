@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class FormModel {
     static tableName = 'forms';
     static async findAll(branchId) {
@@ -9,11 +11,11 @@ class FormModel {
             params.push(branchId);
         }
         query += ' ORDER BY created_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByType(formType, branchId) {
@@ -24,11 +26,11 @@ class FormModel {
             params.push(branchId.toString());
         }
         query += ' ORDER BY created_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async create(formData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (name, description, form_type, branch_id, created_by)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, description, form_type, branch_id, created_by)
        VALUES (?, ?, ?, ?, ?)`, [
             formData.name,
             formData.description ?? null,
@@ -70,13 +72,13 @@ class FormModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET is_active = FALSE WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
 }
-export default FormModel;
+exports.default = FormModel;
 //# sourceMappingURL=form.model.js.map

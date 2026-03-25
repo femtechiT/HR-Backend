@@ -1,6 +1,9 @@
-import { pool } from '../config/database';
-import { PERMISSION_DEFINITIONS, isValidPermission, getAllPermissionCategories } from '../services/permission-definitions.service';
-export const createRole = async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteRole = exports.updateRole = exports.getAllRoles = exports.getAvailablePermissions = exports.createRole = void 0;
+const database_1 = require("../config/database");
+const permission_definitions_service_1 = require("../services/permission-definitions.service");
+const createRole = async (req, res) => {
     try {
         const { name, description, permissions } = req.body;
         if (!name) {
@@ -11,7 +14,7 @@ export const createRole = async (req, res) => {
         }
         if (permissions && Array.isArray(permissions)) {
             for (const permission of permissions) {
-                if (!isValidPermission(permission)) {
+                if (!(0, permission_definitions_service_1.isValidPermission)(permission)) {
                     return res.status(400).json({
                         success: false,
                         message: `Invalid permission: ${permission}`
@@ -19,21 +22,21 @@ export const createRole = async (req, res) => {
                 }
             }
         }
-        const [existingRows] = await pool.execute('SELECT id FROM roles WHERE name = ?', [name]);
+        const [existingRows] = await database_1.pool.execute('SELECT id FROM roles WHERE name = ?', [name]);
         if (existingRows.length > 0) {
             return res.status(409).json({
                 success: false,
                 message: 'A role with this name already exists'
             });
         }
-        const [roleResult] = await pool.execute('INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', [name, description || '', JSON.stringify(permissions || [])]);
+        const [roleResult] = await database_1.pool.execute('INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', [name, description || '', JSON.stringify(permissions || [])]);
         const roleId = roleResult.insertId;
         if (permissions && Array.isArray(permissions) && permissions.length > 0) {
             for (const permission of permissions) {
-                await pool.execute('INSERT INTO roles_permissions (role_id, permission, allow_deny, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', [roleId, permission, 'allow']);
+                await database_1.pool.execute('INSERT INTO roles_permissions (role_id, permission, allow_deny, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', [roleId, permission, 'allow']);
             }
         }
-        const [newRoleRows] = await pool.execute('SELECT * FROM roles WHERE id = ?', [roleId]);
+        const [newRoleRows] = await database_1.pool.execute('SELECT * FROM roles WHERE id = ?', [roleId]);
         const newRole = newRoleRows[0];
         return res.status(201).json({
             success: true,
@@ -57,13 +60,14 @@ export const createRole = async (req, res) => {
         });
     }
 };
-export const getAvailablePermissions = async (req, res) => {
+exports.createRole = createRole;
+const getAvailablePermissions = async (req, res) => {
     try {
         return res.json({
             success: true,
             data: {
-                permissions: PERMISSION_DEFINITIONS,
-                categories: getAllPermissionCategories()
+                permissions: permission_definitions_service_1.PERMISSION_DEFINITIONS,
+                categories: (0, permission_definitions_service_1.getAllPermissionCategories)()
             }
         });
     }
@@ -75,9 +79,10 @@ export const getAvailablePermissions = async (req, res) => {
         });
     }
 };
-export const getAllRoles = async (req, res) => {
+exports.getAvailablePermissions = getAvailablePermissions;
+const getAllRoles = async (req, res) => {
     try {
-        const [rows] = await pool.execute('SELECT id, name, description, permissions, created_at, updated_at FROM roles ORDER BY name');
+        const [rows] = await database_1.pool.execute('SELECT id, name, description, permissions, created_at, updated_at FROM roles ORDER BY name');
         const roles = rows.map((role) => ({
             ...role,
             permissions: JSON.parse(role.permissions || '[]')
@@ -97,7 +102,8 @@ export const getAllRoles = async (req, res) => {
         });
     }
 };
-export const updateRole = async (req, res) => {
+exports.getAllRoles = getAllRoles;
+const updateRole = async (req, res) => {
     try {
         const idParam = req.params.id;
         const roleIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -109,7 +115,7 @@ export const updateRole = async (req, res) => {
             });
         }
         const { name, description, permissions } = req.body;
-        const [existingRows] = await pool.execute('SELECT id FROM roles WHERE id = ?', [roleId]);
+        const [existingRows] = await database_1.pool.execute('SELECT id FROM roles WHERE id = ?', [roleId]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -118,7 +124,7 @@ export const updateRole = async (req, res) => {
         }
         if (permissions && Array.isArray(permissions)) {
             for (const permission of permissions) {
-                if (!isValidPermission(permission)) {
+                if (!(0, permission_definitions_service_1.isValidPermission)(permission)) {
                     return res.status(400).json({
                         success: false,
                         message: `Invalid permission: ${permission}`
@@ -129,7 +135,7 @@ export const updateRole = async (req, res) => {
         const updates = [];
         const values = [];
         if (name !== undefined) {
-            const [conflictRows] = await pool.execute('SELECT id FROM roles WHERE name = ? AND id != ?', [name, roleId]);
+            const [conflictRows] = await database_1.pool.execute('SELECT id FROM roles WHERE name = ? AND id != ?', [name, roleId]);
             if (conflictRows.length > 0) {
                 return res.status(409).json({
                     success: false,
@@ -148,7 +154,7 @@ export const updateRole = async (req, res) => {
             values.push(JSON.stringify(permissions));
         }
         if (updates.length === 0) {
-            const [currentRoleRows] = await pool.execute('SELECT * FROM roles WHERE id = ?', [roleId]);
+            const [currentRoleRows] = await database_1.pool.execute('SELECT * FROM roles WHERE id = ?', [roleId]);
             const currentRole = currentRoleRows[0];
             return res.json({
                 success: true,
@@ -166,16 +172,16 @@ export const updateRole = async (req, res) => {
             });
         }
         values.push(roleId);
-        await pool.execute(`UPDATE roles SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE roles SET ${updates.join(', ')} WHERE id = ?`, values);
         if (permissions !== undefined) {
-            await pool.execute('DELETE FROM roles_permissions WHERE role_id = ?', [roleId]);
+            await database_1.pool.execute('DELETE FROM roles_permissions WHERE role_id = ?', [roleId]);
             if (Array.isArray(permissions) && permissions.length > 0) {
                 for (const permission of permissions) {
-                    await pool.execute('INSERT INTO roles_permissions (role_id, permission, allow_deny, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', [roleId, permission, 'allow']);
+                    await database_1.pool.execute('INSERT INTO roles_permissions (role_id, permission, allow_deny, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', [roleId, permission, 'allow']);
                 }
             }
         }
-        const [updatedRoleRows] = await pool.execute('SELECT * FROM roles WHERE id = ?', [roleId]);
+        const [updatedRoleRows] = await database_1.pool.execute('SELECT * FROM roles WHERE id = ?', [roleId]);
         const updatedRole = updatedRoleRows[0];
         return res.json({
             success: true,
@@ -200,7 +206,8 @@ export const updateRole = async (req, res) => {
         });
     }
 };
-export const deleteRole = async (req, res) => {
+exports.updateRole = updateRole;
+const deleteRole = async (req, res) => {
     try {
         const idParam = req.params.id;
         const roleIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -211,7 +218,7 @@ export const deleteRole = async (req, res) => {
                 message: 'Invalid role ID'
             });
         }
-        const [existingRows] = await pool.execute('SELECT id, name FROM roles WHERE id = ?', [roleId]);
+        const [existingRows] = await database_1.pool.execute('SELECT id, name FROM roles WHERE id = ?', [roleId]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -225,15 +232,15 @@ export const deleteRole = async (req, res) => {
                 message: 'Cannot delete Super Admin role'
             });
         }
-        const [userRows] = await pool.execute('SELECT COUNT(*) as count FROM users WHERE role_id = ?', [roleId]);
+        const [userRows] = await database_1.pool.execute('SELECT COUNT(*) as count FROM users WHERE role_id = ?', [roleId]);
         if (userRows[0].count > 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Cannot delete role that has users assigned to it'
             });
         }
-        await pool.execute('DELETE FROM roles_permissions WHERE role_id = ?', [roleId]);
-        await pool.execute('DELETE FROM roles WHERE id = ?', [roleId]);
+        await database_1.pool.execute('DELETE FROM roles_permissions WHERE role_id = ?', [roleId]);
+        await database_1.pool.execute('DELETE FROM roles WHERE id = ?', [roleId]);
         return res.json({
             success: true,
             message: 'Role deleted successfully'
@@ -247,4 +254,5 @@ export const deleteRole = async (req, res) => {
         });
     }
 };
+exports.deleteRole = deleteRole;
 //# sourceMappingURL=role-management.controller.js.map

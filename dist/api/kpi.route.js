@@ -1,12 +1,17 @@
-import express from 'express';
-import { authenticateJWT } from '../middleware/auth.middleware';
-import { checkPermission } from '../middleware/permission.middleware';
-import { KpiDefinitionModel } from '../models/kpi-definition.model';
-import UserModel from '../models/user.model';
-const router = express.Router();
-router.get('/', authenticateJWT, checkPermission('kpi:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const permission_middleware_1 = require("../middleware/permission.middleware");
+const kpi_definition_model_1 = require("../models/kpi-definition.model");
+const user_model_1 = __importDefault(require("../models/user.model"));
+const router = express_1.default.Router();
+router.get('/', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('kpi:read'), async (req, res) => {
     try {
-        const kpis = await KpiDefinitionModel.findAll();
+        const kpis = await kpi_definition_model_1.KpiDefinitionModel.findAll();
         res.json({
             success: true,
             data: kpis
@@ -22,7 +27,7 @@ router.get('/', authenticateJWT, checkPermission('kpi:read'), async (req, res) =
     }
     return;
 });
-router.get('/:id', authenticateJWT, checkPermission('kpi:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('kpi:read'), async (req, res) => {
     try {
         const idParam = typeof req.params.id === 'string' ? req.params.id : '';
         const id = parseInt(idParam);
@@ -32,7 +37,7 @@ router.get('/:id', authenticateJWT, checkPermission('kpi:read'), async (req, res
                 message: 'Invalid KPI ID'
             });
         }
-        const kpi = await KpiDefinitionModel.findById(id);
+        const kpi = await kpi_definition_model_1.KpiDefinitionModel.findById(id);
         if (!kpi) {
             return res.status(404).json({
                 success: false,
@@ -54,7 +59,7 @@ router.get('/:id', authenticateJWT, checkPermission('kpi:read'), async (req, res
     }
     return;
 });
-router.get('/categories/:category', authenticateJWT, checkPermission('kpi:read'), async (req, res) => {
+router.get('/categories/:category', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('kpi:read'), async (req, res) => {
     try {
         const category = typeof req.params.category === 'string' ? req.params.category : '';
         if (!category) {
@@ -63,7 +68,7 @@ router.get('/categories/:category', authenticateJWT, checkPermission('kpi:read')
                 message: 'Category parameter is required'
             });
         }
-        const kpis = await KpiDefinitionModel.findByCategory(category);
+        const kpis = await kpi_definition_model_1.KpiDefinitionModel.findByCategory(category);
         res.json({
             success: true,
             data: kpis
@@ -79,7 +84,7 @@ router.get('/categories/:category', authenticateJWT, checkPermission('kpi:read')
     }
     return;
 });
-router.post('/', authenticateJWT, checkPermission('kpi.create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('kpi.create'), async (req, res) => {
     try {
         const { name, description, formula, weight, metric_ids, categories } = req.body;
         if (!name || !description || !formula || weight === undefined || !metric_ids || !categories) {
@@ -88,7 +93,7 @@ router.post('/', authenticateJWT, checkPermission('kpi.create'), async (req, res
                 message: 'Missing required fields: name, description, formula, weight, metric_ids, categories'
             });
         }
-        const user = await UserModel.findById(req.currentUser.id);
+        const user = await user_model_1.default.findById(req.currentUser.id);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -105,7 +110,7 @@ router.post('/', authenticateJWT, checkPermission('kpi.create'), async (req, res
             is_active: true,
             created_by: req.currentUser.id
         };
-        const createdKpi = await KpiDefinitionModel.create(newKpi);
+        const createdKpi = await kpi_definition_model_1.KpiDefinitionModel.create(newKpi);
         res.status(201).json({
             success: true,
             message: 'KPI created successfully',
@@ -122,7 +127,7 @@ router.post('/', authenticateJWT, checkPermission('kpi.create'), async (req, res
     }
     return;
 });
-router.put('/:id', authenticateJWT, checkPermission('kpi.update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('kpi.update'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -132,7 +137,7 @@ router.put('/:id', authenticateJWT, checkPermission('kpi.update'), async (req, r
                 message: 'Invalid KPI ID'
             });
         }
-        const kpi = await KpiDefinitionModel.findById(id);
+        const kpi = await kpi_definition_model_1.KpiDefinitionModel.findById(id);
         if (!kpi) {
             return res.status(404).json({
                 success: false,
@@ -141,14 +146,14 @@ router.put('/:id', authenticateJWT, checkPermission('kpi.update'), async (req, r
         }
         const updatedFields = req.body;
         delete updatedFields.created_by;
-        const success = await KpiDefinitionModel.update(id, updatedFields);
+        const success = await kpi_definition_model_1.KpiDefinitionModel.update(id, updatedFields);
         if (!success) {
             return res.status(400).json({
                 success: false,
                 message: 'Failed to update KPI'
             });
         }
-        const updatedKpi = await KpiDefinitionModel.findById(id);
+        const updatedKpi = await kpi_definition_model_1.KpiDefinitionModel.findById(id);
         res.json({
             success: true,
             message: 'KPI updated successfully',
@@ -165,7 +170,7 @@ router.put('/:id', authenticateJWT, checkPermission('kpi.update'), async (req, r
     }
     return;
 });
-router.delete('/:id', authenticateJWT, checkPermission('kpi.delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('kpi.delete'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -175,14 +180,14 @@ router.delete('/:id', authenticateJWT, checkPermission('kpi.delete'), async (req
                 message: 'Invalid KPI ID'
             });
         }
-        const kpi = await KpiDefinitionModel.findById(id);
+        const kpi = await kpi_definition_model_1.KpiDefinitionModel.findById(id);
         if (!kpi) {
             return res.status(404).json({
                 success: false,
                 message: 'KPI not found'
             });
         }
-        const success = await KpiDefinitionModel.delete(id);
+        const success = await kpi_definition_model_1.KpiDefinitionModel.delete(id);
         if (!success) {
             return res.status(400).json({
                 success: false,
@@ -204,5 +209,5 @@ router.delete('/:id', authenticateJWT, checkPermission('kpi.delete'), async (req
     }
     return;
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=kpi.route.js.map

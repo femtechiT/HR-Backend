@@ -1,14 +1,20 @@
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.handleMulterError = exports.upload = void 0;
+const multer_1 = __importDefault(require("multer"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 function getUploadDir(entityType) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'attachments');
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
+    const uploadDir = path_1.default.join(process.cwd(), 'uploads', 'attachments');
+    if (!fs_1.default.existsSync(uploadDir)) {
+        fs_1.default.mkdirSync(uploadDir, { recursive: true });
     }
     return uploadDir;
 }
-const storage = multer.diskStorage({
+const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         const entityType = req.body.entity_type || 'attachments';
         const uploadDir = getUploadDir(entityType);
@@ -16,7 +22,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
+        const ext = path_1.default.extname(file.originalname);
         cb(null, `attachment-${uniqueSuffix}${ext}`);
     }
 });
@@ -36,7 +42,7 @@ const fileFilter = (req, file, cb) => {
         cb(new Error(`Invalid file type. Allowed: PDF, JPG, PNG, DOC, DOCX`));
     }
 };
-export const upload = multer({
+exports.upload = (0, multer_1.default)({
     storage,
     fileFilter,
     limits: {
@@ -44,8 +50,8 @@ export const upload = multer({
         files: 5
     }
 });
-export const handleMulterError = (err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
+const handleMulterError = (err, req, res, next) => {
+    if (err instanceof multer_1.default.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({
                 success: false,
@@ -77,4 +83,5 @@ export const handleMulterError = (err, req, res, next) => {
     }
     next();
 };
+exports.handleMulterError = handleMulterError;
 //# sourceMappingURL=upload.middleware.js.map

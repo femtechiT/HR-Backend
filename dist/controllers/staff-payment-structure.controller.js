@@ -1,8 +1,14 @@
-import StaffPaymentStructureModel from '../models/staff-payment-structure.model';
-import PaymentTypeModel from '../models/payment-type.model';
-import StaffModel from '../models/staff.model';
-import AuditLogModel from '../models/audit-log.model';
-export const getStaffPaymentStructure = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.removePaymentFromStaff = exports.updateStaffPayment = exports.addPaymentToStaff = exports.getStaffPaymentStructure = void 0;
+const staff_payment_structure_model_1 = __importDefault(require("../models/staff-payment-structure.model"));
+const payment_type_model_1 = __importDefault(require("../models/payment-type.model"));
+const staff_model_1 = __importDefault(require("../models/staff.model"));
+const audit_log_model_1 = __importDefault(require("../models/audit-log.model"));
+const getStaffPaymentStructure = async (req, res) => {
     try {
         const { id } = req.params;
         const staffId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -12,16 +18,16 @@ export const getStaffPaymentStructure = async (req, res) => {
                 message: 'Invalid staff ID'
             });
         }
-        const staff = await StaffModel.findById(staffId);
+        const staff = await staff_model_1.default.findById(staffId);
         if (!staff) {
             return res.status(404).json({
                 success: false,
                 message: 'Staff member not found'
             });
         }
-        const paymentStructures = await StaffPaymentStructureModel.findByStaffId(staffId);
+        const paymentStructures = await staff_payment_structure_model_1.default.findByStaffId(staffId);
         const detailedStructures = await Promise.all(paymentStructures.map(async (structure) => {
-            const paymentType = await PaymentTypeModel.findById(structure.payment_type_id);
+            const paymentType = await payment_type_model_1.default.findById(structure.payment_type_id);
             return {
                 ...structure,
                 payment_type_details: paymentType
@@ -41,7 +47,8 @@ export const getStaffPaymentStructure = async (req, res) => {
         });
     }
 };
-export const addPaymentToStaff = async (req, res) => {
+exports.getStaffPaymentStructure = getStaffPaymentStructure;
+const addPaymentToStaff = async (req, res) => {
     try {
         const { id } = req.params;
         const staffId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -64,14 +71,14 @@ export const addPaymentToStaff = async (req, res) => {
                 message: 'Payment type ID, value, and effective_from are required'
             });
         }
-        const staff = await StaffModel.findById(staffId);
+        const staff = await staff_model_1.default.findById(staffId);
         if (!staff) {
             return res.status(404).json({
                 success: false,
                 message: 'Staff member not found'
             });
         }
-        const paymentType = await PaymentTypeModel.findById(payment_type_id);
+        const paymentType = await payment_type_model_1.default.findById(payment_type_id);
         if (!paymentType) {
             return res.status(404).json({
                 success: false,
@@ -84,7 +91,7 @@ export const addPaymentToStaff = async (req, res) => {
                 message: 'Payment type is not active'
             });
         }
-        const existingStructures = await StaffPaymentStructureModel.findByStaffAndPaymentType(staffId, payment_type_id);
+        const existingStructures = await staff_payment_structure_model_1.default.findByStaffAndPaymentType(staffId, payment_type_id);
         for (const structure of existingStructures) {
             if (effective_to) {
                 if ((new Date(effective_from) <= new Date(structure.effective_to) && new Date(effective_to) >= new Date(structure.effective_from)) ||
@@ -112,9 +119,9 @@ export const addPaymentToStaff = async (req, res) => {
             effective_to: effective_to ? new Date(effective_to) : null,
             created_by: req.currentUser.id
         };
-        const newPaymentStructure = await StaffPaymentStructureModel.create(paymentStructureData);
-        const paymentTypeDetails = await PaymentTypeModel.findById(payment_type_id);
-        await AuditLogModel.create({
+        const newPaymentStructure = await staff_payment_structure_model_1.default.create(paymentStructureData);
+        const paymentTypeDetails = await payment_type_model_1.default.findById(payment_type_id);
+        await audit_log_model_1.default.create({
             user_id: req.currentUser.id,
             action: 'staff_payment_structure.created',
             entity_type: 'staff_payment_structure',
@@ -138,7 +145,8 @@ export const addPaymentToStaff = async (req, res) => {
         });
     }
 };
-export const updateStaffPayment = async (req, res) => {
+exports.addPaymentToStaff = addPaymentToStaff;
+const updateStaffPayment = async (req, res) => {
     try {
         const { staffId, paymentId } = req.params;
         const parsedStaffId = parseInt(Array.isArray(staffId) ? staffId[0] : staffId);
@@ -150,7 +158,7 @@ export const updateStaffPayment = async (req, res) => {
                 message: 'Invalid staff ID or payment structure ID'
             });
         }
-        const existingStructure = await StaffPaymentStructureModel.findById(parsedPaymentId);
+        const existingStructure = await staff_payment_structure_model_1.default.findById(parsedPaymentId);
         if (!existingStructure || existingStructure.staff_id !== parsedStaffId) {
             return res.status(404).json({
                 success: false,
@@ -164,10 +172,10 @@ export const updateStaffPayment = async (req, res) => {
             updateData.effective_from = new Date(effective_from);
         if (effective_to !== undefined)
             updateData.effective_to = effective_to ? new Date(effective_to) : null;
-        const updatedStructure = await StaffPaymentStructureModel.update(parsedPaymentId, updateData);
-        const paymentTypeDetails = await PaymentTypeModel.findById(existingStructure.payment_type_id);
+        const updatedStructure = await staff_payment_structure_model_1.default.update(parsedPaymentId, updateData);
+        const paymentTypeDetails = await payment_type_model_1.default.findById(existingStructure.payment_type_id);
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'staff_payment_structure.updated',
                 entity_type: 'staff_payment_structure',
@@ -192,7 +200,8 @@ export const updateStaffPayment = async (req, res) => {
         });
     }
 };
-export const removePaymentFromStaff = async (req, res) => {
+exports.updateStaffPayment = updateStaffPayment;
+const removePaymentFromStaff = async (req, res) => {
     try {
         const { staffId, paymentId } = req.params;
         const parsedStaffId = parseInt(Array.isArray(staffId) ? staffId[0] : staffId);
@@ -203,24 +212,24 @@ export const removePaymentFromStaff = async (req, res) => {
                 message: 'Invalid staff ID or payment structure ID'
             });
         }
-        const existingStructure = await StaffPaymentStructureModel.findById(parsedPaymentId);
+        const existingStructure = await staff_payment_structure_model_1.default.findById(parsedPaymentId);
         if (!existingStructure || existingStructure.staff_id !== parsedStaffId) {
             return res.status(404).json({
                 success: false,
                 message: 'Payment structure not found for this staff member'
             });
         }
-        const deactivated = await StaffPaymentStructureModel.deactivate(parsedPaymentId, new Date());
+        const deactivated = await staff_payment_structure_model_1.default.deactivate(parsedPaymentId, new Date());
         if (!deactivated) {
             return res.status(404).json({
                 success: false,
                 message: 'Payment structure not found'
             });
         }
-        const updatedStructure = await StaffPaymentStructureModel.findById(parsedPaymentId);
-        const paymentTypeDetails = await PaymentTypeModel.findById(existingStructure.payment_type_id);
+        const updatedStructure = await staff_payment_structure_model_1.default.findById(parsedPaymentId);
+        const paymentTypeDetails = await payment_type_model_1.default.findById(existingStructure.payment_type_id);
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'staff_payment_structure.deactivated',
                 entity_type: 'staff_payment_structure',
@@ -245,4 +254,5 @@ export const removePaymentFromStaff = async (req, res) => {
         });
     }
 };
+exports.removePaymentFromStaff = removePaymentFromStaff;
 //# sourceMappingURL=staff-payment-structure.controller.js.map

@@ -1,14 +1,52 @@
-import { Router } from 'express';
-import { authenticateJWT } from '../middleware/auth.middleware';
-import AttendanceModel, { locationToWKT } from '../models/attendance.model';
-import { ShiftSchedulingService } from '../services/shift-scheduling.service';
-import HolidayModel from '../models/holiday.model';
-import BranchModel from '../models/branch.model';
-import StaffModel from '../models/staff.model';
-import AttendanceLocationModel from '../models/attendance-location.model';
-import { pool } from '../config/database';
-const router = Router();
-router.post('/check-in', authenticateJWT, async (req, res) => {
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const attendance_model_1 = __importStar(require("../models/attendance.model"));
+const shift_scheduling_service_1 = require("../services/shift-scheduling.service");
+const holiday_model_1 = __importDefault(require("../models/holiday.model"));
+const branch_model_1 = __importDefault(require("../models/branch.model"));
+const staff_model_1 = __importDefault(require("../models/staff.model"));
+const attendance_location_model_1 = __importDefault(require("../models/attendance-location.model"));
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
+router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { date, check_in_time, location_coordinates, location_address, status: providedStatus } = req.body;
         const userId = req.currentUser?.id;
@@ -24,7 +62,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                 message: 'Date and check_in_time are required'
             });
         }
-        let attendanceRecord = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+        let attendanceRecord = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
         if (attendanceRecord) {
             if (attendanceRecord.is_locked) {
                 return res.status(403).json({
@@ -40,7 +78,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                 });
             }
             let locationVerified = false;
-            const staffRecord = await StaffModel.findByUserId(userId);
+            const staffRecord = await staff_model_1.default.findByUserId(userId);
             if (!staffRecord) {
                 return res.status(404).json({ success: false, message: 'Staff record not found' });
             }
@@ -48,7 +86,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
             if (!branchId) {
                 return res.status(400).json({ success: false, message: 'No branch assigned' });
             }
-            const branch = await BranchModel.findById(branchId);
+            const branch = await branch_model_1.default.findById(branchId);
             if (!branch) {
                 return res.status(404).json({ success: false, message: 'Branch not found' });
             }
@@ -60,7 +98,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                 strict_location_mode: false
             };
             try {
-                const [branchSettings] = await pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [branchId]);
+                const [branchSettings] = await database_1.pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [branchId]);
                 if (branchSettings && branchSettings.length > 0) {
                     settings = { ...settings, ...branchSettings[0] };
                 }
@@ -85,7 +123,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                             }
                         }
                         console.log('📍 Staff assigned locations:', assignedLocationIds);
-                        const nearbyLocations = await AttendanceLocationModel.getLocationsNearby(userLat, userLng, 1000);
+                        const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(userLat, userLng, 1000);
                         const isWithinAssignedLocation = nearbyLocations.some(loc => assignedLocationIds.includes(loc.id));
                         if (isWithinAssignedLocation) {
                             locationVerified = true;
@@ -113,7 +151,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                             }
                         }
                         else if (branch.attendance_mode === 'multiple_locations') {
-                            const nearbyLocations = await AttendanceLocationModel.getLocationsNearby(userLat, userLng, branch.location_radius_meters || 100);
+                            const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(userLat, userLng, branch.location_radius_meters || 100);
                             if (nearbyLocations.length > 0)
                                 locationVerified = true;
                         }
@@ -129,14 +167,14 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
             }
             const updateData = {
                 check_in_time: new Date(`1970-01-01T${check_in_time}`),
-                location_coordinates: locationToWKT(location_coordinates),
+                location_coordinates: (0, attendance_model_1.locationToWKT)(location_coordinates),
                 location_verified: locationVerified,
                 location_address: location_address || null
             };
             if (providedStatus) {
                 updateData.status = providedStatus;
             }
-            const updatedAttendance = await AttendanceModel.update(attendanceRecord.id, updateData);
+            const updatedAttendance = await attendance_model_1.default.update(attendanceRecord.id, updateData);
             return res.status(200).json({
                 success: true,
                 message: 'Check-in time recorded successfully',
@@ -144,9 +182,9 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
             });
         }
         else {
-            const isHoliday = await HolidayModel.isHoliday(new Date(date));
+            const isHoliday = await holiday_model_1.default.isHoliday(new Date(date));
             if (isHoliday) {
-                const [dutyRoster] = await pool.execute(`SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`, [new Date(date), userId]);
+                const [dutyRoster] = await database_1.pool.execute(`SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`, [new Date(date), userId]);
                 if (dutyRoster.length > 0) {
                     const roster = dutyRoster[0];
                     const attendanceData = {
@@ -160,7 +198,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                         location_address: null,
                         notes: `Holiday duty: ${roster.shift_start_time} - ${roster.shift_end_time}`
                     };
-                    const newAttendance = await AttendanceModel.create(attendanceData);
+                    const newAttendance = await attendance_model_1.default.create(attendanceData);
                     return res.status(201).json({
                         success: true,
                         message: 'Holiday duty attendance recorded successfully',
@@ -179,7 +217,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                         location_address: null,
                         notes: 'Holiday - no attendance required'
                     };
-                    const newAttendance = await AttendanceModel.create(attendanceData);
+                    const newAttendance = await attendance_model_1.default.create(attendanceData);
                     return res.status(201).json({
                         success: true,
                         message: 'Holiday attendance recorded successfully',
@@ -187,7 +225,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                     });
                 }
             }
-            const [leaveHistory] = await pool.execute(`SELECT id, start_date, end_date FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`, [userId, new Date(date)]);
+            const [leaveHistory] = await database_1.pool.execute(`SELECT id, start_date, end_date FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`, [userId, new Date(date)]);
             if (leaveHistory.length > 0) {
                 const attendanceData = {
                     user_id: userId,
@@ -200,14 +238,14 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                     location_address: null,
                     notes: 'On approved leave'
                 };
-                const newAttendance = await AttendanceModel.create(attendanceData);
+                const newAttendance = await attendance_model_1.default.create(attendanceData);
                 return res.status(201).json({
                     success: true,
                     message: 'Leave attendance recorded successfully',
                     data: { attendance: newAttendance }
                 });
             }
-            const staffRecord = await StaffModel.findByUserId(userId);
+            const staffRecord = await staff_model_1.default.findByUserId(userId);
             if (!staffRecord) {
                 return res.status(404).json({
                     success: false,
@@ -221,7 +259,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                     message: 'Staff record does not have a branch assigned'
                 });
             }
-            const branch = await BranchModel.findById(branchId);
+            const branch = await branch_model_1.default.findById(branchId);
             if (!branch) {
                 return res.status(404).json({
                     success: false,
@@ -246,7 +284,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                 enable_location_verification: false
             };
             try {
-                const [branchSettings] = await pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [branchId]);
+                const [branchSettings] = await database_1.pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [branchId]);
                 if (branchSettings && branchSettings.length > 0) {
                     settings = { ...settings, ...branchSettings[0] };
                 }
@@ -280,7 +318,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                     }
                 }
                 else if (branch.attendance_mode === 'multiple_locations' && location_coordinates) {
-                    const nearbyLocations = await AttendanceLocationModel.getLocationsNearby(parseFloat(location_coordinates.latitude), parseFloat(location_coordinates.longitude), branch.location_radius_meters || 100);
+                    const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(parseFloat(location_coordinates.latitude), parseFloat(location_coordinates.longitude), branch.location_radius_meters || 100);
                     if (nearbyLocations.length > 0) {
                         locationVerified = true;
                     }
@@ -292,14 +330,14 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
                 status: 'present',
                 check_in_time: new Date(`1970-01-01T${check_in_time}`),
                 check_out_time: null,
-                location_coordinates: locationToWKT(location_coordinates),
+                location_coordinates: (0, attendance_model_1.locationToWKT)(location_coordinates),
                 location_verified: locationVerified,
                 location_address: location_address || null,
                 notes: null
             };
-            const newAttendance = await AttendanceModel.create(attendanceData);
+            const newAttendance = await attendance_model_1.default.create(attendanceData);
             try {
-                await ShiftSchedulingService.updateAttendanceWithScheduleInfo(newAttendance.id, userId, new Date(date), settings.grace_period_minutes || 0);
+                await shift_scheduling_service_1.ShiftSchedulingService.updateAttendanceWithScheduleInfo(newAttendance.id, userId, new Date(date), settings.grace_period_minutes || 0);
             }
             catch (shiftError) {
                 console.error('Failed to update attendance with shift info:', shiftError);
@@ -319,7 +357,7 @@ router.post('/check-in', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.post('/check-out', authenticateJWT, async (req, res) => {
+router.post('/check-out', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { date, check_out_time, location_coordinates, location_address } = req.body;
         const userId = req.currentUser?.id;
@@ -335,7 +373,7 @@ router.post('/check-out', authenticateJWT, async (req, res) => {
                 message: 'Date and check_out_time are required'
             });
         }
-        const attendanceRecord = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+        const attendanceRecord = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
         if (!attendanceRecord) {
             return res.status(404).json({
                 success: false,
@@ -355,7 +393,7 @@ router.post('/check-out', authenticateJWT, async (req, res) => {
                 message: 'You have already checked out today. Multiple check-outs are not allowed.'
             });
         }
-        const staffRecord = await StaffModel.findByUserId(userId);
+        const staffRecord = await staff_model_1.default.findByUserId(userId);
         if (!staffRecord) {
             return res.status(404).json({
                 success: false,
@@ -377,7 +415,7 @@ router.post('/check-out', authenticateJWT, async (req, res) => {
             strict_location_mode: false
         };
         try {
-            const [branchSettings] = await pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [branchId]);
+            const [branchSettings] = await database_1.pool.execute(`SELECT * FROM attendance_settings WHERE branch_id = ?`, [branchId]);
             if (branchSettings && branchSettings.length > 0) {
                 settings = { ...settings, ...branchSettings[0] };
             }
@@ -391,7 +429,7 @@ router.post('/check-out', authenticateJWT, async (req, res) => {
                 message: 'Check-out is not required for this branch'
             });
         }
-        const branch = await BranchModel.findById(branchId);
+        const branch = await branch_model_1.default.findById(branchId);
         if (!branch) {
             return res.status(404).json({
                 success: false,
@@ -415,7 +453,7 @@ router.post('/check-out', authenticateJWT, async (req, res) => {
                             assignedLocationIds = [...assignedLocationIds, ...secondary];
                         }
                     }
-                    const nearbyLocations = await AttendanceLocationModel.getLocationsNearby(userLat, userLng, 1000);
+                    const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(userLat, userLng, 1000);
                     const isWithinAssignedLocation = nearbyLocations.some(loc => assignedLocationIds.includes(loc.id));
                     if (isWithinAssignedLocation) {
                         locationVerified = true;
@@ -444,7 +482,7 @@ router.post('/check-out', authenticateJWT, async (req, res) => {
                         }
                     }
                     else if (branch.attendance_mode === 'multiple_locations') {
-                        const nearbyLocations = await AttendanceLocationModel.getLocationsNearby(userLat, userLng, branch.location_radius_meters || 100);
+                        const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(userLat, userLng, branch.location_radius_meters || 100);
                         if (nearbyLocations.length > 0) {
                             locationVerified = true;
                         }
@@ -461,13 +499,13 @@ router.post('/check-out', authenticateJWT, async (req, res) => {
         }
         const updateData = {
             check_out_time: new Date(`1970-01-01T${check_out_time}`),
-            location_coordinates: locationToWKT(location_coordinates),
+            location_coordinates: (0, attendance_model_1.locationToWKT)(location_coordinates),
             location_verified: locationVerified,
             location_address: location_address || null
         };
-        const updatedAttendance = await AttendanceModel.update(attendanceRecord.id, updateData);
+        const updatedAttendance = await attendance_model_1.default.update(attendanceRecord.id, updateData);
         try {
-            await ShiftSchedulingService.updateAttendanceWithScheduleInfo(attendanceRecord.id, userId, new Date(date), settings.grace_period_minutes || 0);
+            await shift_scheduling_service_1.ShiftSchedulingService.updateAttendanceWithScheduleInfo(attendanceRecord.id, userId, new Date(date), settings.grace_period_minutes || 0);
         }
         catch (shiftError) {
             console.error('Failed to update attendance with shift info:', shiftError);
@@ -486,5 +524,5 @@ router.post('/check-out', authenticateJWT, async (req, res) => {
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=attendance-check.route.js.map

@@ -1,20 +1,22 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class ShiftTimingModel {
     static tableName = 'shift_timings';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY effective_from DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY effective_from DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByUserId(userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY effective_from DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY effective_from DESC`, [userId]);
         return rows;
     }
     static async findCurrentShiftForUser(userId, date = new Date()) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} 
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} 
        WHERE (user_id = ? OR user_id IS NULL) 
        AND effective_from <= ? 
        AND (effective_to IS NULL OR effective_to >= ?)
@@ -22,7 +24,7 @@ class ShiftTimingModel {
         return rows[0] || null;
     }
     static async findCurrentShiftForBranch(branchId, date = new Date()) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} 
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} 
        WHERE override_branch_id = ?
        AND effective_from <= ? 
        AND (effective_to IS NULL OR effective_to >= ?)
@@ -30,7 +32,7 @@ class ShiftTimingModel {
         return rows;
     }
     static async create(shiftData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (user_id, shift_name, start_time, end_time, effective_from, effective_to, override_branch_id)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (user_id, shift_name, start_time, end_time, effective_from, effective_to, override_branch_id)
        VALUES (?, ?, ?, ?, ?, ?, ?)`, [
             shiftData.user_id || null,
             shiftData.shift_name,
@@ -78,11 +80,11 @@ class ShiftTimingModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async isShiftActive(userId, date = new Date()) {
@@ -100,5 +102,5 @@ class ShiftTimingModel {
         };
     }
 }
-export default ShiftTimingModel;
+exports.default = ShiftTimingModel;
 //# sourceMappingURL=shift-timing.model.js.map

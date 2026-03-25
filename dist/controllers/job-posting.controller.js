@@ -1,5 +1,8 @@
-import { pool } from '../config/database';
-export const getAllJobPostings = async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteJobPosting = exports.closeJobPosting = exports.updateJobPosting = exports.createJobPosting = exports.getJobPostingById = exports.getAllJobPostings = void 0;
+const database_1 = require("../config/database");
+const getAllJobPostings = async (req, res) => {
     try {
         const { departmentId, status, location, limit = 10, page = 1 } = req.query;
         let query = `
@@ -27,7 +30,7 @@ export const getAllJobPostings = async (req, res) => {
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `
       SELECT COUNT(*) as total
       FROM job_postings jp
@@ -47,7 +50,7 @@ export const getAllJobPostings = async (req, res) => {
             countParams.push(`%${location}%`);
         }
         countQuery += ' AND jp.closing_date >= CURDATE()';
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             data: {
@@ -69,10 +72,11 @@ export const getAllJobPostings = async (req, res) => {
         });
     }
 };
-export const getJobPostingById = async (req, res) => {
+exports.getAllJobPostings = getAllJobPostings;
+const getJobPostingById = async (req, res) => {
     try {
         const { id } = req.params;
-        const [rows] = await pool.execute(`SELECT jp.*, d.name as department_name, u.full_name as posted_by_name
+        const [rows] = await database_1.pool.execute(`SELECT jp.*, d.name as department_name, u.full_name as posted_by_name
        FROM job_postings jp
        LEFT JOIN departments d ON jp.department_id = d.id
        LEFT JOIN users u ON jp.posted_by = u.id
@@ -106,7 +110,8 @@ export const getJobPostingById = async (req, res) => {
         });
     }
 };
-export const createJobPosting = async (req, res) => {
+exports.getJobPostingById = getJobPostingById;
+const createJobPosting = async (req, res) => {
     try {
         const { title, description, department_id, location, salary_range_min, salary_range_max, employment_type, experience_level, closing_date, start_date, application_deadline } = req.body;
         const postedBy = req.currentUser.id;
@@ -131,7 +136,7 @@ export const createJobPosting = async (req, res) => {
                 message: 'Application deadline must be on or before the closing date'
             });
         }
-        const [result] = await pool.execute(`INSERT INTO job_postings 
+        const [result] = await database_1.pool.execute(`INSERT INTO job_postings 
        (title, description, department_id, location, salary_range_min, salary_range_max, 
         employment_type, experience_level, posted_by, closing_date, start_date, 
         application_deadline, status, is_active) 
@@ -152,7 +157,7 @@ export const createJobPosting = async (req, res) => {
             true
         ]);
         const jobId = result.insertId;
-        const [jobRows] = await pool.execute(`SELECT jp.*, d.name as department_name, u.full_name as posted_by_name
+        const [jobRows] = await database_1.pool.execute(`SELECT jp.*, d.name as department_name, u.full_name as posted_by_name
        FROM job_postings jp
        LEFT JOIN departments d ON jp.department_id = d.id
        LEFT JOIN users u ON jp.posted_by = u.id
@@ -173,11 +178,12 @@ export const createJobPosting = async (req, res) => {
         });
     }
 };
-export const updateJobPosting = async (req, res) => {
+exports.createJobPosting = createJobPosting;
+const updateJobPosting = async (req, res) => {
     try {
         const { id } = req.params;
         const { title, description, department_id, location, salary_range_min, salary_range_max, employment_type, experience_level, closing_date, start_date, application_deadline, status } = req.body;
-        const [existingRows] = await pool.execute('SELECT * FROM job_postings WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM job_postings WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -264,8 +270,8 @@ export const updateJobPosting = async (req, res) => {
         updateFields.push('updated_at = NOW()');
         params.push(id);
         const query = `UPDATE job_postings SET ${updateFields.join(', ')} WHERE id = ?`;
-        await pool.execute(query, params);
-        const [updatedRows] = await pool.execute(`SELECT jp.*, d.name as department_name, u.full_name as posted_by_name
+        await database_1.pool.execute(query, params);
+        const [updatedRows] = await database_1.pool.execute(`SELECT jp.*, d.name as department_name, u.full_name as posted_by_name
        FROM job_postings jp
        LEFT JOIN departments d ON jp.department_id = d.id
        LEFT JOIN users u ON jp.posted_by = u.id
@@ -286,17 +292,18 @@ export const updateJobPosting = async (req, res) => {
         });
     }
 };
-export const closeJobPosting = async (req, res) => {
+exports.updateJobPosting = updateJobPosting;
+const closeJobPosting = async (req, res) => {
     try {
         const { id } = req.params;
-        const [existingRows] = await pool.execute('SELECT * FROM job_postings WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM job_postings WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Job posting not found'
             });
         }
-        await pool.execute('UPDATE job_postings SET status = ?, updated_at = NOW() WHERE id = ?', ['closed', id]);
+        await database_1.pool.execute('UPDATE job_postings SET status = ?, updated_at = NOW() WHERE id = ?', ['closed', id]);
         return res.json({
             success: true,
             message: 'Job posting closed successfully'
@@ -310,17 +317,18 @@ export const closeJobPosting = async (req, res) => {
         });
     }
 };
-export const deleteJobPosting = async (req, res) => {
+exports.closeJobPosting = closeJobPosting;
+const deleteJobPosting = async (req, res) => {
     try {
         const { id } = req.params;
-        const [existingRows] = await pool.execute('SELECT * FROM job_postings WHERE id = ?', [id]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM job_postings WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Job posting not found'
             });
         }
-        await pool.execute('UPDATE job_postings SET is_active = FALSE, updated_at = NOW() WHERE id = ?', [id]);
+        await database_1.pool.execute('UPDATE job_postings SET is_active = FALSE, updated_at = NOW() WHERE id = ?', [id]);
         return res.json({
             success: true,
             message: 'Job posting deactivated successfully'
@@ -334,4 +342,5 @@ export const deleteJobPosting = async (req, res) => {
         });
     }
 };
+exports.deleteJobPosting = deleteJobPosting;
 //# sourceMappingURL=job-posting.controller.js.map

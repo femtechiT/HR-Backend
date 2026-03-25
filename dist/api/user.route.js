@@ -1,15 +1,20 @@
-import express from 'express';
-import { getAllUsers, getUserById, createUser, updateUser, deleteUser, terminateUser, getUserPermissions, addUserPermission, removeUserPermission } from '../controllers/user.controller';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-const router = express.Router();
-router.get('/', authenticateJWT, checkPermission('users:read'), getAllUsers);
-router.get('/:id', authenticateJWT, checkPermission('users:read'), getUserById);
-router.post('/', authenticateJWT, checkPermission('user.create'), createUser);
-router.put('/:id', authenticateJWT, checkPermission('user.update'), updateUser);
-router.delete('/:id', authenticateJWT, checkPermission('user.delete'), deleteUser);
-router.patch('/:id/terminate', authenticateJWT, checkPermission('user.terminate'), terminateUser);
-router.get('/:id/permissions', authenticateJWT, checkPermission('user.permissions.view'), getUserPermissions);
-router.post('/:id/permissions', authenticateJWT, checkPermission('user.permissions.manage'), addUserPermission);
-router.delete('/:id/permissions/:permission', authenticateJWT, checkPermission('user.permissions.manage'), removeUserPermission);
-export default router;
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const user_controller_1 = require("../controllers/user.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = express_1.default.Router();
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('users:read'), user_controller_1.getAllUsers);
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('users:read'), user_controller_1.getUserById);
+router.post('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.create'), user_controller_1.createUser);
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.update'), user_controller_1.updateUser);
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.delete'), user_controller_1.deleteUser);
+router.patch('/:id/terminate', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.terminate'), user_controller_1.terminateUser);
+router.get('/:id/permissions', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.permissions.view'), user_controller_1.getUserPermissions);
+router.post('/:id/permissions', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.permissions.manage'), user_controller_1.addUserPermission);
+router.delete('/:id/permissions/:permission', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.permissions.manage'), user_controller_1.removeUserPermission);
+exports.default = router;
 //# sourceMappingURL=user.route.js.map

@@ -1,10 +1,9 @@
 {
   "name": "hrapp",
   "version": "1.0.0",
-  "type": "module",
-  "main": "server.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "tsx src/index.ts",
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "setup": "node scripts/setup.js",

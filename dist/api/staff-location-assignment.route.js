@@ -1,8 +1,10 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import { pool } from '../config/database';
-const router = Router();
-router.get('/', authenticateJWT, checkPermission('staff:read'), async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:read'), async (req, res) => {
     try {
         const { branchId, locationId } = req.query;
         let query = `
@@ -36,7 +38,7 @@ router.get('/', authenticateJWT, checkPermission('staff:read'), async (req, res)
             params.push(locationId);
         }
         query += ' ORDER BY s.created_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return res.json({
             success: true,
             message: 'Staff location assignments retrieved successfully',
@@ -51,7 +53,7 @@ router.get('/', authenticateJWT, checkPermission('staff:read'), async (req, res)
         });
     }
 });
-router.get('/:userId', authenticateJWT, checkPermission('staff:read'), async (req, res) => {
+router.get('/:userId', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:read'), async (req, res) => {
     try {
         const userIdParam = req.params.userId;
         const userId = typeof userIdParam === 'string' ? parseInt(userIdParam) : parseInt(userIdParam[0]);
@@ -61,7 +63,7 @@ router.get('/:userId', authenticateJWT, checkPermission('staff:read'), async (re
                 message: 'Invalid user ID'
             });
         }
-        const [rows] = await pool.execute(`
+        const [rows] = await database_1.pool.execute(`
       SELECT 
         s.user_id,
         s.employee_id,
@@ -101,7 +103,7 @@ router.get('/:userId', authenticateJWT, checkPermission('staff:read'), async (re
         });
     }
 });
-router.put('/:userId', authenticateJWT, checkPermission('staff:update'), async (req, res) => {
+router.put('/:userId', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:update'), async (req, res) => {
     try {
         const userIdParam = req.params.userId;
         const userId = typeof userIdParam === 'string' ? parseInt(userIdParam) : parseInt(userIdParam[0]);
@@ -112,7 +114,7 @@ router.put('/:userId', authenticateJWT, checkPermission('staff:update'), async (
                 message: 'Invalid user ID'
             });
         }
-        const [staff] = await pool.execute('SELECT id FROM staff WHERE user_id = ?', [userId]);
+        const [staff] = await database_1.pool.execute('SELECT id FROM staff WHERE user_id = ?', [userId]);
         if (staff.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -120,7 +122,7 @@ router.put('/:userId', authenticateJWT, checkPermission('staff:update'), async (
             });
         }
         if (assigned_location_id) {
-            const [location] = await pool.execute('SELECT id FROM attendance_locations WHERE id = ?', [assigned_location_id]);
+            const [location] = await database_1.pool.execute('SELECT id FROM attendance_locations WHERE id = ?', [assigned_location_id]);
             if (location.length === 0) {
                 return res.status(400).json({
                     success: false,
@@ -149,8 +151,8 @@ router.put('/:userId', authenticateJWT, checkPermission('staff:update'), async (
             });
         }
         values.push(userId);
-        await pool.execute(`UPDATE staff SET ${updates.join(', ')} WHERE user_id = ?`, values);
-        const [updated] = await pool.execute(`
+        await database_1.pool.execute(`UPDATE staff SET ${updates.join(', ')} WHERE user_id = ?`, values);
+        const [updated] = await database_1.pool.execute(`
       SELECT 
         s.user_id,
         s.employee_id,
@@ -178,7 +180,7 @@ router.put('/:userId', authenticateJWT, checkPermission('staff:update'), async (
         });
     }
 });
-router.post('/bulk-update', authenticateJWT, checkPermission('staff:update'), async (req, res) => {
+router.post('/bulk-update', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:update'), async (req, res) => {
     try {
         const { assignments } = req.body;
         if (!assignments || !Array.isArray(assignments)) {
@@ -214,7 +216,7 @@ router.post('/bulk-update', authenticateJWT, checkPermission('staff:update'), as
                     continue;
                 }
                 values.push(user_id);
-                await pool.execute(`UPDATE staff SET ${updates.join(', ')} WHERE user_id = ?`, values);
+                await database_1.pool.execute(`UPDATE staff SET ${updates.join(', ')} WHERE user_id = ?`, values);
                 results.push({ user_id, success: true, message: 'Updated successfully' });
             }
             catch (error) {
@@ -235,5 +237,5 @@ router.post('/bulk-update', authenticateJWT, checkPermission('staff:update'), as
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=staff-location-assignment.route.js.map

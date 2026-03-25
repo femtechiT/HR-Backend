@@ -1,8 +1,10 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import { pool } from '../config/database';
-const router = Router();
-router.get('/', authenticateJWT, checkPermission('time_off_bank:read'), async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('time_off_bank:read'), async (req, res) => {
     try {
         const { userId, programName, validFrom, validTo, page = 1, limit = 10 } = req.query;
         let query = `
@@ -36,7 +38,7 @@ router.get('/', authenticateJWT, checkPermission('time_off_bank:read'), async (r
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `
       SELECT COUNT(*) as total
       FROM time_off_banks tob
@@ -62,7 +64,7 @@ router.get('/', authenticateJWT, checkPermission('time_off_bank:read'), async (r
             countQuery += ' AND tob.valid_from <= ?';
             countParams.push(validTo);
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             message: 'Time off banks retrieved successfully',
@@ -85,10 +87,10 @@ router.get('/', authenticateJWT, checkPermission('time_off_bank:read'), async (r
         });
     }
 });
-router.get('/my-balance', authenticateJWT, async (req, res) => {
+router.get('/my-balance', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const userId = req.currentUser?.id;
-        const [rows] = await pool.execute(`SELECT *
+        const [rows] = await database_1.pool.execute(`SELECT *
        FROM time_off_banks
        WHERE user_id = ? AND valid_to >= CURDATE()`, [userId]);
         return res.json({
@@ -107,7 +109,7 @@ router.get('/my-balance', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/:id', authenticateJWT, checkPermission('time_off_bank:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('time_off_bank:read'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -118,7 +120,7 @@ router.get('/:id', authenticateJWT, checkPermission('time_off_bank:read'), async
                 message: 'Invalid time off bank ID'
             });
         }
-        const [rows] = await pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
+        const [rows] = await database_1.pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
        FROM time_off_banks tob
        LEFT JOIN users u ON tob.user_id = u.id
        LEFT JOIN users cbr ON tob.created_by = cbr.id
@@ -154,7 +156,7 @@ router.get('/:id', authenticateJWT, checkPermission('time_off_bank:read'), async
         });
     }
 });
-router.post('/', authenticateJWT, checkPermission('time_off_bank:create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('time_off_bank:create'), async (req, res) => {
     try {
         const { user_id, program_name, description, total_entitled_days, valid_from, valid_to } = req.body;
         const createdBy = req.currentUser?.id;
@@ -164,7 +166,7 @@ router.post('/', authenticateJWT, checkPermission('time_off_bank:create'), async
                 message: 'User ID, program name, total entitled days, valid from and valid to dates are required'
             });
         }
-        const [userRows] = await pool.execute('SELECT id FROM users WHERE id = ?', [user_id]);
+        const [userRows] = await database_1.pool.execute('SELECT id FROM users WHERE id = ?', [user_id]);
         if (userRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -192,7 +194,7 @@ router.post('/', authenticateJWT, checkPermission('time_off_bank:create'), async
                 message: 'Total entitled days must be a positive number'
             });
         }
-        const [result] = await pool.execute(`INSERT INTO time_off_banks
+        const [result] = await database_1.pool.execute(`INSERT INTO time_off_banks
        (user_id, program_name, description, total_entitled_days, used_days, valid_from, valid_to, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
             user_id,
@@ -205,7 +207,7 @@ router.post('/', authenticateJWT, checkPermission('time_off_bank:create'), async
             createdBy
         ]);
         const bankId = result.insertId;
-        const [bankRows] = await pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
+        const [bankRows] = await database_1.pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
        FROM time_off_banks tob
        LEFT JOIN users u ON tob.user_id = u.id
        LEFT JOIN users cbr ON tob.created_by = cbr.id
@@ -226,7 +228,7 @@ router.post('/', authenticateJWT, checkPermission('time_off_bank:create'), async
         });
     }
 });
-router.put('/:id', authenticateJWT, checkPermission('time_off_bank:update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('time_off_bank:update'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -238,7 +240,7 @@ router.put('/:id', authenticateJWT, checkPermission('time_off_bank:update'), asy
                 message: 'Invalid time off bank ID'
             });
         }
-        const [existingRows] = await pool.execute('SELECT * FROM time_off_banks WHERE id = ?', [bankId]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM time_off_banks WHERE id = ?', [bankId]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -312,8 +314,8 @@ router.put('/:id', authenticateJWT, checkPermission('time_off_bank:update'), asy
             });
         }
         params.push(bankId);
-        await pool.execute(`UPDATE time_off_banks SET ${updates.join(', ')} WHERE id = ?`, params);
-        const [updatedRows] = await pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
+        await database_1.pool.execute(`UPDATE time_off_banks SET ${updates.join(', ')} WHERE id = ?`, params);
+        const [updatedRows] = await database_1.pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
        FROM time_off_banks tob
        LEFT JOIN users u ON tob.user_id = u.id
        LEFT JOIN users cbr ON tob.created_by = cbr.id
@@ -334,7 +336,7 @@ router.put('/:id', authenticateJWT, checkPermission('time_off_bank:update'), asy
         });
     }
 });
-router.delete('/:id', authenticateJWT, checkPermission('time_off_bank:delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('time_off_bank:delete'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -345,7 +347,7 @@ router.delete('/:id', authenticateJWT, checkPermission('time_off_bank:delete'), 
                 message: 'Invalid time off bank ID'
             });
         }
-        const [existingRows] = await pool.execute('SELECT * FROM time_off_banks WHERE id = ?', [bankId]);
+        const [existingRows] = await database_1.pool.execute('SELECT * FROM time_off_banks WHERE id = ?', [bankId]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -358,7 +360,7 @@ router.delete('/:id', authenticateJWT, checkPermission('time_off_bank:delete'), 
                 message: 'Cannot delete time off bank that has been partially used'
             });
         }
-        await pool.execute('DELETE FROM time_off_banks WHERE id = ?', [bankId]);
+        await database_1.pool.execute('DELETE FROM time_off_banks WHERE id = ?', [bankId]);
         return res.json({
             success: true,
             message: 'Time off bank deleted successfully'
@@ -372,7 +374,7 @@ router.delete('/:id', authenticateJWT, checkPermission('time_off_bank:delete'), 
         });
     }
 });
-router.post('/assign', authenticateJWT, checkPermission('time_off_bank:create'), async (req, res) => {
+router.post('/assign', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('time_off_bank:create'), async (req, res) => {
     try {
         const { user_ids, program_name, description, total_entitled_days, valid_from, valid_to } = req.body;
         const createdBy = req.currentUser?.id;
@@ -409,7 +411,7 @@ router.post('/assign', authenticateJWT, checkPermission('time_off_bank:create'),
                 message: 'Total entitled days must be a positive number'
             });
         }
-        const [userRows] = await pool.execute(`SELECT id FROM users WHERE id IN (${user_ids.map(() => '?').join(',')})`, user_ids);
+        const [userRows] = await database_1.pool.execute(`SELECT id FROM users WHERE id IN (${user_ids.map(() => '?').join(',')})`, user_ids);
         if (userRows.length !== user_ids.length) {
             return res.status(400).json({
                 success: false,
@@ -418,7 +420,7 @@ router.post('/assign', authenticateJWT, checkPermission('time_off_bank:create'),
         }
         const createdBanks = [];
         for (const userId of user_ids) {
-            const [result] = await pool.execute(`INSERT INTO time_off_banks
+            const [result] = await database_1.pool.execute(`INSERT INTO time_off_banks
          (user_id, program_name, description, total_entitled_days, used_days, valid_from, valid_to, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
                 userId,
@@ -431,7 +433,7 @@ router.post('/assign', authenticateJWT, checkPermission('time_off_bank:create'),
                 createdBy
             ]);
             const bankId = result.insertId;
-            const [bankRow] = await pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
+            const [bankRow] = await database_1.pool.execute(`SELECT tob.*, u.full_name as user_name, cbr.full_name as created_by_name
          FROM time_off_banks tob
          LEFT JOIN users u ON tob.user_id = u.id
          LEFT JOIN users cbr ON tob.created_by = cbr.id
@@ -454,5 +456,5 @@ router.post('/assign', authenticateJWT, checkPermission('time_off_bank:create'),
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=time-off-bank.route.js.map

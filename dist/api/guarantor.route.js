@@ -1,15 +1,20 @@
-import { Router } from 'express';
-import { getGuarantors, getGuarantor, createGuarantor, updateGuarantor, deleteGuarantor, verifyGuarantor, uploadGuarantorDocument } from '../controllers/guarantor.controller';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-const router = Router();
-const storage = multer.diskStorage({
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const guarantor_controller_1 = require("../controllers/guarantor.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const multer_1 = __importDefault(require("multer"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const router = (0, express_1.Router)();
+const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
-        const uploadPath = path.join(process.cwd(), 'uploads', 'guarantors');
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
+        const uploadPath = path_1.default.join(process.cwd(), 'uploads', 'guarantors');
+        if (!fs_1.default.existsSync(uploadPath)) {
+            fs_1.default.mkdirSync(uploadPath, { recursive: true });
         }
         cb(null, uploadPath);
     },
@@ -17,11 +22,11 @@ const storage = multer.diskStorage({
         const guarantorId = req.params.id;
         const docType = req.params.documentType;
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
+        const ext = path_1.default.extname(file.originalname);
         cb(null, `guarantor-${guarantorId}-${docType}-${uniqueSuffix}${ext}`);
     }
 });
-const upload = multer({
+const upload = (0, multer_1.default)({
     storage: storage,
     limits: {
         fileSize: 10 * 1024 * 1024
@@ -38,8 +43,8 @@ const upload = multer({
 });
 router.get('/uploads/:filename', (req, res) => {
     const filename = req.params.filename;
-    const filePath = path.join(process.cwd(), 'uploads', 'guarantors', filename);
-    if (!fs.existsSync(filePath)) {
+    const filePath = path_1.default.join(process.cwd(), 'uploads', 'guarantors', filename);
+    if (!fs_1.default.existsSync(filePath)) {
         return res.status(404).json({
             success: false,
             message: 'File not found'
@@ -47,12 +52,12 @@ router.get('/uploads/:filename', (req, res) => {
     }
     res.sendFile(filePath);
 });
-router.get('/staff/:staffId', authenticateJWT, getGuarantors);
-router.get('/:id', authenticateJWT, checkPermission('staff:read'), getGuarantor);
-router.post('/', authenticateJWT, checkPermission('staff:create'), createGuarantor);
-router.put('/:id', authenticateJWT, checkPermission('staff:update'), updateGuarantor);
-router.delete('/:id', authenticateJWT, checkPermission('staff:delete'), deleteGuarantor);
-router.post('/:id/verify', authenticateJWT, checkPermission('staff:update'), verifyGuarantor);
-router.post('/:id/upload/:documentType', authenticateJWT, checkPermission('staff:update'), upload.single('document'), uploadGuarantorDocument);
-export default router;
+router.get('/staff/:staffId', auth_middleware_1.authenticateJWT, guarantor_controller_1.getGuarantors);
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:read'), guarantor_controller_1.getGuarantor);
+router.post('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:create'), guarantor_controller_1.createGuarantor);
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:update'), guarantor_controller_1.updateGuarantor);
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:delete'), guarantor_controller_1.deleteGuarantor);
+router.post('/:id/verify', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:update'), guarantor_controller_1.verifyGuarantor);
+router.post('/:id/upload/:documentType', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:update'), upload.single('document'), guarantor_controller_1.uploadGuarantorDocument);
+exports.default = router;
 //# sourceMappingURL=guarantor.route.js.map

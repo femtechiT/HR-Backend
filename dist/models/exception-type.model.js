@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class ExceptionTypeModel {
     static tableName = 'shift_exception_types';
     static async findAll(activeOnly = false) {
@@ -7,19 +9,19 @@ class ExceptionTypeModel {
             query += ' WHERE is_active = TRUE';
         }
         query += ' ORDER BY sort_order, name';
-        const [rows] = await pool.execute(query);
+        const [rows] = await database_1.pool.execute(query);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByCode(code) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE code = ?`, [code]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE code = ?`, [code]);
         return rows[0] || null;
     }
     static async create(typeData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} 
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} 
        (name, code, description, icon, color, default_start_time, default_end_time, 
         default_break_duration, is_active, is_system, sort_order)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
@@ -92,7 +94,7 @@ class ExceptionTypeModel {
             return existing;
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
@@ -103,11 +105,11 @@ class ExceptionTypeModel {
         if (existing.is_system) {
             throw new Error('Cannot delete system exception types');
         }
-        const [usage] = await pool.execute(`SELECT COUNT(*) as count FROM shift_exceptions WHERE exception_type_id = ?`, [id]);
+        const [usage] = await database_1.pool.execute(`SELECT COUNT(*) as count FROM shift_exceptions WHERE exception_type_id = ?`, [id]);
         if (usage[0].count > 0) {
             throw new Error('Cannot delete exception type that is in use');
         }
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async toggleActive(id) {
@@ -118,9 +120,9 @@ class ExceptionTypeModel {
         if (existing.is_system) {
             throw new Error('Cannot deactivate system exception types');
         }
-        await pool.execute(`UPDATE ${this.tableName} SET is_active = NOT is_active WHERE id = ?`, [id]);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET is_active = NOT is_active WHERE id = ?`, [id]);
         return await this.findById(id);
     }
 }
-export default ExceptionTypeModel;
+exports.default = ExceptionTypeModel;
 //# sourceMappingURL=exception-type.model.js.map

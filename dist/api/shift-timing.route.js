@@ -1,10 +1,15 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import ShiftTimingModel from '../models/shift-timing.model';
-const router = Router();
-router.get('/', authenticateJWT, checkPermission('shift_timing:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const shift_timing_model_1 = __importDefault(require("../models/shift-timing.model"));
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_timing:read'), async (req, res) => {
     try {
-        const shiftTimings = await ShiftTimingModel.findAll();
+        const shiftTimings = await shift_timing_model_1.default.findAll();
         return res.json({
             success: true,
             message: 'Shift timings retrieved successfully',
@@ -19,7 +24,7 @@ router.get('/', authenticateJWT, checkPermission('shift_timing:read'), async (re
         });
     }
 });
-router.get('/:id', authenticateJWT, checkPermission('shift_timing:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_timing:read'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -30,7 +35,7 @@ router.get('/:id', authenticateJWT, checkPermission('shift_timing:read'), async 
                 message: 'Invalid shift timing ID'
             });
         }
-        const shiftTiming = await ShiftTimingModel.findById(shiftTimingId);
+        const shiftTiming = await shift_timing_model_1.default.findById(shiftTimingId);
         if (!shiftTiming) {
             return res.status(404).json({
                 success: false,
@@ -51,7 +56,7 @@ router.get('/:id', authenticateJWT, checkPermission('shift_timing:read'), async 
         });
     }
 });
-router.post('/', authenticateJWT, checkPermission('shift:create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift:create'), async (req, res) => {
     try {
         const { user_id, shift_name, start_time, end_time, effective_from, effective_to, override_branch_id } = req.body;
         if (!shift_name || !start_time || !end_time || !effective_from) {
@@ -69,7 +74,7 @@ router.post('/', authenticateJWT, checkPermission('shift:create'), async (req, r
             effective_to: effective_to ? new Date(effective_to) : null,
             override_branch_id: override_branch_id || null
         };
-        const newShiftTiming = await ShiftTimingModel.create(shiftTimingData);
+        const newShiftTiming = await shift_timing_model_1.default.create(shiftTimingData);
         return res.status(201).json({
             success: true,
             message: 'Shift timing created successfully',
@@ -84,7 +89,7 @@ router.post('/', authenticateJWT, checkPermission('shift:create'), async (req, r
         });
     }
 });
-router.put('/:id', authenticateJWT, checkPermission('shift:update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift:update'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -96,7 +101,7 @@ router.put('/:id', authenticateJWT, checkPermission('shift:update'), async (req,
                 message: 'Invalid shift timing ID'
             });
         }
-        const existingShiftTiming = await ShiftTimingModel.findById(shiftTimingId);
+        const existingShiftTiming = await shift_timing_model_1.default.findById(shiftTimingId);
         if (!existingShiftTiming) {
             return res.status(404).json({
                 success: false,
@@ -116,7 +121,7 @@ router.put('/:id', authenticateJWT, checkPermission('shift:update'), async (req,
             updateData.effective_to = effective_to ? new Date(effective_to) : null;
         if (override_branch_id !== undefined)
             updateData.override_branch_id = override_branch_id;
-        const updatedShiftTiming = await ShiftTimingModel.update(shiftTimingId, updateData);
+        const updatedShiftTiming = await shift_timing_model_1.default.update(shiftTimingId, updateData);
         return res.json({
             success: true,
             message: 'Shift timing updated successfully',
@@ -131,7 +136,7 @@ router.put('/:id', authenticateJWT, checkPermission('shift:update'), async (req,
         });
     }
 });
-router.delete('/:id', authenticateJWT, checkPermission('shift:delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift:delete'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -142,7 +147,7 @@ router.delete('/:id', authenticateJWT, checkPermission('shift:delete'), async (r
                 message: 'Invalid shift timing ID'
             });
         }
-        const deleted = await ShiftTimingModel.delete(shiftTimingId);
+        const deleted = await shift_timing_model_1.default.delete(shiftTimingId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -162,5 +167,5 @@ router.delete('/:id', authenticateJWT, checkPermission('shift:delete'), async (r
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=shift-timing.route.js.map

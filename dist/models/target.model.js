@@ -1,38 +1,41 @@
-import { pool } from '../config/database';
-export const TargetModel = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TargetModel = void 0;
+const database_1 = require("../config/database");
+exports.TargetModel = {
     tableName: 'targets',
     async findAll() {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         connection.release();
         return rows;
     },
     async findById(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return rows[0] || null;
     },
     async findByEmployeeId(employeeId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE employee_id = ? ORDER BY created_at DESC`, [employeeId]);
         connection.release();
         return rows;
     },
     async findByKpiId(kpiId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE kpi_id = ? ORDER BY created_at DESC`, [kpiId]);
         connection.release();
         return rows;
     },
     async findByTemplateId(templateId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE template_id = ? ORDER BY created_at DESC`, [templateId]);
         connection.release();
         return rows;
     },
     async findByCategory(category) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT t.* FROM ${this.tableName} t
        JOIN kpi_definitions kd ON t.kpi_id = kd.id
        WHERE JSON_CONTAINS(kd.categories, ?) ORDER BY t.created_at DESC`, [`"${category}"`]);
@@ -40,7 +43,7 @@ export const TargetModel = {
         return rows;
     },
     async create(target) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`INSERT INTO ${this.tableName}
        (kpi_id, employee_id, department_id, template_id, target_type, target_value, period_start, period_end, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`, [
@@ -63,7 +66,7 @@ export const TargetModel = {
         };
     },
     async update(id, target) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const fields = [];
         const values = [];
         if (target.kpi_id !== undefined) {
@@ -112,7 +115,7 @@ export const TargetModel = {
         return result.affectedRows > 0;
     },
     async delete(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return result.affectedRows > 0;

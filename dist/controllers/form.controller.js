@@ -1,10 +1,16 @@
-import FormModel from '../models/form.model';
-import FormFieldModel from '../models/form-field.model';
-import AuditLogModel from '../models/audit-log.model';
-export const getAllForms = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getFormFields = exports.deleteForm = exports.updateForm = exports.createForm = exports.getFormById = exports.getAllForms = void 0;
+const form_model_1 = __importDefault(require("../models/form.model"));
+const form_field_model_1 = __importDefault(require("../models/form-field.model"));
+const audit_log_model_1 = __importDefault(require("../models/audit-log.model"));
+const getAllForms = async (req, res) => {
     try {
         const branchId = req.query.branchId ? parseInt(req.query.branchId) : undefined;
-        const forms = await FormModel.findAll(branchId);
+        const forms = await form_model_1.default.findAll(branchId);
         res.json({
             success: true,
             message: 'Forms retrieved successfully',
@@ -19,7 +25,8 @@ export const getAllForms = async (req, res) => {
         });
     }
 };
-export const getFormById = async (req, res) => {
+exports.getAllForms = getAllForms;
+const getFormById = async (req, res) => {
     try {
         const { id } = req.params;
         const formId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -29,14 +36,14 @@ export const getFormById = async (req, res) => {
                 message: 'Invalid form ID'
             });
         }
-        const form = await FormModel.findById(formId);
+        const form = await form_model_1.default.findById(formId);
         if (!form) {
             return res.status(404).json({
                 success: false,
                 message: 'Form not found'
             });
         }
-        const fields = await FormFieldModel.findByFormId(formId);
+        const fields = await form_field_model_1.default.findByFormId(formId);
         return res.json({
             success: true,
             message: 'Form retrieved successfully',
@@ -51,7 +58,8 @@ export const getFormById = async (req, res) => {
         });
     }
 };
-export const createForm = async (req, res) => {
+exports.getFormById = getFormById;
+const createForm = async (req, res) => {
     try {
         const { name, description, form_type, branch_id, fields } = req.body;
         if (!name || !form_type) {
@@ -73,7 +81,7 @@ export const createForm = async (req, res) => {
             branch_id,
             created_by: req.currentUser.id
         };
-        const newForm = await FormModel.create(formData);
+        const newForm = await form_model_1.default.create(formData);
         if (fields && Array.isArray(fields) && fields.length > 0) {
             for (const field of fields) {
                 if (!field ||
@@ -95,11 +103,11 @@ export const createForm = async (req, res) => {
                     options: field.options ?? null,
                     field_order: field.field_order ?? 0
                 };
-                await FormFieldModel.create(fieldData);
+                await form_field_model_1.default.create(fieldData);
             }
         }
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'form.created',
                 entity_type: 'form',
@@ -124,7 +132,8 @@ export const createForm = async (req, res) => {
         });
     }
 };
-export const updateForm = async (req, res) => {
+exports.createForm = createForm;
+const updateForm = async (req, res) => {
     try {
         const { id } = req.params;
         const formId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -135,7 +144,7 @@ export const updateForm = async (req, res) => {
                 message: 'Invalid form ID'
             });
         }
-        const existingForm = await FormModel.findById(formId);
+        const existingForm = await form_model_1.default.findById(formId);
         if (!existingForm) {
             return res.status(404).json({
                 success: false,
@@ -153,9 +162,9 @@ export const updateForm = async (req, res) => {
             updateData.branch_id = branch_id;
         if (is_active !== undefined)
             updateData.is_active = is_active;
-        const updatedForm = await FormModel.update(formId, updateData);
+        const updatedForm = await form_model_1.default.update(formId, updateData);
         if (fields && Array.isArray(fields)) {
-            await FormFieldModel.deleteByFormId(formId);
+            await form_field_model_1.default.deleteByFormId(formId);
             for (const field of fields) {
                 if (!field ||
                     field.field_name === undefined || field.field_name === null || field.field_name === '' ||
@@ -176,11 +185,11 @@ export const updateForm = async (req, res) => {
                     options: field.options ?? null,
                     field_order: field.field_order ?? 0
                 };
-                await FormFieldModel.create(fieldData);
+                await form_field_model_1.default.create(fieldData);
             }
         }
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'form.updated',
                 entity_type: 'form',
@@ -205,7 +214,8 @@ export const updateForm = async (req, res) => {
         });
     }
 };
-export const deleteForm = async (req, res) => {
+exports.updateForm = updateForm;
+const deleteForm = async (req, res) => {
     try {
         const { id } = req.params;
         const formId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -215,23 +225,23 @@ export const deleteForm = async (req, res) => {
                 message: 'Invalid form ID'
             });
         }
-        const existingForm = await FormModel.findById(formId);
+        const existingForm = await form_model_1.default.findById(formId);
         if (!existingForm) {
             return res.status(404).json({
                 success: false,
                 message: 'Form not found'
             });
         }
-        const deactivated = await FormModel.delete(formId);
+        const deactivated = await form_model_1.default.delete(formId);
         if (!deactivated) {
             return res.status(404).json({
                 success: false,
                 message: 'Form not found'
             });
         }
-        const updatedForm = await FormModel.findById(formId);
+        const updatedForm = await form_model_1.default.findById(formId);
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'form.deactivated',
                 entity_type: 'form',
@@ -255,7 +265,8 @@ export const deleteForm = async (req, res) => {
         });
     }
 };
-export const getFormFields = async (req, res) => {
+exports.deleteForm = deleteForm;
+const getFormFields = async (req, res) => {
     try {
         const { id } = req.params;
         const formId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -265,7 +276,7 @@ export const getFormFields = async (req, res) => {
                 message: 'Invalid form ID'
             });
         }
-        const fields = await FormFieldModel.findByFormId(formId);
+        const fields = await form_field_model_1.default.findByFormId(formId);
         return res.json({
             success: true,
             message: 'Form fields retrieved successfully',
@@ -280,4 +291,5 @@ export const getFormFields = async (req, res) => {
         });
     }
 };
+exports.getFormFields = getFormFields;
 //# sourceMappingURL=form.controller.js.map

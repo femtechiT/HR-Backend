@@ -1,12 +1,17 @@
-import express from 'express';
-import { authenticateJWT } from '../middleware/auth.middleware';
-import { checkPermission } from '../middleware/permission.middleware';
-import { AppraisalCycleModel } from '../models/appraisal-cycle.model';
-import UserModel from '../models/user.model';
-const router = express.Router();
-router.get('/', authenticateJWT, checkPermission('appraisal:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const permission_middleware_1 = require("../middleware/permission.middleware");
+const appraisal_cycle_model_1 = require("../models/appraisal-cycle.model");
+const user_model_1 = __importDefault(require("../models/user.model"));
+const router = express_1.default.Router();
+router.get('/', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal:read'), async (req, res) => {
     try {
-        const appraisals = await AppraisalCycleModel.findAll();
+        const appraisals = await appraisal_cycle_model_1.AppraisalCycleModel.findAll();
         res.json({
             success: true,
             data: appraisals
@@ -21,7 +26,7 @@ router.get('/', authenticateJWT, checkPermission('appraisal:read'), async (req, 
         });
     }
 });
-router.get('/:id', authenticateJWT, checkPermission('appraisal:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal:read'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -31,7 +36,7 @@ router.get('/:id', authenticateJWT, checkPermission('appraisal:read'), async (re
                 message: 'Invalid appraisal cycle ID'
             });
         }
-        const appraisal = await AppraisalCycleModel.findById(id);
+        const appraisal = await appraisal_cycle_model_1.AppraisalCycleModel.findById(id);
         if (!appraisal) {
             return res.status(404).json({
                 success: false,
@@ -53,7 +58,7 @@ router.get('/:id', authenticateJWT, checkPermission('appraisal:read'), async (re
     }
     return;
 });
-router.get('/template/:templateId', authenticateJWT, checkPermission('appraisal:read'), async (req, res) => {
+router.get('/template/:templateId', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal:read'), async (req, res) => {
     try {
         const templateIdParam = Array.isArray(req.params.templateId) ? req.params.templateId[0] : req.params.templateId;
         const templateId = parseInt(templateIdParam);
@@ -63,7 +68,7 @@ router.get('/template/:templateId', authenticateJWT, checkPermission('appraisal:
                 message: 'Invalid template ID'
             });
         }
-        const appraisals = await AppraisalCycleModel.findByTemplateId(templateId);
+        const appraisals = await appraisal_cycle_model_1.AppraisalCycleModel.findByTemplateId(templateId);
         res.json({
             success: true,
             data: appraisals
@@ -79,7 +84,7 @@ router.get('/template/:templateId', authenticateJWT, checkPermission('appraisal:
     }
     return;
 });
-router.get('/categories/:category', authenticateJWT, checkPermission('appraisal:read'), async (req, res) => {
+router.get('/categories/:category', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal:read'), async (req, res) => {
     try {
         const categoryParam = Array.isArray(req.params.category) ? req.params.category[0] : req.params.category;
         const category = categoryParam;
@@ -104,7 +109,7 @@ router.get('/categories/:category', authenticateJWT, checkPermission('appraisal:
     }
     return;
 });
-router.post('/', authenticateJWT, checkPermission('appraisal.create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal.create'), async (req, res) => {
     try {
         const { name, description, template_id, start_date, end_date, status } = req.body;
         if (!name || !template_id || !start_date || !end_date || !status) {
@@ -120,7 +125,7 @@ router.post('/', authenticateJWT, checkPermission('appraisal.create'), async (re
                 message: 'Invalid status. Must be one of: draft, active, completed, cancelled'
             });
         }
-        const user = await UserModel.findById(req.currentUser.id);
+        const user = await user_model_1.default.findById(req.currentUser.id);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -136,7 +141,7 @@ router.post('/', authenticateJWT, checkPermission('appraisal.create'), async (re
             status,
             created_by: req.currentUser.id
         };
-        const createdAppraisal = await AppraisalCycleModel.create(newAppraisal);
+        const createdAppraisal = await appraisal_cycle_model_1.AppraisalCycleModel.create(newAppraisal);
         res.status(201).json({
             success: true,
             message: 'Appraisal cycle created successfully',
@@ -153,7 +158,7 @@ router.post('/', authenticateJWT, checkPermission('appraisal.create'), async (re
     }
     return;
 });
-router.put('/:id', authenticateJWT, checkPermission('appraisal.update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal.update'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -163,7 +168,7 @@ router.put('/:id', authenticateJWT, checkPermission('appraisal.update'), async (
                 message: 'Invalid appraisal cycle ID'
             });
         }
-        const appraisal = await AppraisalCycleModel.findById(id);
+        const appraisal = await appraisal_cycle_model_1.AppraisalCycleModel.findById(id);
         if (!appraisal) {
             return res.status(404).json({
                 success: false,
@@ -187,14 +192,14 @@ router.put('/:id', authenticateJWT, checkPermission('appraisal.update'), async (
         if (updatedFields.end_date) {
             updatedFields.end_date = new Date(updatedFields.end_date);
         }
-        const success = await AppraisalCycleModel.update(id, updatedFields);
+        const success = await appraisal_cycle_model_1.AppraisalCycleModel.update(id, updatedFields);
         if (!success) {
             return res.status(400).json({
                 success: false,
                 message: 'Failed to update appraisal cycle'
             });
         }
-        const updatedAppraisal = await AppraisalCycleModel.findById(id);
+        const updatedAppraisal = await appraisal_cycle_model_1.AppraisalCycleModel.findById(id);
         res.json({
             success: true,
             message: 'Appraisal cycle updated successfully',
@@ -211,7 +216,7 @@ router.put('/:id', authenticateJWT, checkPermission('appraisal.update'), async (
     }
     return;
 });
-router.post('/:id/start', authenticateJWT, checkPermission('appraisal.update'), async (req, res) => {
+router.post('/:id/start', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal.update'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -221,7 +226,7 @@ router.post('/:id/start', authenticateJWT, checkPermission('appraisal.update'), 
                 message: 'Invalid appraisal cycle ID'
             });
         }
-        const appraisal = await AppraisalCycleModel.findById(id);
+        const appraisal = await appraisal_cycle_model_1.AppraisalCycleModel.findById(id);
         if (!appraisal) {
             return res.status(404).json({
                 success: false,
@@ -234,14 +239,14 @@ router.post('/:id/start', authenticateJWT, checkPermission('appraisal.update'), 
                 message: 'Cannot start appraisal cycle that is not in draft status'
             });
         }
-        const success = await AppraisalCycleModel.update(id, { status: 'active' });
+        const success = await appraisal_cycle_model_1.AppraisalCycleModel.update(id, { status: 'active' });
         if (!success) {
             return res.status(400).json({
                 success: false,
                 message: 'Failed to start appraisal cycle'
             });
         }
-        const updatedAppraisal = await AppraisalCycleModel.findById(id);
+        const updatedAppraisal = await appraisal_cycle_model_1.AppraisalCycleModel.findById(id);
         res.json({
             success: true,
             message: 'Appraisal cycle started successfully',
@@ -258,7 +263,7 @@ router.post('/:id/start', authenticateJWT, checkPermission('appraisal.update'), 
     }
     return;
 });
-router.post('/:id/end', authenticateJWT, checkPermission('appraisal.update'), async (req, res) => {
+router.post('/:id/end', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal.update'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -268,7 +273,7 @@ router.post('/:id/end', authenticateJWT, checkPermission('appraisal.update'), as
                 message: 'Invalid appraisal cycle ID'
             });
         }
-        const appraisal = await AppraisalCycleModel.findById(id);
+        const appraisal = await appraisal_cycle_model_1.AppraisalCycleModel.findById(id);
         if (!appraisal) {
             return res.status(404).json({
                 success: false,
@@ -281,14 +286,14 @@ router.post('/:id/end', authenticateJWT, checkPermission('appraisal.update'), as
                 message: 'Cannot end appraisal cycle that is not active'
             });
         }
-        const success = await AppraisalCycleModel.update(id, { status: 'completed' });
+        const success = await appraisal_cycle_model_1.AppraisalCycleModel.update(id, { status: 'completed' });
         if (!success) {
             return res.status(400).json({
                 success: false,
                 message: 'Failed to end appraisal cycle'
             });
         }
-        const updatedAppraisal = await AppraisalCycleModel.findById(id);
+        const updatedAppraisal = await appraisal_cycle_model_1.AppraisalCycleModel.findById(id);
         res.json({
             success: true,
             message: 'Appraisal cycle ended successfully',
@@ -305,7 +310,7 @@ router.post('/:id/end', authenticateJWT, checkPermission('appraisal.update'), as
     }
     return;
 });
-router.delete('/:id', authenticateJWT, checkPermission('appraisal.delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('appraisal.delete'), async (req, res) => {
     try {
         const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const id = parseInt(idParam);
@@ -315,14 +320,14 @@ router.delete('/:id', authenticateJWT, checkPermission('appraisal.delete'), asyn
                 message: 'Invalid appraisal cycle ID'
             });
         }
-        const appraisal = await AppraisalCycleModel.findById(id);
+        const appraisal = await appraisal_cycle_model_1.AppraisalCycleModel.findById(id);
         if (!appraisal) {
             return res.status(404).json({
                 success: false,
                 message: 'Appraisal cycle not found'
             });
         }
-        const success = await AppraisalCycleModel.delete(id);
+        const success = await appraisal_cycle_model_1.AppraisalCycleModel.delete(id);
         if (!success) {
             return res.status(400).json({
                 success: false,
@@ -344,5 +349,5 @@ router.delete('/:id', authenticateJWT, checkPermission('appraisal.delete'), asyn
     }
     return;
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=appraisal.route.js.map

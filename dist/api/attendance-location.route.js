@@ -1,23 +1,28 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import AttendanceLocationModel from '../models/attendance-location.model';
-const router = Router();
-router.get('/', authenticateJWT, checkPermission('attendance_location:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const attendance_location_model_1 = __importDefault(require("../models/attendance-location.model"));
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance_location:read'), async (req, res) => {
     try {
         const { branchId, isActive } = req.query;
         let locations;
         if (branchId) {
             const branchIdStr = Array.isArray(branchId) ? branchId[0] : branchId;
             const branchIdNum = parseInt(branchIdStr);
-            locations = await AttendanceLocationModel.findByBranch(branchIdNum);
+            locations = await attendance_location_model_1.default.findByBranch(branchIdNum);
         }
         else if (isActive !== undefined) {
             const isActiveStr = Array.isArray(isActive) ? isActive[0] : isActive;
             const isActiveBool = isActiveStr === 'true';
-            locations = await AttendanceLocationModel.findByActiveStatus(isActiveBool);
+            locations = await attendance_location_model_1.default.findByActiveStatus(isActiveBool);
         }
         else {
-            locations = await AttendanceLocationModel.findAll();
+            locations = await attendance_location_model_1.default.findAll();
         }
         return res.json({
             success: true,
@@ -33,7 +38,7 @@ router.get('/', authenticateJWT, checkPermission('attendance_location:read'), as
         });
     }
 });
-router.get('/:id', authenticateJWT, checkPermission('attendance_location:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance_location:read'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -44,7 +49,7 @@ router.get('/:id', authenticateJWT, checkPermission('attendance_location:read'),
                 message: 'Invalid location ID'
             });
         }
-        const location = await AttendanceLocationModel.findById(locationId);
+        const location = await attendance_location_model_1.default.findById(locationId);
         if (!location) {
             return res.status(404).json({
                 success: false,
@@ -65,7 +70,7 @@ router.get('/:id', authenticateJWT, checkPermission('attendance_location:read'),
         });
     }
 });
-router.post('/', authenticateJWT, checkPermission('attendance-location:create'), async (req, res) => {
+router.post('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance-location:create'), async (req, res) => {
     try {
         const { name, location_coordinates, location_radius_meters, branch_id, is_active } = req.body;
         console.log('📍 POST /api/attendance-locations - Request body:', req.body);
@@ -83,7 +88,7 @@ router.post('/', authenticateJWT, checkPermission('attendance-location:create'),
             is_active: is_active !== undefined ? Boolean(is_active) : true
         };
         console.log('📍 Passing to model:', locationData);
-        const newLocation = await AttendanceLocationModel.create(locationData);
+        const newLocation = await attendance_location_model_1.default.create(locationData);
         return res.status(201).json({
             success: true,
             message: 'Attendance location created successfully',
@@ -98,7 +103,7 @@ router.post('/', authenticateJWT, checkPermission('attendance-location:create'),
         });
     }
 });
-router.put('/:id', authenticateJWT, checkPermission('attendance-location:update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance-location:update'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -110,7 +115,7 @@ router.put('/:id', authenticateJWT, checkPermission('attendance-location:update'
                 message: 'Invalid location ID'
             });
         }
-        const existingLocation = await AttendanceLocationModel.findById(locationId);
+        const existingLocation = await attendance_location_model_1.default.findById(locationId);
         if (!existingLocation) {
             return res.status(404).json({
                 success: false,
@@ -128,7 +133,7 @@ router.put('/:id', authenticateJWT, checkPermission('attendance-location:update'
             updateData.branch_id = branch_id;
         if (is_active !== undefined)
             updateData.is_active = Boolean(is_active);
-        const updatedLocation = await AttendanceLocationModel.update(locationId, updateData);
+        const updatedLocation = await attendance_location_model_1.default.update(locationId, updateData);
         return res.json({
             success: true,
             message: 'Attendance location updated successfully',
@@ -143,7 +148,7 @@ router.put('/:id', authenticateJWT, checkPermission('attendance-location:update'
         });
     }
 });
-router.delete('/:id', authenticateJWT, checkPermission('attendance-location:delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance-location:delete'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -154,7 +159,7 @@ router.delete('/:id', authenticateJWT, checkPermission('attendance-location:dele
                 message: 'Invalid location ID'
             });
         }
-        const deleted = await AttendanceLocationModel.delete(locationId);
+        const deleted = await attendance_location_model_1.default.delete(locationId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -174,5 +179,5 @@ router.delete('/:id', authenticateJWT, checkPermission('attendance-location:dele
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=attendance-location.route.js.map

@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class StaffSkillModel {
     static tableName = 'staff_skills';
     static async findAll(staffId, limit = 20, offset = 0) {
@@ -10,14 +12,14 @@ class StaffSkillModel {
         }
         query += ' ORDER BY is_primary DESC, created_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName}`;
         const countParams = [];
         if (staffId) {
             countQuery += ' WHERE staff_id = ?';
             countParams.push(staffId);
         }
-        const [countResult] = await pool.execute(countQuery, countParams);
+        const [countResult] = await database_1.pool.execute(countQuery, countParams);
         const totalCount = countResult[0].count;
         return {
             skills: rows,
@@ -25,15 +27,15 @@ class StaffSkillModel {
         };
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByStaffAndSkill(staffId, skillName) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? AND skill_name = ?`, [staffId, skillName]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE staff_id = ? AND skill_name = ?`, [staffId, skillName]);
         return rows[0] || null;
     }
     static async create(skillData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (staff_id, skill_name, proficiency_level, years_of_experience, certification_status, last_used_date, is_primary)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (staff_id, skill_name, proficiency_level, years_of_experience, certification_status, last_used_date, is_primary)
        VALUES (?, ?, ?, ?, ?, ?, ?)`, [
             skillData.staff_id,
             skillData.skill_name,
@@ -81,17 +83,17 @@ class StaffSkillModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async deleteByStaffAndSkill(staffId, skillName) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE staff_id = ? AND skill_name = ?`, [staffId, skillName]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE staff_id = ? AND skill_name = ?`, [staffId, skillName]);
         return result.affectedRows > 0;
     }
 }
-export default StaffSkillModel;
+exports.default = StaffSkillModel;
 //# sourceMappingURL=staff-skill.model.js.map

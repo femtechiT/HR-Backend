@@ -1,13 +1,19 @@
-import FormSubmissionModel from '../models/form-submission.model';
-import FormModel from '../models/form.model';
-import FormFieldModel from '../models/form-field.model';
-import AuditLogModel from '../models/audit-log.model';
-export const getAllFormSubmissions = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteFormSubmission = exports.updateFormSubmission = exports.submitForm = exports.getFormSubmissionById = exports.getAllFormSubmissions = void 0;
+const form_submission_model_1 = __importDefault(require("../models/form-submission.model"));
+const form_model_1 = __importDefault(require("../models/form.model"));
+const form_field_model_1 = __importDefault(require("../models/form-field.model"));
+const audit_log_model_1 = __importDefault(require("../models/audit-log.model"));
+const getAllFormSubmissions = async (req, res) => {
     try {
         const formId = req.query.formId ? parseInt(req.query.formId) : undefined;
         const userId = req.query.userId ? parseInt(req.query.userId) : undefined;
         const status = req.query.status;
-        const submissions = await FormSubmissionModel.findAll(formId, userId, status);
+        const submissions = await form_submission_model_1.default.findAll(formId, userId, status);
         res.json({
             success: true,
             message: 'Form submissions retrieved successfully',
@@ -22,7 +28,8 @@ export const getAllFormSubmissions = async (req, res) => {
         });
     }
 };
-export const getFormSubmissionById = async (req, res) => {
+exports.getAllFormSubmissions = getAllFormSubmissions;
+const getFormSubmissionById = async (req, res) => {
     try {
         const { id } = req.params;
         const submissionId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -32,7 +39,7 @@ export const getFormSubmissionById = async (req, res) => {
                 message: 'Invalid submission ID'
             });
         }
-        const submission = await FormSubmissionModel.findById(submissionId);
+        const submission = await form_submission_model_1.default.findById(submissionId);
         if (!submission) {
             return res.status(404).json({
                 success: false,
@@ -53,7 +60,8 @@ export const getFormSubmissionById = async (req, res) => {
         });
     }
 };
-export const submitForm = async (req, res) => {
+exports.getFormSubmissionById = getFormSubmissionById;
+const submitForm = async (req, res) => {
     try {
         const { form_id, submission_data, status, notes } = req.body;
         if (!form_id || !submission_data) {
@@ -68,14 +76,14 @@ export const submitForm = async (req, res) => {
                 message: 'Authentication required'
             });
         }
-        const form = await FormModel.findById(form_id);
+        const form = await form_model_1.default.findById(form_id);
         if (!form) {
             return res.status(404).json({
                 success: false,
                 message: 'Form not found'
             });
         }
-        const formFields = await FormFieldModel.findByFormId(form_id);
+        const formFields = await form_field_model_1.default.findByFormId(form_id);
         const errors = [];
         for (const field of formFields) {
             const fieldValue = submission_data[field.field_name];
@@ -129,8 +137,8 @@ export const submitForm = async (req, res) => {
             status: status || 'submitted',
             notes
         };
-        const newSubmission = await FormSubmissionModel.create(submissionData);
-        await AuditLogModel.logStaffOperation(req.currentUser.id, 'form.submitted', newSubmission.id, null, newSubmission, req.ip, req.get('User-Agent') || undefined);
+        const newSubmission = await form_submission_model_1.default.create(submissionData);
+        await audit_log_model_1.default.logStaffOperation(req.currentUser.id, 'form.submitted', newSubmission.id, null, newSubmission, req.ip, req.get('User-Agent') || undefined);
         return res.status(201).json({
             success: true,
             message: 'Form submitted successfully',
@@ -145,7 +153,8 @@ export const submitForm = async (req, res) => {
         });
     }
 };
-export const updateFormSubmission = async (req, res) => {
+exports.submitForm = submitForm;
+const updateFormSubmission = async (req, res) => {
     try {
         const { id } = req.params;
         const submissionId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -156,7 +165,7 @@ export const updateFormSubmission = async (req, res) => {
                 message: 'Invalid submission ID'
             });
         }
-        const existingSubmission = await FormSubmissionModel.findById(submissionId);
+        const existingSubmission = await form_submission_model_1.default.findById(submissionId);
         if (!existingSubmission) {
             return res.status(404).json({
                 success: false,
@@ -172,9 +181,9 @@ export const updateFormSubmission = async (req, res) => {
             updateData.reviewed_at = reviewed_at;
         if (notes !== undefined)
             updateData.notes = notes;
-        const updatedSubmission = await FormSubmissionModel.update(submissionId, updateData);
+        const updatedSubmission = await form_submission_model_1.default.update(submissionId, updateData);
         if (req.currentUser) {
-            await AuditLogModel.logStaffOperation(req.currentUser.id, 'form.submission.updated', submissionId, existingSubmission, updatedSubmission, req.ip, req.get('User-Agent') || undefined);
+            await audit_log_model_1.default.logStaffOperation(req.currentUser.id, 'form.submission.updated', submissionId, existingSubmission, updatedSubmission, req.ip, req.get('User-Agent') || undefined);
         }
         return res.json({
             success: true,
@@ -190,7 +199,8 @@ export const updateFormSubmission = async (req, res) => {
         });
     }
 };
-export const deleteFormSubmission = async (req, res) => {
+exports.updateFormSubmission = updateFormSubmission;
+const deleteFormSubmission = async (req, res) => {
     try {
         const { id } = req.params;
         const submissionId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -200,7 +210,7 @@ export const deleteFormSubmission = async (req, res) => {
                 message: 'Invalid submission ID'
             });
         }
-        const deleted = await FormSubmissionModel.delete(submissionId);
+        const deleted = await form_submission_model_1.default.delete(submissionId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -220,4 +230,5 @@ export const deleteFormSubmission = async (req, res) => {
         });
     }
 };
+exports.deleteFormSubmission = deleteFormSubmission;
 //# sourceMappingURL=form-submission.controller.js.map

@@ -1,12 +1,14 @@
-import { Router } from 'express';
-import { authenticateJWT } from '../middleware/auth.middleware';
-import { pool } from '../config/database';
-const router = Router();
-router.get('/stats', authenticateJWT, async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
+router.get('/stats', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
-        const [staffCount] = await pool.execute('SELECT COUNT(*) as total, SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active FROM staff');
+        const [staffCount] = await database_1.pool.execute('SELECT COUNT(*) as total, SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active FROM staff');
         const today = new Date().toISOString().split('T')[0];
-        const [todayAttendance] = await pool.execute(`
+        const [todayAttendance] = await database_1.pool.execute(`
       SELECT 
         COUNT(*) as total_records,
         SUM(CASE WHEN status IN ('present', 'late') THEN 1 ELSE 0 END) as present_count,
@@ -14,19 +16,19 @@ router.get('/stats', authenticateJWT, async (req, res) => {
       FROM attendance 
       WHERE DATE(date) = ?
     `, [today]);
-        const [pendingLeaves] = await pool.execute(`
+        const [pendingLeaves] = await database_1.pool.execute(`
       SELECT COUNT(*) as pending_count 
       FROM leave_requests 
       WHERE status = 'pending' OR status = 'submitted'
     `);
-        const [departments] = await pool.execute(`
+        const [departments] = await database_1.pool.execute(`
       SELECT department, COUNT(*) as count 
       FROM staff 
       WHERE department IS NOT NULL AND department != ''
       GROUP BY department 
       ORDER BY count DESC
     `);
-        const [recentLeaves] = await pool.execute(`
+        const [recentLeaves] = await database_1.pool.execute(`
       SELECT lr.*, u.full_name, lt.name as leave_type_name
       FROM leave_requests lr
       LEFT JOIN users u ON lr.user_id = u.id
@@ -56,5 +58,5 @@ router.get('/stats', authenticateJWT, async (req, res) => {
         });
     }
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=dashboard.route.js.map

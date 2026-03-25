@@ -1,6 +1,11 @@
-import { pool } from '../config/database';
-import path from 'path';
-import fs from 'fs';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 class AttachmentService {
     static tableName = 'form_attachments';
     static async saveAttachments(files, entity, fieldId) {
@@ -11,7 +16,7 @@ class AttachmentService {
         for (const file of files) {
             const attachmentInput = {
                 file_name: file.originalname,
-                file_path: `/uploads/attachments/${path.basename(file.filename)}`,
+                file_path: `/uploads/attachments/${path_1.default.basename(file.filename)}`,
                 file_size: file.size,
                 mime_type: file.mimetype
             };
@@ -41,7 +46,7 @@ class AttachmentService {
             params.push(entity.entityId);
         }
         query += ' ORDER BY uploaded_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async deleteAttachment(attachmentId) {
@@ -49,11 +54,11 @@ class AttachmentService {
         if (!attachment) {
             return false;
         }
-        const filePath = path.join(process.cwd(), attachment.file_path);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+        const filePath = path_1.default.join(process.cwd(), attachment.file_path);
+        if (fs_1.default.existsSync(filePath)) {
+            fs_1.default.unlinkSync(filePath);
         }
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [attachmentId]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [attachmentId]);
         return result.affectedRows > 0;
     }
     static async deleteByEntity(entity) {
@@ -67,15 +72,15 @@ class AttachmentService {
             query += 'form_submission_id = ?';
             params.push(entity.entityId);
         }
-        const result = await pool.execute(query, params);
+        const result = await database_1.pool.execute(query, params);
         return result.affectedRows > 0;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async create(attachmentData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName}
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName}
        (form_submission_id, leave_request_id, field_id, file_name, file_path, file_size, mime_type)
        VALUES (?, ?, ?, ?, ?, ?, ?)`, [
             attachmentData.form_submission_id || null,
@@ -94,5 +99,5 @@ class AttachmentService {
         return createdItem;
     }
 }
-export default AttachmentService;
+exports.default = AttachmentService;
 //# sourceMappingURL=attachment.service.js.map

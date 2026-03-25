@@ -1,20 +1,22 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class RoleModel {
     static tableName = 'roles';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByName(name) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE name = ?`, [name]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE name = ?`, [name]);
         return rows[0] || null;
     }
     static async create(roleData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (name, description, permissions)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, description, permissions)
        VALUES (?, ?, ?)`, [
             roleData.name,
             roleData.description,
@@ -46,11 +48,11 @@ class RoleModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async getRolePermissions(roleId) {
@@ -71,13 +73,13 @@ class RoleModel {
         query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
         params.push(limit, offset);
         const [rows, countResult] = await Promise.all([
-            pool.execute(query, params),
-            pool.execute(countQuery, countParams)
+            database_1.pool.execute(query, params),
+            database_1.pool.execute(countQuery, countParams)
         ]);
         const roles = rows[0];
         const totalCount = countResult[0][0].count;
         return { roles, totalCount };
     }
 }
-export default RoleModel;
+exports.default = RoleModel;
 //# sourceMappingURL=role.model.js.map

@@ -1,5 +1,8 @@
-import { pool } from '../config/database';
-export const getAllDepartments = async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteDepartment = exports.updateDepartment = exports.createDepartment = exports.getDepartmentById = exports.getAllDepartments = void 0;
+const database_1 = require("../config/database");
+const getAllDepartments = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -55,8 +58,8 @@ export const getAllDepartments = async (req, res) => {
             countQuery += ` WHERE ${countConditions.join(' AND ')}`;
         }
         const [rows, countResult] = await Promise.all([
-            pool.execute(query, params),
-            pool.execute(countQuery, countParams)
+            database_1.pool.execute(query, params),
+            database_1.pool.execute(countQuery, countParams)
         ]);
         const departments = rows[0];
         const totalCount = countResult[0][0].count;
@@ -87,7 +90,8 @@ export const getAllDepartments = async (req, res) => {
         });
     }
 };
-export const getDepartmentById = async (req, res) => {
+exports.getAllDepartments = getAllDepartments;
+const getDepartmentById = async (req, res) => {
     try {
         const idParam = req.params.id;
         const deptIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -98,7 +102,7 @@ export const getDepartmentById = async (req, res) => {
                 message: 'Invalid department ID'
             });
         }
-        const [rows] = await pool.execute(`SELECT d.*, b.name as branch_name FROM departments d 
+        const [rows] = await database_1.pool.execute(`SELECT d.*, b.name as branch_name FROM departments d 
        LEFT JOIN branches b ON d.branch_id = b.id 
        WHERE d.id = ?`, [deptId]);
         const department = rows[0];
@@ -122,7 +126,8 @@ export const getDepartmentById = async (req, res) => {
         });
     }
 };
-export const createDepartment = async (req, res) => {
+exports.getDepartmentById = getDepartmentById;
+const createDepartment = async (req, res) => {
     try {
         const { name, description, branch_id } = req.body;
         if (!name) {
@@ -131,7 +136,7 @@ export const createDepartment = async (req, res) => {
                 message: 'Department name is required'
             });
         }
-        const [existingRows] = await pool.execute('SELECT id FROM departments WHERE name = ?', [name]);
+        const [existingRows] = await database_1.pool.execute('SELECT id FROM departments WHERE name = ?', [name]);
         if (existingRows.length > 0) {
             return res.status(409).json({
                 success: false,
@@ -139,7 +144,7 @@ export const createDepartment = async (req, res) => {
             });
         }
         if (branch_id) {
-            const [branchRows] = await pool.execute('SELECT id FROM branches WHERE id = ?', [branch_id]);
+            const [branchRows] = await database_1.pool.execute('SELECT id FROM branches WHERE id = ?', [branch_id]);
             if (branchRows.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -147,10 +152,10 @@ export const createDepartment = async (req, res) => {
                 });
             }
         }
-        const [result] = await pool.execute(`INSERT INTO departments (name, description, branch_id, created_at, updated_at) 
+        const [result] = await database_1.pool.execute(`INSERT INTO departments (name, description, branch_id, created_at, updated_at) 
        VALUES (?, ?, ?, NOW(), NOW())`, [name, description || '', branch_id || null]);
         const deptId = result.insertId;
-        const [newDeptRows] = await pool.execute(`SELECT d.*, b.name as branch_name FROM departments d 
+        const [newDeptRows] = await database_1.pool.execute(`SELECT d.*, b.name as branch_name FROM departments d 
        LEFT JOIN branches b ON d.branch_id = b.id 
        WHERE d.id = ?`, [deptId]);
         const newDepartment = newDeptRows[0];
@@ -168,7 +173,8 @@ export const createDepartment = async (req, res) => {
         });
     }
 };
-export const updateDepartment = async (req, res) => {
+exports.createDepartment = createDepartment;
+const updateDepartment = async (req, res) => {
     try {
         const idParam = req.params.id;
         const deptIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -180,7 +186,7 @@ export const updateDepartment = async (req, res) => {
                 message: 'Invalid department ID'
             });
         }
-        const [existingRows] = await pool.execute('SELECT id FROM departments WHERE id = ?', [deptId]);
+        const [existingRows] = await database_1.pool.execute('SELECT id FROM departments WHERE id = ?', [deptId]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -188,7 +194,7 @@ export const updateDepartment = async (req, res) => {
             });
         }
         if (name) {
-            const [sameNameRows] = await pool.execute('SELECT id FROM departments WHERE name = ? AND id != ?', [name, deptId]);
+            const [sameNameRows] = await database_1.pool.execute('SELECT id FROM departments WHERE name = ? AND id != ?', [name, deptId]);
             if (sameNameRows.length > 0) {
                 return res.status(409).json({
                     success: false,
@@ -198,7 +204,7 @@ export const updateDepartment = async (req, res) => {
         }
         if (branch_id !== undefined) {
             if (branch_id) {
-                const [branchRows] = await pool.execute('SELECT id FROM branches WHERE id = ?', [branch_id]);
+                const [branchRows] = await database_1.pool.execute('SELECT id FROM branches WHERE id = ?', [branch_id]);
                 if (branchRows.length === 0) {
                     return res.status(404).json({
                         success: false,
@@ -222,11 +228,11 @@ export const updateDepartment = async (req, res) => {
             values.push(branch_id);
         }
         if (updates.length === 0) {
-            return getDepartmentById(req, res);
+            return (0, exports.getDepartmentById)(req, res);
         }
         values.push(deptId);
-        await pool.execute(`UPDATE departments SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`, values);
-        const [updatedDeptRows] = await pool.execute(`SELECT d.*, b.name as branch_name FROM departments d 
+        await database_1.pool.execute(`UPDATE departments SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`, values);
+        const [updatedDeptRows] = await database_1.pool.execute(`SELECT d.*, b.name as branch_name FROM departments d 
        LEFT JOIN branches b ON d.branch_id = b.id 
        WHERE d.id = ?`, [deptId]);
         const updatedDepartment = updatedDeptRows[0];
@@ -244,7 +250,8 @@ export const updateDepartment = async (req, res) => {
         });
     }
 };
-export const deleteDepartment = async (req, res) => {
+exports.updateDepartment = updateDepartment;
+const deleteDepartment = async (req, res) => {
     try {
         const idParam = req.params.id;
         const deptIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -255,21 +262,21 @@ export const deleteDepartment = async (req, res) => {
                 message: 'Invalid department ID'
             });
         }
-        const [existingRows] = await pool.execute('SELECT id FROM departments WHERE id = ?', [deptId]);
+        const [existingRows] = await database_1.pool.execute('SELECT id FROM departments WHERE id = ?', [deptId]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Department not found'
             });
         }
-        const [staffRows] = await pool.execute('SELECT COUNT(*) as count FROM staff WHERE department = (SELECT name FROM departments WHERE id = ?)', [deptId]);
+        const [staffRows] = await database_1.pool.execute('SELECT COUNT(*) as count FROM staff WHERE department = (SELECT name FROM departments WHERE id = ?)', [deptId]);
         if (staffRows[0].count > 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Cannot delete department that has staff members assigned to it'
             });
         }
-        await pool.execute('DELETE FROM departments WHERE id = ?', [deptId]);
+        await database_1.pool.execute('DELETE FROM departments WHERE id = ?', [deptId]);
         return res.json({
             success: true,
             message: 'Department deleted successfully'
@@ -283,4 +290,5 @@ export const deleteDepartment = async (req, res) => {
         });
     }
 };
+exports.deleteDepartment = deleteDepartment;
 //# sourceMappingURL=department-management.controller.js.map

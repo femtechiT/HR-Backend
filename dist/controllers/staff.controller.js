@@ -1,16 +1,22 @@
-import { getNumberQueryParam } from '../utils/type-utils';
-import StaffModel from '../models/staff.model';
-import UserModel from '../models/user.model';
-import AuditLogModel from '../models/audit-log.model';
-import CpanelEmailService from '../services/cpanel-email.service';
-import StaffDynamicFieldModel from '../models/staff-dynamic-field.model';
-export const getAllStaff = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.setStaffDynamicValues = exports.getStaffDynamicValues = exports.deleteDynamicField = exports.updateDynamicField = exports.createDynamicField = exports.getDynamicFields = exports.getCurrentUserStaffDetails = exports.getStaffByDepartment = exports.terminateStaff = exports.deleteStaff = exports.updateStaff = exports.createStaff = exports.getStaffById = exports.getAllStaff = void 0;
+const type_utils_1 = require("../utils/type-utils");
+const staff_model_1 = __importDefault(require("../models/staff.model"));
+const user_model_1 = __importDefault(require("../models/user.model"));
+const audit_log_model_1 = __importDefault(require("../models/audit-log.model"));
+const cpanel_email_service_1 = __importDefault(require("../services/cpanel-email.service"));
+const staff_dynamic_field_model_1 = __importDefault(require("../models/staff-dynamic-field.model"));
+const getAllStaff = async (req, res) => {
     try {
-        const page = getNumberQueryParam(req, 'page', 1) || 1;
-        const limit = getNumberQueryParam(req, 'limit', 20) || 20;
-        const branchId = req.query.branchId ? getNumberQueryParam(req, 'branchId') : undefined;
+        const page = (0, type_utils_1.getNumberQueryParam)(req, 'page', 1) || 1;
+        const limit = (0, type_utils_1.getNumberQueryParam)(req, 'limit', 20) || 20;
+        const branchId = req.query.branchId ? (0, type_utils_1.getNumberQueryParam)(req, 'branchId') : undefined;
         const offset = (page - 1) * limit;
-        const { staff, totalCount } = await StaffModel.findAll(limit, offset, branchId);
+        const { staff, totalCount } = await staff_model_1.default.findAll(limit, offset, branchId);
         return res.json({
             success: true,
             message: 'Staff retrieved successfully',
@@ -33,7 +39,8 @@ export const getAllStaff = async (req, res) => {
         });
     }
 };
-export const getStaffById = async (req, res) => {
+exports.getAllStaff = getAllStaff;
+const getStaffById = async (req, res) => {
     try {
         let staffId;
         if (req.numericId !== undefined) {
@@ -50,7 +57,7 @@ export const getStaffById = async (req, res) => {
                 });
             }
         }
-        const staff = await StaffModel.findById(staffId);
+        const staff = await staff_model_1.default.findById(staffId);
         if (!staff) {
             return res.status(404).json({
                 success: false,
@@ -71,7 +78,8 @@ export const getStaffById = async (req, res) => {
         });
     }
 };
-export const createStaff = async (req, res) => {
+exports.getStaffById = getStaffById;
+const createStaff = async (req, res) => {
     try {
         const { user_id, employee_id, designation, department, branch_id, joining_date, employment_type, reporting_manager_id, work_mode, bank_name, bank_account_number, bank_ifsc_code, tax_identification_number, base_salary, pay_grade, pension_insurance_id, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, date_of_birth, gender, current_address_id, permanent_address_id, company_assets, primary_skills, education_certifications, employee_photo, probation_end_date, contract_end_date, weekly_working_hours, overtime_eligibility, medical_insurance_id, provident_fund_id, gratuity_applicable, notice_period_days, work_email, personal_email, phone_number, alternate_phone_number, marital_status, blood_group, allergies, special_medical_notes, highest_qualification, university_school, year_of_graduation, professional_certifications, certifications_json, languages_known, notice_period_start_date, notice_period_end_date, relieving_date, experience_years, previous_company, resignation_date, last_working_date, reason_for_leaving, reference_check_status, background_verification_status } = req.body;
         if (!user_id) {
@@ -80,14 +88,14 @@ export const createStaff = async (req, res) => {
                 message: 'User ID is required'
             });
         }
-        const user = await UserModel.findById(user_id);
+        const user = await user_model_1.default.findById(user_id);
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
-        const existingStaff = await StaffModel.findByUserId(user_id);
+        const existingStaff = await staff_model_1.default.findByUserId(user_id);
         if (existingStaff) {
             return res.status(409).json({
                 success: false,
@@ -155,9 +163,9 @@ export const createStaff = async (req, res) => {
             reference_check_status,
             background_verification_status
         };
-        const newStaff = await StaffModel.create(staffData);
+        const newStaff = await staff_model_1.default.create(staffData);
         if (req.currentUser) {
-            await AuditLogModel.logStaffOperation(req.currentUser.id, 'staff.created', newStaff.id, null, newStaff, req.ip, req.get('User-Agent') || undefined);
+            await audit_log_model_1.default.logStaffOperation(req.currentUser.id, 'staff.created', newStaff.id, null, newStaff, req.ip, req.get('User-Agent') || undefined);
         }
         return res.status(201).json({
             success: true,
@@ -173,7 +181,8 @@ export const createStaff = async (req, res) => {
         });
     }
 };
-export const updateStaff = async (req, res) => {
+exports.createStaff = createStaff;
+const updateStaff = async (req, res) => {
     try {
         let staffId;
         if (req.numericId !== undefined) {
@@ -191,7 +200,7 @@ export const updateStaff = async (req, res) => {
             }
         }
         const { employee_id, designation, department, branch_id, joining_date, employment_type, status, reporting_manager_id, work_mode, bank_name, bank_account_number, bank_ifsc_code, tax_identification_number, base_salary, pay_grade, pension_insurance_id, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, date_of_birth, gender, current_address_id, permanent_address_id, company_assets, primary_skills, education_certifications, employee_photo, probation_end_date, contract_end_date, weekly_working_hours, overtime_eligibility, medical_insurance_id, provident_fund_id, gratuity_applicable, notice_period_days, work_email, personal_email, phone_number, alternate_phone_number, marital_status, blood_group, allergies, special_medical_notes, highest_qualification, university_school, year_of_graduation, professional_certifications, certifications_json, languages_known, notice_period_start_date, notice_period_end_date, relieving_date, experience_years, previous_company, resignation_date, last_working_date, reason_for_leaving, reference_check_status, background_verification_status } = req.body;
-        const existingStaff = await StaffModel.findById(staffId);
+        const existingStaff = await staff_model_1.default.findById(staffId);
         if (!existingStaff) {
             return res.status(404).json({
                 success: false,
@@ -318,9 +327,9 @@ export const updateStaff = async (req, res) => {
         if (background_verification_status !== undefined)
             updateData.background_verification_status = background_verification_status;
         const beforeUpdate = { ...existingStaff };
-        const updatedStaff = await StaffModel.update(staffId, updateData);
+        const updatedStaff = await staff_model_1.default.update(staffId, updateData);
         if (req.currentUser) {
-            await AuditLogModel.logStaffOperation(req.currentUser.id, 'staff.updated', staffId, beforeUpdate, updatedStaff, req.ip, req.get('User-Agent') || undefined);
+            await audit_log_model_1.default.logStaffOperation(req.currentUser.id, 'staff.updated', staffId, beforeUpdate, updatedStaff, req.ip, req.get('User-Agent') || undefined);
         }
         return res.json({
             success: true,
@@ -336,7 +345,8 @@ export const updateStaff = async (req, res) => {
         });
     }
 };
-export const deleteStaff = async (req, res) => {
+exports.updateStaff = updateStaff;
+const deleteStaff = async (req, res) => {
     try {
         let staffId;
         if (req.numericId !== undefined) {
@@ -353,30 +363,30 @@ export const deleteStaff = async (req, res) => {
                 });
             }
         }
-        const existingStaff = await StaffModel.findById(staffId);
+        const existingStaff = await staff_model_1.default.findById(staffId);
         if (!existingStaff) {
             return res.status(404).json({
                 success: false,
                 message: 'Staff not found'
             });
         }
-        const user = await UserModel.findById(existingStaff.user_id);
+        const user = await user_model_1.default.findById(existingStaff.user_id);
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'Associated user not found'
             });
         }
-        const deactivated = await StaffModel.deactivate(staffId);
+        const deactivated = await staff_model_1.default.deactivate(staffId);
         if (!deactivated) {
             return res.status(404).json({
                 success: false,
                 message: 'Staff not found'
             });
         }
-        const updatedStaff = await StaffModel.findById(staffId);
+        const updatedStaff = await staff_model_1.default.findById(staffId);
         if (req.currentUser) {
-            await AuditLogModel.logStaffOperation(req.currentUser.id, 'staff.deactivated', staffId, existingStaff, updatedStaff, req.ip, req.get('User-Agent') || undefined);
+            await audit_log_model_1.default.logStaffOperation(req.currentUser.id, 'staff.deactivated', staffId, existingStaff, updatedStaff, req.ip, req.get('User-Agent') || undefined);
         }
         const emailParts = user.email.split('@');
         if (emailParts.length === 2) {
@@ -385,7 +395,7 @@ export const deleteStaff = async (req, res) => {
             if (domain === companyDomain) {
                 try {
                     const emailPrefix = emailParts[0];
-                    const cpanelService = new CpanelEmailService();
+                    const cpanelService = new cpanel_email_service_1.default();
                     const deletionResult = await cpanelService.deleteEmailAccount(emailPrefix);
                     if (deletionResult.success) {
                         console.log(`Email account ${user.email} removed from cPanel successfully`);
@@ -412,7 +422,8 @@ export const deleteStaff = async (req, res) => {
         });
     }
 };
-export const terminateStaff = async (req, res) => {
+exports.deleteStaff = deleteStaff;
+const terminateStaff = async (req, res) => {
     try {
         let staffId;
         if (req.numericId !== undefined) {
@@ -429,21 +440,21 @@ export const terminateStaff = async (req, res) => {
                 });
             }
         }
-        const existingStaff = await StaffModel.findById(staffId);
+        const existingStaff = await staff_model_1.default.findById(staffId);
         if (!existingStaff) {
             return res.status(404).json({
                 success: false,
                 message: 'Staff not found'
             });
         }
-        const user = await UserModel.findById(existingStaff.user_id);
+        const user = await user_model_1.default.findById(existingStaff.user_id);
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'Associated user not found'
             });
         }
-        const updatedStaff = await StaffModel.update(staffId, { status: 'terminated' });
+        const updatedStaff = await staff_model_1.default.update(staffId, { status: 'terminated' });
         if (!updatedStaff) {
             return res.status(404).json({
                 success: false,
@@ -451,7 +462,7 @@ export const terminateStaff = async (req, res) => {
             });
         }
         if (req.currentUser) {
-            await AuditLogModel.logStaffOperation(req.currentUser.id, 'staff.terminated', staffId, existingStaff, updatedStaff, req.ip, req.get('User-Agent') || undefined);
+            await audit_log_model_1.default.logStaffOperation(req.currentUser.id, 'staff.terminated', staffId, existingStaff, updatedStaff, req.ip, req.get('User-Agent') || undefined);
         }
         const emailParts = user.email.split('@');
         if (emailParts.length === 2) {
@@ -460,7 +471,7 @@ export const terminateStaff = async (req, res) => {
             if (domain === companyDomain) {
                 try {
                     const emailPrefix = emailParts[0];
-                    const cpanelService = new CpanelEmailService();
+                    const cpanelService = new cpanel_email_service_1.default();
                     const deletionResult = await cpanelService.deleteEmailAccount(emailPrefix);
                     if (deletionResult.success) {
                         console.log(`Email account ${user.email} removed from cPanel successfully`);
@@ -487,18 +498,19 @@ export const terminateStaff = async (req, res) => {
         });
     }
 };
-export const getStaffByDepartment = async (req, res) => {
+exports.terminateStaff = terminateStaff;
+const getStaffByDepartment = async (req, res) => {
     try {
         const departmentParam = req.params.department;
         const department = Array.isArray(departmentParam) ? departmentParam[0] : departmentParam;
-        const branchId = req.query.branchId ? getNumberQueryParam(req, 'branchId') : undefined;
+        const branchId = req.query.branchId ? (0, type_utils_1.getNumberQueryParam)(req, 'branchId') : undefined;
         if (!department) {
             return res.status(400).json({
                 success: false,
                 message: 'Department is required'
             });
         }
-        const staff = await StaffModel.findByDepartment(department, branchId);
+        const staff = await staff_model_1.default.findByDepartment(department, branchId);
         return res.json({
             success: true,
             message: 'Staff retrieved successfully',
@@ -513,7 +525,8 @@ export const getStaffByDepartment = async (req, res) => {
         });
     }
 };
-export const getCurrentUserStaffDetails = async (req, res) => {
+exports.getStaffByDepartment = getStaffByDepartment;
+const getCurrentUserStaffDetails = async (req, res) => {
     try {
         if (!req.currentUser) {
             return res.status(401).json({
@@ -522,7 +535,7 @@ export const getCurrentUserStaffDetails = async (req, res) => {
             });
         }
         const userId = req.currentUser.id;
-        const staff = await StaffModel.findByUserId(userId);
+        const staff = await staff_model_1.default.findByUserId(userId);
         if (!staff) {
             return res.status(404).json({
                 success: false,
@@ -543,13 +556,14 @@ export const getCurrentUserStaffDetails = async (req, res) => {
         });
     }
 };
-export const getDynamicFields = async (req, res) => {
+exports.getCurrentUserStaffDetails = getCurrentUserStaffDetails;
+const getDynamicFields = async (req, res) => {
     try {
-        const page = getNumberQueryParam(req, 'page', 1) || 1;
-        const limit = getNumberQueryParam(req, 'limit', 20) || 20;
+        const page = (0, type_utils_1.getNumberQueryParam)(req, 'page', 1) || 1;
+        const limit = (0, type_utils_1.getNumberQueryParam)(req, 'limit', 20) || 20;
         const isActive = req.query.isActive !== undefined ? req.query.isActive === 'true' : true;
         const offset = (page - 1) * limit;
-        const { fields, totalCount } = await StaffDynamicFieldModel.findAll(limit, offset, isActive);
+        const { fields, totalCount } = await staff_dynamic_field_model_1.default.findAll(limit, offset, isActive);
         return res.json({
             success: true,
             message: 'Dynamic fields retrieved successfully',
@@ -572,7 +586,8 @@ export const getDynamicFields = async (req, res) => {
         });
     }
 };
-export const createDynamicField = async (req, res) => {
+exports.getDynamicFields = getDynamicFields;
+const createDynamicField = async (req, res) => {
     try {
         const { field_name, field_label, field_type, field_options, required } = req.body;
         if (!field_name || !field_label || !field_type) {
@@ -581,7 +596,7 @@ export const createDynamicField = async (req, res) => {
                 message: 'Field name, label, and type are required'
             });
         }
-        const existingField = await StaffDynamicFieldModel.findByName(field_name);
+        const existingField = await staff_dynamic_field_model_1.default.findByName(field_name);
         if (existingField) {
             return res.status(409).json({
                 success: false,
@@ -596,7 +611,7 @@ export const createDynamicField = async (req, res) => {
             required: required || false,
             created_by: req.currentUser?.id
         };
-        const newField = await StaffDynamicFieldModel.create(fieldData);
+        const newField = await staff_dynamic_field_model_1.default.create(fieldData);
         return res.status(201).json({
             success: true,
             message: 'Dynamic field created successfully',
@@ -611,7 +626,8 @@ export const createDynamicField = async (req, res) => {
         });
     }
 };
-export const updateDynamicField = async (req, res) => {
+exports.createDynamicField = createDynamicField;
+const updateDynamicField = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idString = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -623,7 +639,7 @@ export const updateDynamicField = async (req, res) => {
             });
         }
         const { field_label, field_type, field_options, required, is_active } = req.body;
-        const existingField = await StaffDynamicFieldModel.findById(fieldId);
+        const existingField = await staff_dynamic_field_model_1.default.findById(fieldId);
         if (!existingField) {
             return res.status(404).json({
                 success: false,
@@ -638,7 +654,7 @@ export const updateDynamicField = async (req, res) => {
             is_active,
             updated_by: req.currentUser?.id
         };
-        const updatedField = await StaffDynamicFieldModel.update(fieldId, updateData);
+        const updatedField = await staff_dynamic_field_model_1.default.update(fieldId, updateData);
         return res.json({
             success: true,
             message: 'Dynamic field updated successfully',
@@ -653,7 +669,8 @@ export const updateDynamicField = async (req, res) => {
         });
     }
 };
-export const deleteDynamicField = async (req, res) => {
+exports.updateDynamicField = updateDynamicField;
+const deleteDynamicField = async (req, res) => {
     try {
         const idParam = req.params.id;
         const idString = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -664,7 +681,7 @@ export const deleteDynamicField = async (req, res) => {
                 message: 'Invalid field ID'
             });
         }
-        const result = await StaffDynamicFieldModel.delete(fieldId);
+        const result = await staff_dynamic_field_model_1.default.delete(fieldId);
         if (!result) {
             return res.status(404).json({
                 success: false,
@@ -684,7 +701,8 @@ export const deleteDynamicField = async (req, res) => {
         });
     }
 };
-export const getStaffDynamicValues = async (req, res) => {
+exports.deleteDynamicField = deleteDynamicField;
+const getStaffDynamicValues = async (req, res) => {
     try {
         const staffIdParam = req.params.staffId;
         const staffIdString = Array.isArray(staffIdParam) ? staffIdParam[0] : staffIdParam;
@@ -695,7 +713,7 @@ export const getStaffDynamicValues = async (req, res) => {
                 message: 'Invalid staff ID'
             });
         }
-        const values = await StaffDynamicFieldModel.getAllValuesForStaff(staffId);
+        const values = await staff_dynamic_field_model_1.default.getAllValuesForStaff(staffId);
         return res.json({
             success: true,
             message: 'Staff dynamic values retrieved successfully',
@@ -710,7 +728,8 @@ export const getStaffDynamicValues = async (req, res) => {
         });
     }
 };
-export const setStaffDynamicValues = async (req, res) => {
+exports.getStaffDynamicValues = getStaffDynamicValues;
+const setStaffDynamicValues = async (req, res) => {
     try {
         const staffIdParam = req.params.staffId;
         const staffIdString = Array.isArray(staffIdParam) ? staffIdParam[0] : staffIdParam;
@@ -728,7 +747,7 @@ export const setStaffDynamicValues = async (req, res) => {
                 message: 'Values array is required'
             });
         }
-        const results = await StaffDynamicFieldModel.setValuesForStaff(staffId, values);
+        const results = await staff_dynamic_field_model_1.default.setValuesForStaff(staffId, values);
         return res.json({
             success: true,
             message: 'Staff dynamic values updated successfully',
@@ -743,4 +762,5 @@ export const setStaffDynamicValues = async (req, res) => {
         });
     }
 };
+exports.setStaffDynamicValues = setStaffDynamicValues;
 //# sourceMappingURL=staff.controller.js.map

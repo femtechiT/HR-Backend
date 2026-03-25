@@ -1,10 +1,12 @@
-import { Router } from 'express';
-import { initializeSystem, checkInitializationStatus } from '../controllers/system-init.controller';
-import { isSystemInitialized } from '../controllers/system-init.controller';
-const router = Router();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const system_init_controller_1 = require("../controllers/system-init.controller");
+const system_init_controller_2 = require("../controllers/system-init.controller");
+const router = (0, express_1.Router)();
 const requireUninitializedSystem = async (req, res, next) => {
     try {
-        const systemInitialized = await isSystemInitialized();
+        const systemInitialized = await (0, system_init_controller_2.isSystemInitialized)();
         if (systemInitialized) {
             return res.status(400).json({
                 success: false,
@@ -20,7 +22,7 @@ const requireUninitializedSystem = async (req, res, next) => {
         });
     }
 };
-router.post('/initialize', requireUninitializedSystem, initializeSystem);
-router.get('/status', checkInitializationStatus);
-export default router;
+router.post('/initialize', requireUninitializedSystem, system_init_controller_1.initializeSystem);
+router.get('/status', system_init_controller_1.checkInitializationStatus);
+exports.default = router;
 //# sourceMappingURL=system-init.route.js.map

@@ -1,24 +1,26 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class RolePermissionModel {
     static tableName = 'roles_permissions';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByRoleId(roleId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE role_id = ?`, [roleId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE role_id = ?`, [roleId]);
         return rows;
     }
     static async findByRoleAndPermission(roleId, permission) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE role_id = ? AND permission = ?`, [roleId, permission]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE role_id = ? AND permission = ?`, [roleId, permission]);
         return rows[0] || null;
     }
     static async create(permissionData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (role_id, permission, allow_deny)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (role_id, permission, allow_deny)
        VALUES (?, ?, ?)`, [
             permissionData.role_id,
             permissionData.permission,
@@ -32,11 +34,11 @@ class RolePermissionModel {
         return createdItem;
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async deleteRolePermission(roleId, permission) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE role_id = ? AND permission = ?`, [roleId, permission]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE role_id = ? AND permission = ?`, [roleId, permission]);
         return result.affectedRows > 0;
     }
     static async deleteMultipleRolePermissions(roleId, permissions) {
@@ -46,7 +48,7 @@ class RolePermissionModel {
         const placeholders = permissions.map(() => '?').join(',');
         const query = `DELETE FROM ${this.tableName} WHERE role_id = ? AND permission IN (${placeholders})`;
         const values = [roleId, ...permissions];
-        const result = await pool.execute(query, values);
+        const result = await database_1.pool.execute(query, values);
         return result.affectedRows >= 0;
     }
     static async getRolePermissions(roleId) {
@@ -57,5 +59,5 @@ class RolePermissionModel {
         return rolePerm ? rolePerm.allow_deny === 'allow' : false;
     }
 }
-export default RolePermissionModel;
+exports.default = RolePermissionModel;
 //# sourceMappingURL=role-permission.model.js.map

@@ -1,14 +1,20 @@
-import PayrollRecordModel from '../models/payroll-record.model';
-import PayrollRunModel from '../models/payroll-run.model';
-import StaffModel from '../models/staff.model';
-import UserModel from '../models/user.model';
-import AuditLogModel from '../models/audit-log.model';
-export const getAllPayrollRecords = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deletePayrollRecord = exports.updatePayrollRecord = exports.getStaffPayrollHistory = exports.getPayrollRecordById = exports.getAllPayrollRecords = void 0;
+const payroll_record_model_1 = __importDefault(require("../models/payroll-record.model"));
+const payroll_run_model_1 = __importDefault(require("../models/payroll-run.model"));
+const staff_model_1 = __importDefault(require("../models/staff.model"));
+const user_model_1 = __importDefault(require("../models/user.model"));
+const audit_log_model_1 = __importDefault(require("../models/audit-log.model"));
+const getAllPayrollRecords = async (req, res) => {
     try {
         const { payrollRunId, staffId } = req.query;
         const payrollRunIdNum = payrollRunId ? parseInt(payrollRunId) : undefined;
         const staffIdNum = staffId ? parseInt(staffId) : undefined;
-        const payrollRecords = await PayrollRecordModel.findAll(payrollRunIdNum, staffIdNum);
+        const payrollRecords = await payroll_record_model_1.default.findAll(payrollRunIdNum, staffIdNum);
         res.json({
             success: true,
             message: 'Payroll records retrieved successfully',
@@ -23,7 +29,8 @@ export const getAllPayrollRecords = async (req, res) => {
         });
     }
 };
-export const getPayrollRecordById = async (req, res) => {
+exports.getAllPayrollRecords = getAllPayrollRecords;
+const getPayrollRecordById = async (req, res) => {
     try {
         const { id } = req.params;
         const payrollRecordId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -33,19 +40,19 @@ export const getPayrollRecordById = async (req, res) => {
                 message: 'Invalid payroll record ID'
             });
         }
-        const payrollRecord = await PayrollRecordModel.findById(payrollRecordId);
+        const payrollRecord = await payroll_record_model_1.default.findById(payrollRecordId);
         if (!payrollRecord) {
             return res.status(404).json({
                 success: false,
                 message: 'Payroll record not found'
             });
         }
-        const staff = await StaffModel.findById(payrollRecord.staff_id);
+        const staff = await staff_model_1.default.findById(payrollRecord.staff_id);
         let user = null;
         if (staff) {
-            user = await UserModel.findById(staff.user_id);
+            user = await user_model_1.default.findById(staff.user_id);
         }
-        const payrollRun = await PayrollRunModel.findById(payrollRecord.payroll_run_id);
+        const payrollRun = await payroll_run_model_1.default.findById(payrollRecord.payroll_run_id);
         return res.json({
             success: true,
             message: 'Payroll record retrieved successfully',
@@ -64,7 +71,8 @@ export const getPayrollRecordById = async (req, res) => {
         });
     }
 };
-export const getStaffPayrollHistory = async (req, res) => {
+exports.getPayrollRecordById = getPayrollRecordById;
+const getStaffPayrollHistory = async (req, res) => {
     try {
         const { id } = req.params;
         const staffId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -74,7 +82,7 @@ export const getStaffPayrollHistory = async (req, res) => {
                 message: 'Invalid staff ID'
             });
         }
-        const staff = await StaffModel.findById(staffId);
+        const staff = await staff_model_1.default.findById(staffId);
         if (!staff) {
             return res.status(404).json({
                 success: false,
@@ -96,9 +104,9 @@ export const getStaffPayrollHistory = async (req, res) => {
                 message: 'Not authorized to view this staff member\'s payroll history'
             });
         }
-        const payrollRecords = await PayrollRecordModel.findByStaffId(staffId);
+        const payrollRecords = await payroll_record_model_1.default.findByStaffId(staffId);
         const detailedRecords = await Promise.all(payrollRecords.map(async (record) => {
-            const payrollRun = await PayrollRunModel.findById(record.payroll_run_id);
+            const payrollRun = await payroll_run_model_1.default.findById(record.payroll_run_id);
             return {
                 ...record,
                 payroll_run_info: {
@@ -123,7 +131,8 @@ export const getStaffPayrollHistory = async (req, res) => {
         });
     }
 };
-export const updatePayrollRecord = async (req, res) => {
+exports.getStaffPayrollHistory = getStaffPayrollHistory;
+const updatePayrollRecord = async (req, res) => {
     try {
         const { id } = req.params;
         const payrollRecordId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -134,7 +143,7 @@ export const updatePayrollRecord = async (req, res) => {
                 message: 'Invalid payroll record ID'
             });
         }
-        const existingPayrollRecord = await PayrollRecordModel.findById(payrollRecordId);
+        const existingPayrollRecord = await payroll_record_model_1.default.findById(payrollRecordId);
         if (!existingPayrollRecord) {
             return res.status(404).json({
                 success: false,
@@ -152,9 +161,9 @@ export const updatePayrollRecord = async (req, res) => {
             updateData.total_deductions = total_deductions;
         if (net_pay !== undefined)
             updateData.net_pay = net_pay;
-        const updatedPayrollRecord = await PayrollRecordModel.update(payrollRecordId, updateData);
+        const updatedPayrollRecord = await payroll_record_model_1.default.update(payrollRecordId, updateData);
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'payroll_record.updated',
                 entity_type: 'payroll_record',
@@ -179,7 +188,8 @@ export const updatePayrollRecord = async (req, res) => {
         });
     }
 };
-export const deletePayrollRecord = async (req, res) => {
+exports.updatePayrollRecord = updatePayrollRecord;
+const deletePayrollRecord = async (req, res) => {
     try {
         const { id } = req.params;
         const payrollRecordId = parseInt(Array.isArray(id) ? id[0] : id);
@@ -189,14 +199,14 @@ export const deletePayrollRecord = async (req, res) => {
                 message: 'Invalid payroll record ID'
             });
         }
-        const existingPayrollRecord = await PayrollRecordModel.findById(payrollRecordId);
+        const existingPayrollRecord = await payroll_record_model_1.default.findById(payrollRecordId);
         if (!existingPayrollRecord) {
             return res.status(404).json({
                 success: false,
                 message: 'Payroll record not found'
             });
         }
-        const deleted = await PayrollRecordModel.delete(payrollRecordId);
+        const deleted = await payroll_record_model_1.default.delete(payrollRecordId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -204,7 +214,7 @@ export const deletePayrollRecord = async (req, res) => {
             });
         }
         if (req.currentUser) {
-            await AuditLogModel.create({
+            await audit_log_model_1.default.create({
                 user_id: req.currentUser.id,
                 action: 'payroll_record.deleted',
                 entity_type: 'payroll_record',
@@ -228,4 +238,5 @@ export const deletePayrollRecord = async (req, res) => {
         });
     }
 };
+exports.deletePayrollRecord = deletePayrollRecord;
 //# sourceMappingURL=payroll-record.controller.js.map

@@ -1,10 +1,15 @@
-import express from 'express';
-import { authenticateJWT } from '../middleware/auth.middleware';
-import { checkPermission } from '../middleware/permission.middleware';
-import RolePermissionModel from '../models/role-permission.model';
-import RoleModel from '../models/role.model';
-const router = express.Router();
-router.get('/available', authenticateJWT, checkPermission('permissions.manage'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const permission_middleware_1 = require("../middleware/permission.middleware");
+const role_permission_model_1 = __importDefault(require("../models/role-permission.model"));
+const role_model_1 = __importDefault(require("../models/role.model"));
+const router = express_1.default.Router();
+router.get('/available', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('permissions.manage'), async (req, res) => {
     try {
         const allPermissions = [
             'staff.create', 'staff.read', 'staff.update', 'staff.delete',
@@ -46,7 +51,7 @@ router.get('/available', authenticateJWT, checkPermission('permissions.manage'),
     }
     return;
 });
-router.get('/roles/:roleId/permissions', authenticateJWT, checkPermission('role.read'), async (req, res) => {
+router.get('/roles/:roleId/permissions', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('role.read'), async (req, res) => {
     try {
         const roleIdParam = Array.isArray(req.params.roleId) ? req.params.roleId[0] : req.params.roleId;
         const roleId = parseInt(roleIdParam);
@@ -56,14 +61,14 @@ router.get('/roles/:roleId/permissions', authenticateJWT, checkPermission('role.
                 message: 'Invalid role ID'
             });
         }
-        const role = await RoleModel.findById(roleId);
+        const role = await role_model_1.default.findById(roleId);
         if (!role) {
             return res.status(404).json({
                 success: false,
                 message: 'Role not found'
             });
         }
-        const permissions = await RolePermissionModel.findByRoleId(roleId);
+        const permissions = await role_permission_model_1.default.findByRoleId(roleId);
         res.json({
             success: true,
             data: permissions.map(rp => rp.permission)
@@ -79,7 +84,7 @@ router.get('/roles/:roleId/permissions', authenticateJWT, checkPermission('role.
     }
     return;
 });
-router.post('/roles/:roleId/permissions', authenticateJWT, checkPermission('permission.manage'), async (req, res) => {
+router.post('/roles/:roleId/permissions', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('permission.manage'), async (req, res) => {
     try {
         const roleIdParam = Array.isArray(req.params.roleId) ? req.params.roleId[0] : req.params.roleId;
         const roleId = parseInt(roleIdParam);
@@ -96,7 +101,7 @@ router.post('/roles/:roleId/permissions', authenticateJWT, checkPermission('perm
                 message: 'Permissions array is required and cannot be empty'
             });
         }
-        const role = await RoleModel.findById(roleId);
+        const role = await role_model_1.default.findById(roleId);
         if (!role) {
             return res.status(404).json({
                 success: false,
@@ -106,7 +111,7 @@ router.post('/roles/:roleId/permissions', authenticateJWT, checkPermission('perm
         const results = [];
         for (const permission of permissions) {
             try {
-                await RolePermissionModel.create({
+                await role_permission_model_1.default.create({
                     role_id: roleId,
                     permission: permission,
                     allow_deny: 'allow'
@@ -133,7 +138,7 @@ router.post('/roles/:roleId/permissions', authenticateJWT, checkPermission('perm
     }
     return;
 });
-router.delete('/roles/:roleId/permissions', authenticateJWT, checkPermission('permission.manage'), async (req, res) => {
+router.delete('/roles/:roleId/permissions', auth_middleware_1.authenticateJWT, (0, permission_middleware_1.checkPermission)('permission.manage'), async (req, res) => {
     try {
         const roleIdParam = Array.isArray(req.params.roleId) ? req.params.roleId[0] : req.params.roleId;
         const roleId = parseInt(roleIdParam);
@@ -150,14 +155,14 @@ router.delete('/roles/:roleId/permissions', authenticateJWT, checkPermission('pe
                 message: 'Permissions array is required and cannot be empty'
             });
         }
-        const role = await RoleModel.findById(roleId);
+        const role = await role_model_1.default.findById(roleId);
         if (!role) {
             return res.status(404).json({
                 success: false,
                 message: 'Role not found'
             });
         }
-        const success = await RolePermissionModel.deleteMultipleRolePermissions(roleId, permissions);
+        const success = await role_permission_model_1.default.deleteMultipleRolePermissions(roleId, permissions);
         const results = permissions.map(permission => ({
             permission,
             status: success ? 'removed' : 'failed'
@@ -178,5 +183,5 @@ router.delete('/roles/:roleId/permissions', authenticateJWT, checkPermission('pe
     }
     return;
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=role-permission.route.js.map

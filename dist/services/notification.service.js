@@ -1,8 +1,11 @@
-import { pool } from '../config/database';
-import { sendGenericEmail } from './generic-email.service';
-export class NotificationService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.notificationService = exports.NotificationService = void 0;
+const database_1 = require("../config/database");
+const generic_email_service_1 = require("./generic-email.service");
+class NotificationService {
     db;
-    constructor(databasePool = pool) {
+    constructor(databasePool = database_1.pool) {
         this.db = databasePool;
     }
     async queueNotification(recipientUserId, templateName, payload, options = {}) {
@@ -207,7 +210,7 @@ export class NotificationService {
     async sendEmailNotification(notification) {
         try {
             const recipientData = JSON.parse(notification.recipient_data);
-            await sendGenericEmail({
+            await (0, generic_email_service_1.sendGenericEmail)({
                 to: recipientData.email,
                 subject: notification.subject || notification.title,
                 html: `<h2>${notification.title}</h2><p>${notification.message}</p>`
@@ -305,5 +308,6 @@ export class NotificationService {
         }
     }
 }
-export const notificationService = new NotificationService();
+exports.NotificationService = NotificationService;
+exports.notificationService = new NotificationService();
 //# sourceMappingURL=notification.service.js.map

@@ -1,7 +1,10 @@
-import { ReportTemplateService, ScheduledReportService } from '../services/reporting.service';
-import { AnalyticsService } from '../services/analytics.service';
-import { extractStringParam, extractNumberParam } from '../utils/query-param.util';
-export const createReportTemplate = async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.calculateAllMetrics = exports.getCalculatedMetrics = exports.getStaffMetrics = exports.getPerformanceMetrics = exports.getPayrollMetrics = exports.getLeaveMetrics = exports.getAttendanceMetrics = exports.deleteScheduledReport = exports.updateScheduledReport = exports.getScheduledReportById = exports.getAllScheduledReports = exports.createScheduledReport = exports.deleteReportTemplate = exports.updateReportTemplate = exports.getReportTemplateById = exports.getAllReportTemplates = exports.createReportTemplate = void 0;
+const reporting_service_1 = require("../services/reporting.service");
+const analytics_service_1 = require("../services/analytics.service");
+const query_param_util_1 = require("../utils/query-param.util");
+const createReportTemplate = async (req, res) => {
     try {
         const { name, description, category, query_definition, parameters_schema, output_format } = req.body;
         const createdBy = req.currentUser.id;
@@ -25,8 +28,8 @@ export const createReportTemplate = async (req, res) => {
                 message: `Invalid output format. Valid values are: ${validFormats.join(', ')}`
             });
         }
-        const templateId = await ReportTemplateService.createReportTemplate(name, description, category || 'custom', query_definition, parameters_schema || {}, output_format || 'json', createdBy);
-        const template = await ReportTemplateService.getReportTemplateById(templateId);
+        const templateId = await reporting_service_1.ReportTemplateService.createReportTemplate(name, description, category || 'custom', query_definition, parameters_schema || {}, output_format || 'json', createdBy);
+        const template = await reporting_service_1.ReportTemplateService.getReportTemplateById(templateId);
         return res.status(201).json({
             success: true,
             message: 'Report template created successfully',
@@ -43,11 +46,12 @@ export const createReportTemplate = async (req, res) => {
         });
     }
 };
-export const getAllReportTemplates = async (req, res) => {
+exports.createReportTemplate = createReportTemplate;
+const getAllReportTemplates = async (req, res) => {
     try {
         const { category } = req.query;
-        const categoryStr = extractStringParam(category);
-        const templates = await ReportTemplateService.getAllReportTemplates(categoryStr || undefined);
+        const categoryStr = (0, query_param_util_1.extractStringParam)(category);
+        const templates = await reporting_service_1.ReportTemplateService.getAllReportTemplates(categoryStr || undefined);
         return res.json({
             success: true,
             data: {
@@ -63,10 +67,11 @@ export const getAllReportTemplates = async (req, res) => {
         });
     }
 };
-export const getReportTemplateById = async (req, res) => {
+exports.getAllReportTemplates = getAllReportTemplates;
+const getReportTemplateById = async (req, res) => {
     try {
         const { id } = req.params;
-        const idStr = extractStringParam(id);
+        const idStr = (0, query_param_util_1.extractStringParam)(id);
         if (!idStr) {
             return res.status(400).json({
                 success: false,
@@ -80,7 +85,7 @@ export const getReportTemplateById = async (req, res) => {
                 message: 'Invalid report template ID'
             });
         }
-        const template = await ReportTemplateService.getReportTemplateById(templateId);
+        const template = await reporting_service_1.ReportTemplateService.getReportTemplateById(templateId);
         if (!template) {
             return res.status(404).json({
                 success: false,
@@ -102,10 +107,11 @@ export const getReportTemplateById = async (req, res) => {
         });
     }
 };
-export const updateReportTemplate = async (req, res) => {
+exports.getReportTemplateById = getReportTemplateById;
+const updateReportTemplate = async (req, res) => {
     try {
         const { id } = req.params;
-        const idStr = extractStringParam(id);
+        const idStr = (0, query_param_util_1.extractStringParam)(id);
         if (!idStr) {
             return res.status(400).json({
                 success: false,
@@ -138,14 +144,14 @@ export const updateReportTemplate = async (req, res) => {
                 });
             }
         }
-        const updated = await ReportTemplateService.updateReportTemplate(templateId, name, description, category, query_definition, parameters_schema, output_format, is_active);
+        const updated = await reporting_service_1.ReportTemplateService.updateReportTemplate(templateId, name, description, category, query_definition, parameters_schema, output_format, is_active);
         if (!updated) {
             return res.status(404).json({
                 success: false,
                 message: 'Report template not found'
             });
         }
-        const updatedTemplate = await ReportTemplateService.getReportTemplateById(templateId);
+        const updatedTemplate = await reporting_service_1.ReportTemplateService.getReportTemplateById(templateId);
         return res.json({
             success: true,
             message: 'Report template updated successfully',
@@ -162,10 +168,11 @@ export const updateReportTemplate = async (req, res) => {
         });
     }
 };
-export const deleteReportTemplate = async (req, res) => {
+exports.updateReportTemplate = updateReportTemplate;
+const deleteReportTemplate = async (req, res) => {
     try {
         const { id } = req.params;
-        const idStr = extractStringParam(id);
+        const idStr = (0, query_param_util_1.extractStringParam)(id);
         if (!idStr) {
             return res.status(400).json({
                 success: false,
@@ -179,7 +186,7 @@ export const deleteReportTemplate = async (req, res) => {
                 message: 'Invalid report template ID'
             });
         }
-        const deleted = await ReportTemplateService.deleteReportTemplate(templateId);
+        const deleted = await reporting_service_1.ReportTemplateService.deleteReportTemplate(templateId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -199,7 +206,8 @@ export const deleteReportTemplate = async (req, res) => {
         });
     }
 };
-export const createScheduledReport = async (req, res) => {
+exports.deleteReportTemplate = deleteReportTemplate;
+const createScheduledReport = async (req, res) => {
     try {
         const { report_template_id, name, description, schedule_type, schedule_config, recipients, parameters } = req.body;
         const createdBy = req.currentUser.id;
@@ -209,7 +217,7 @@ export const createScheduledReport = async (req, res) => {
                 message: 'Report template ID, name, and schedule type are required'
             });
         }
-        const template = await ReportTemplateService.getReportTemplateById(report_template_id);
+        const template = await reporting_service_1.ReportTemplateService.getReportTemplateById(report_template_id);
         if (!template) {
             return res.status(404).json({
                 success: false,
@@ -223,8 +231,8 @@ export const createScheduledReport = async (req, res) => {
                 message: `Invalid schedule type. Valid values are: ${validScheduleTypes.join(', ')}`
             });
         }
-        const scheduledReportId = await ScheduledReportService.createScheduledReport(report_template_id, name, description, schedule_type, schedule_config || {}, recipients || [], parameters || {}, createdBy);
-        const scheduledReport = await ScheduledReportService.getScheduledReportById(scheduledReportId);
+        const scheduledReportId = await reporting_service_1.ScheduledReportService.createScheduledReport(report_template_id, name, description, schedule_type, schedule_config || {}, recipients || [], parameters || {}, createdBy);
+        const scheduledReport = await reporting_service_1.ScheduledReportService.getScheduledReportById(scheduledReportId);
         return res.status(201).json({
             success: true,
             message: 'Scheduled report created successfully',
@@ -241,7 +249,8 @@ export const createScheduledReport = async (req, res) => {
         });
     }
 };
-export const getAllScheduledReports = async (req, res) => {
+exports.createScheduledReport = createScheduledReport;
+const getAllScheduledReports = async (req, res) => {
     try {
         const { userId } = req.query;
         const currentUser = req.currentUser;
@@ -250,9 +259,9 @@ export const getAllScheduledReports = async (req, res) => {
             filterUserId = currentUser.id;
         }
         else if (userId) {
-            filterUserId = extractNumberParam(userId);
+            filterUserId = (0, query_param_util_1.extractNumberParam)(userId);
         }
-        const scheduledReports = await ScheduledReportService.getAllScheduledReports(filterUserId);
+        const scheduledReports = await reporting_service_1.ScheduledReportService.getAllScheduledReports(filterUserId);
         return res.json({
             success: true,
             data: {
@@ -268,10 +277,11 @@ export const getAllScheduledReports = async (req, res) => {
         });
     }
 };
-export const getScheduledReportById = async (req, res) => {
+exports.getAllScheduledReports = getAllScheduledReports;
+const getScheduledReportById = async (req, res) => {
     try {
         const { id } = req.params;
-        const idStr = extractStringParam(id);
+        const idStr = (0, query_param_util_1.extractStringParam)(id);
         if (!idStr) {
             return res.status(400).json({
                 success: false,
@@ -285,7 +295,7 @@ export const getScheduledReportById = async (req, res) => {
                 message: 'Invalid scheduled report ID'
             });
         }
-        const scheduledReport = await ScheduledReportService.getScheduledReportById(reportId);
+        const scheduledReport = await reporting_service_1.ScheduledReportService.getScheduledReportById(reportId);
         if (!scheduledReport) {
             return res.status(404).json({
                 success: false,
@@ -314,10 +324,11 @@ export const getScheduledReportById = async (req, res) => {
         });
     }
 };
-export const updateScheduledReport = async (req, res) => {
+exports.getScheduledReportById = getScheduledReportById;
+const updateScheduledReport = async (req, res) => {
     try {
         const { id } = req.params;
-        const idStr = extractStringParam(id);
+        const idStr = (0, query_param_util_1.extractStringParam)(id);
         if (!idStr) {
             return res.status(400).json({
                 success: false,
@@ -332,7 +343,7 @@ export const updateScheduledReport = async (req, res) => {
                 message: 'Invalid scheduled report ID'
             });
         }
-        const existingReport = await ScheduledReportService.getScheduledReportById(reportId);
+        const existingReport = await reporting_service_1.ScheduledReportService.getScheduledReportById(reportId);
         if (!existingReport) {
             return res.status(404).json({
                 success: false,
@@ -355,14 +366,14 @@ export const updateScheduledReport = async (req, res) => {
                 });
             }
         }
-        const updated = await ScheduledReportService.updateScheduledReport(reportId, name, description, schedule_type, schedule_config, recipients, parameters);
+        const updated = await reporting_service_1.ScheduledReportService.updateScheduledReport(reportId, name, description, schedule_type, schedule_config, recipients, parameters);
         if (!updated) {
             return res.status(404).json({
                 success: false,
                 message: 'Scheduled report not found'
             });
         }
-        const updatedReport = await ScheduledReportService.getScheduledReportById(reportId);
+        const updatedReport = await reporting_service_1.ScheduledReportService.getScheduledReportById(reportId);
         return res.json({
             success: true,
             message: 'Scheduled report updated successfully',
@@ -379,10 +390,11 @@ export const updateScheduledReport = async (req, res) => {
         });
     }
 };
-export const deleteScheduledReport = async (req, res) => {
+exports.updateScheduledReport = updateScheduledReport;
+const deleteScheduledReport = async (req, res) => {
     try {
         const { id } = req.params;
-        const idStr = extractStringParam(id);
+        const idStr = (0, query_param_util_1.extractStringParam)(id);
         if (!idStr) {
             return res.status(400).json({
                 success: false,
@@ -396,7 +408,7 @@ export const deleteScheduledReport = async (req, res) => {
                 message: 'Invalid scheduled report ID'
             });
         }
-        const existingReport = await ScheduledReportService.getScheduledReportById(reportId);
+        const existingReport = await reporting_service_1.ScheduledReportService.getScheduledReportById(reportId);
         if (!existingReport) {
             return res.status(404).json({
                 success: false,
@@ -410,7 +422,7 @@ export const deleteScheduledReport = async (req, res) => {
                 message: 'Unauthorized to delete this scheduled report'
             });
         }
-        const deleted = await ScheduledReportService.deleteScheduledReport(reportId);
+        const deleted = await reporting_service_1.ScheduledReportService.deleteScheduledReport(reportId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -430,7 +442,8 @@ export const deleteScheduledReport = async (req, res) => {
         });
     }
 };
-export const getAttendanceMetrics = async (req, res) => {
+exports.deleteScheduledReport = deleteScheduledReport;
+const getAttendanceMetrics = async (req, res) => {
     try {
         const { startDate, endDate, branchId, departmentId } = req.query;
         if (!startDate || !endDate) {
@@ -439,8 +452,8 @@ export const getAttendanceMetrics = async (req, res) => {
                 message: 'Start date and end date are required'
             });
         }
-        const startDateStr = extractStringParam(startDate) || '';
-        const endDateStr = extractStringParam(endDate) || '';
+        const startDateStr = (0, query_param_util_1.extractStringParam)(startDate) || '';
+        const endDateStr = (0, query_param_util_1.extractStringParam)(endDate) || '';
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(startDateStr) || !dateRegex.test(endDateStr)) {
             return res.status(400).json({
@@ -448,9 +461,9 @@ export const getAttendanceMetrics = async (req, res) => {
                 message: 'Dates must be in YYYY-MM-DD format'
             });
         }
-        const branchIdNum = extractNumberParam(branchId);
-        const departmentIdNum = extractNumberParam(departmentId);
-        const metrics = await AnalyticsService.calculateAttendanceMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
+        const branchIdNum = (0, query_param_util_1.extractNumberParam)(branchId);
+        const departmentIdNum = (0, query_param_util_1.extractNumberParam)(departmentId);
+        const metrics = await analytics_service_1.AnalyticsService.calculateAttendanceMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
         return res.json({
             success: true,
             data: {
@@ -466,7 +479,8 @@ export const getAttendanceMetrics = async (req, res) => {
         });
     }
 };
-export const getLeaveMetrics = async (req, res) => {
+exports.getAttendanceMetrics = getAttendanceMetrics;
+const getLeaveMetrics = async (req, res) => {
     try {
         const { startDate, endDate, branchId, departmentId } = req.query;
         if (!startDate || !endDate) {
@@ -475,8 +489,8 @@ export const getLeaveMetrics = async (req, res) => {
                 message: 'Start date and end date are required'
             });
         }
-        const startDateStr = extractStringParam(startDate) || '';
-        const endDateStr = extractStringParam(endDate) || '';
+        const startDateStr = (0, query_param_util_1.extractStringParam)(startDate) || '';
+        const endDateStr = (0, query_param_util_1.extractStringParam)(endDate) || '';
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(startDateStr) || !dateRegex.test(endDateStr)) {
             return res.status(400).json({
@@ -484,9 +498,9 @@ export const getLeaveMetrics = async (req, res) => {
                 message: 'Dates must be in YYYY-MM-DD format'
             });
         }
-        const branchIdNum = extractNumberParam(branchId);
-        const departmentIdNum = extractNumberParam(departmentId);
-        const metrics = await AnalyticsService.calculateLeaveMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
+        const branchIdNum = (0, query_param_util_1.extractNumberParam)(branchId);
+        const departmentIdNum = (0, query_param_util_1.extractNumberParam)(departmentId);
+        const metrics = await analytics_service_1.AnalyticsService.calculateLeaveMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
         return res.json({
             success: true,
             data: {
@@ -502,7 +516,8 @@ export const getLeaveMetrics = async (req, res) => {
         });
     }
 };
-export const getPayrollMetrics = async (req, res) => {
+exports.getLeaveMetrics = getLeaveMetrics;
+const getPayrollMetrics = async (req, res) => {
     try {
         const { startDate, endDate, branchId, departmentId } = req.query;
         if (!startDate || !endDate) {
@@ -511,8 +526,8 @@ export const getPayrollMetrics = async (req, res) => {
                 message: 'Start date and end date are required'
             });
         }
-        const startDateStr = extractStringParam(startDate) || '';
-        const endDateStr = extractStringParam(endDate) || '';
+        const startDateStr = (0, query_param_util_1.extractStringParam)(startDate) || '';
+        const endDateStr = (0, query_param_util_1.extractStringParam)(endDate) || '';
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(startDateStr) || !dateRegex.test(endDateStr)) {
             return res.status(400).json({
@@ -520,9 +535,9 @@ export const getPayrollMetrics = async (req, res) => {
                 message: 'Dates must be in YYYY-MM-DD format'
             });
         }
-        const branchIdNum = extractNumberParam(branchId);
-        const departmentIdNum = extractNumberParam(departmentId);
-        const metrics = await AnalyticsService.calculatePayrollMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
+        const branchIdNum = (0, query_param_util_1.extractNumberParam)(branchId);
+        const departmentIdNum = (0, query_param_util_1.extractNumberParam)(departmentId);
+        const metrics = await analytics_service_1.AnalyticsService.calculatePayrollMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
         return res.json({
             success: true,
             data: {
@@ -538,7 +553,8 @@ export const getPayrollMetrics = async (req, res) => {
         });
     }
 };
-export const getPerformanceMetrics = async (req, res) => {
+exports.getPayrollMetrics = getPayrollMetrics;
+const getPerformanceMetrics = async (req, res) => {
     try {
         const { startDate, endDate, branchId, departmentId } = req.query;
         if (!startDate || !endDate) {
@@ -547,8 +563,8 @@ export const getPerformanceMetrics = async (req, res) => {
                 message: 'Start date and end date are required'
             });
         }
-        const startDateStr = extractStringParam(startDate) || '';
-        const endDateStr = extractStringParam(endDate) || '';
+        const startDateStr = (0, query_param_util_1.extractStringParam)(startDate) || '';
+        const endDateStr = (0, query_param_util_1.extractStringParam)(endDate) || '';
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(startDateStr) || !dateRegex.test(endDateStr)) {
             return res.status(400).json({
@@ -556,9 +572,9 @@ export const getPerformanceMetrics = async (req, res) => {
                 message: 'Dates must be in YYYY-MM-DD format'
             });
         }
-        const branchIdNum = extractNumberParam(branchId);
-        const departmentIdNum = extractNumberParam(departmentId);
-        const metrics = await AnalyticsService.calculatePerformanceMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
+        const branchIdNum = (0, query_param_util_1.extractNumberParam)(branchId);
+        const departmentIdNum = (0, query_param_util_1.extractNumberParam)(departmentId);
+        const metrics = await analytics_service_1.AnalyticsService.calculatePerformanceMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
         return res.json({
             success: true,
             data: {
@@ -574,7 +590,8 @@ export const getPerformanceMetrics = async (req, res) => {
         });
     }
 };
-export const getStaffMetrics = async (req, res) => {
+exports.getPerformanceMetrics = getPerformanceMetrics;
+const getStaffMetrics = async (req, res) => {
     try {
         const { startDate, endDate, branchId, departmentId } = req.query;
         if (!startDate || !endDate) {
@@ -583,8 +600,8 @@ export const getStaffMetrics = async (req, res) => {
                 message: 'Start date and end date are required'
             });
         }
-        const startDateStr = extractStringParam(startDate) || '';
-        const endDateStr = extractStringParam(endDate) || '';
+        const startDateStr = (0, query_param_util_1.extractStringParam)(startDate) || '';
+        const endDateStr = (0, query_param_util_1.extractStringParam)(endDate) || '';
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(startDateStr) || !dateRegex.test(endDateStr)) {
             return res.status(400).json({
@@ -592,9 +609,9 @@ export const getStaffMetrics = async (req, res) => {
                 message: 'Dates must be in YYYY-MM-DD format'
             });
         }
-        const branchIdNum = extractNumberParam(branchId);
-        const departmentIdNum = extractNumberParam(departmentId);
-        const metrics = await AnalyticsService.calculateStaffMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
+        const branchIdNum = (0, query_param_util_1.extractNumberParam)(branchId);
+        const departmentIdNum = (0, query_param_util_1.extractNumberParam)(departmentId);
+        const metrics = await analytics_service_1.AnalyticsService.calculateStaffMetrics(startDateStr, endDateStr, branchIdNum, departmentIdNum);
         return res.json({
             success: true,
             data: {
@@ -610,15 +627,16 @@ export const getStaffMetrics = async (req, res) => {
         });
     }
 };
-export const getCalculatedMetrics = async (req, res) => {
+exports.getStaffMetrics = getStaffMetrics;
+const getCalculatedMetrics = async (req, res) => {
     try {
         const { category, startDate, endDate, branchId, departmentId } = req.query;
-        const categoryStr = extractStringParam(category);
-        const startDateStr = extractStringParam(startDate);
-        const endDateStr = extractStringParam(endDate);
-        const branchIdNum = extractNumberParam(branchId);
-        const departmentIdNum = extractNumberParam(departmentId);
-        const metrics = await AnalyticsService.getCalculatedMetrics(categoryStr || undefined, startDateStr || undefined, endDateStr || undefined, branchIdNum, departmentIdNum);
+        const categoryStr = (0, query_param_util_1.extractStringParam)(category);
+        const startDateStr = (0, query_param_util_1.extractStringParam)(startDate);
+        const endDateStr = (0, query_param_util_1.extractStringParam)(endDate);
+        const branchIdNum = (0, query_param_util_1.extractNumberParam)(branchId);
+        const departmentIdNum = (0, query_param_util_1.extractNumberParam)(departmentId);
+        const metrics = await analytics_service_1.AnalyticsService.getCalculatedMetrics(categoryStr || undefined, startDateStr || undefined, endDateStr || undefined, branchIdNum, departmentIdNum);
         return res.json({
             success: true,
             data: {
@@ -634,7 +652,8 @@ export const getCalculatedMetrics = async (req, res) => {
         });
     }
 };
-export const calculateAllMetrics = async (req, res) => {
+exports.getCalculatedMetrics = getCalculatedMetrics;
+const calculateAllMetrics = async (req, res) => {
     try {
         const { startDate, endDate, branchId, departmentId } = req.body;
         if (!startDate || !endDate) {
@@ -650,7 +669,7 @@ export const calculateAllMetrics = async (req, res) => {
                 message: 'Dates must be in YYYY-MM-DD format'
             });
         }
-        const result = await AnalyticsService.calculateAndStoreAllMetrics(startDate, endDate, branchId ? parseInt(branchId) : undefined, departmentId ? parseInt(departmentId) : undefined);
+        const result = await analytics_service_1.AnalyticsService.calculateAndStoreAllMetrics(startDate, endDate, branchId ? parseInt(branchId) : undefined, departmentId ? parseInt(departmentId) : undefined);
         return res.json({
             success: true,
             message: result.message,
@@ -667,4 +686,5 @@ export const calculateAllMetrics = async (req, res) => {
         });
     }
 };
+exports.calculateAllMetrics = calculateAllMetrics;
 //# sourceMappingURL=reporting-analytics.controller.js.map

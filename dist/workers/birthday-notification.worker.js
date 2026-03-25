@@ -1,12 +1,48 @@
-import { pool } from '../config/database';
-export class BirthdayNotificationWorker {
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BirthdayNotificationWorker = void 0;
+const database_1 = require("../config/database");
+class BirthdayNotificationWorker {
     static async processBirthdayNotifications() {
         console.log('Starting birthday notification processing...');
         try {
             try {
-                await pool.execute('SELECT 1 FROM staff LIMIT 1');
-                await pool.execute('SELECT 1 FROM users LIMIT 1');
-                await pool.execute('SELECT 1 FROM branches LIMIT 1');
+                await database_1.pool.execute('SELECT 1 FROM staff LIMIT 1');
+                await database_1.pool.execute('SELECT 1 FROM users LIMIT 1');
+                await database_1.pool.execute('SELECT 1 FROM branches LIMIT 1');
             }
             catch (tableError) {
                 if (tableError.errno === 1146) {
@@ -36,10 +72,10 @@ export class BirthdayNotificationWorker {
           DATE_FORMAT(u.date_of_birth, '%m-%d') = ?
           AND s.status = 'active'
       `;
-            const [birthdayEmployees] = await pool.execute(query, [`${month}-${day}`]);
+            const [birthdayEmployees] = await database_1.pool.execute(query, [`${month}-${day}`]);
             console.log(`Found ${birthdayEmployees.length} employees with birthdays tomorrow`);
             if (birthdayEmployees.length > 0) {
-                const [hrPersonnel] = await pool.execute(`SELECT u.id, u.full_name, u.email
+                const [hrPersonnel] = await database_1.pool.execute(`SELECT u.id, u.full_name, u.email
            FROM users u
            JOIN user_roles ur ON u.id = ur.user_id
            JOIN roles r ON ur.role_id = r.id
@@ -49,7 +85,7 @@ export class BirthdayNotificationWorker {
                 for (const hr of hrPersonnel) {
                     for (const employee of birthdayEmployees) {
                         try {
-                            const { NotificationService } = await import('../services/notification.service');
+                            const { NotificationService } = await Promise.resolve().then(() => __importStar(require('../services/notification.service')));
                             const notificationService = new NotificationService();
                             await notificationService.queueNotification(hr.id, 'birthday_reminder', {
                                 employee_name: employee.full_name,
@@ -80,7 +116,7 @@ export class BirthdayNotificationWorker {
                     }));
                     for (const hr of hrPersonnel) {
                         try {
-                            const { NotificationService } = await import('../services/notification.service');
+                            const { NotificationService } = await Promise.resolve().then(() => __importStar(require('../services/notification.service')));
                             const notificationService = new NotificationService();
                             await notificationService.queueNotification(hr.id, 'birthday_summary', {
                                 birthday_list: birthdayList,
@@ -120,6 +156,7 @@ export class BirthdayNotificationWorker {
         }, 24 * 60 * 60 * 1000);
     }
 }
+exports.BirthdayNotificationWorker = BirthdayNotificationWorker;
 if (typeof require !== 'undefined' && require.main === module) {
     BirthdayNotificationWorker.startWorker();
 }

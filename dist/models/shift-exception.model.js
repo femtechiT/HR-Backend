@@ -1,30 +1,32 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class ShiftExceptionModel {
     static tableName = 'shift_exceptions';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByUserId(userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY exception_date DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY exception_date DESC`, [userId]);
         return rows;
     }
     static async findByDate(userId, date) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? AND exception_date = ? AND status = 'active'`, [userId, date]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? AND exception_date = ? AND status = 'active'`, [userId, date]);
         return rows[0] || null;
     }
     static async findByDateRange(userId, startDate, endDate) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName}
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName}
        WHERE user_id = ? AND exception_date BETWEEN ? AND ? AND status = 'active'
        ORDER BY exception_date DESC`, [userId, startDate, endDate]);
         return rows;
     }
     static async create(exceptionData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (
         user_id, shift_assignment_id, exception_date, exception_type,
         original_start_time, original_end_time, new_start_time, new_end_time,
         new_break_duration_minutes, reason, approved_by, status, created_by
@@ -101,11 +103,11 @@ class ShiftExceptionModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async approve(id, approvedBy) {
@@ -113,7 +115,7 @@ class ShiftExceptionModel {
             status: 'active',
             approved_by: approvedBy
         };
-        await pool.execute(`UPDATE ${this.tableName} SET status = ?, approved_by = ?, approved_at = NOW() WHERE id = ?`, ['active', approvedBy, id]);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET status = ?, approved_by = ?, approved_at = NOW() WHERE id = ?`, ['active', approvedBy, id]);
         return await this.findById(id);
     }
     static async reject(id) {
@@ -122,5 +124,5 @@ class ShiftExceptionModel {
         });
     }
 }
-export default ShiftExceptionModel;
+exports.default = ShiftExceptionModel;
 //# sourceMappingURL=shift-exception.model.js.map

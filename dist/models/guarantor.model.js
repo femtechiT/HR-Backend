@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class GuarantorModel {
     static tableName = 'guarantors';
     static async findAll(staffId, isActiveOnly = false) {
@@ -16,18 +18,18 @@ class GuarantorModel {
             query += ' WHERE ' + conditions.join(' AND ');
         }
         query += ' ORDER BY created_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByStaffId(staffId, isActiveOnly = false) {
         return await this.findAll(staffId, isActiveOnly);
     }
     static async create(guarantorData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (
         staff_id, first_name, middle_name, last_name, date_of_birth, gender,
         phone_number, alternate_phone, email,
         address_line_1, address_line_2, city, state, postal_code, country,
@@ -103,15 +105,15 @@ class GuarantorModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async verify(id, verifiedBy, notes) {
-        const [result] = await pool.execute(`UPDATE ${this.tableName} 
+        const [result] = await database_1.pool.execute(`UPDATE ${this.tableName} 
        SET is_verified = TRUE, verified_by = ?, verified_at = NOW(), verification_notes = ? 
        WHERE id = ?`, [verifiedBy, notes, id]);
         if (result.affectedRows > 0) {
@@ -120,7 +122,7 @@ class GuarantorModel {
         return null;
     }
     static async countByStaffId(staffId) {
-        const [rows] = await pool.execute(`SELECT COUNT(*) as total FROM ${this.tableName} WHERE staff_id = ?`, [staffId]);
+        const [rows] = await database_1.pool.execute(`SELECT COUNT(*) as total FROM ${this.tableName} WHERE staff_id = ?`, [staffId]);
         return rows[0]?.total || 0;
     }
     static async getUnverified(staffId) {
@@ -131,9 +133,9 @@ class GuarantorModel {
             params.push(staffId);
         }
         query += ' ORDER BY created_at DESC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
 }
-export default GuarantorModel;
+exports.default = GuarantorModel;
 //# sourceMappingURL=guarantor.model.js.map

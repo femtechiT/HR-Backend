@@ -1,31 +1,14 @@
-// Production server entry point for cPanel
-// ES module compatible - imports built backend
+/**
+ * Production entry point for cPanel
+ * Uses tsx to run TypeScript source directly
+ */
 
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+// Set production environment
+process.env.NODE_ENV = 'production';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Use tsx to run TypeScript directly
+require('tsx/cjs');
 
-const PORT = process.env.PORT || 3000;
-
-try {
-  // Import the built Express app
-  const { default: app } = await import('./dist/index.js');
-  
-  console.log('✅ Femtech HR API backend loaded');
-  console.log(`📡 Starting server on port ${PORT}...`);
-  
-  // The dist/index.js should already call app.listen(), 
-  // but we ensure it here just in case
-  if (app && typeof app.listen === 'function') {
-    app.listen(PORT, () => {
-      console.log(`✅ Femtech HR API running on port ${PORT}`);
-      console.log(`📡 Access at: https://hrapi.tripa.com.ng`);
-    });
-  }
-} catch (error) {
-  console.error('❌ Failed to start backend:', error.message);
-  console.error(error.stack);
-  process.exit(1);
-}
+// Import and start the server
+const path = require('path');
+require(path.join(__dirname, 'src', 'index.ts'));

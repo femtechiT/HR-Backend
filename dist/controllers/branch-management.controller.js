@@ -1,5 +1,11 @@
-import BranchModel from '../models/branch.model';
-export const getAllBranches = async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteBranch = exports.updateBranch = exports.createBranch = exports.getBranchById = exports.getAllBranches = void 0;
+const branch_model_1 = __importDefault(require("../models/branch.model"));
+const getAllBranches = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -18,7 +24,7 @@ export const getAllBranches = async (req, res) => {
                 message: 'Limit must be between 1 and 100'
             });
         }
-        const branches = await BranchModel.findAll();
+        const branches = await branch_model_1.default.findAll();
         const totalCount = branches.length;
         const totalPages = Math.ceil(totalCount / limit);
         return res.json({
@@ -47,7 +53,8 @@ export const getAllBranches = async (req, res) => {
         });
     }
 };
-export const getBranchById = async (req, res) => {
+exports.getAllBranches = getAllBranches;
+const getBranchById = async (req, res) => {
     try {
         const idParam = req.params.id;
         const branchIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -58,7 +65,7 @@ export const getBranchById = async (req, res) => {
                 message: 'Invalid branch ID'
             });
         }
-        const branch = await BranchModel.findById(branchId);
+        const branch = await branch_model_1.default.findById(branchId);
         if (!branch) {
             return res.status(404).json({
                 success: false,
@@ -79,7 +86,8 @@ export const getBranchById = async (req, res) => {
         });
     }
 };
-export const createBranch = async (req, res) => {
+exports.getBranchById = getBranchById;
+const createBranch = async (req, res) => {
     try {
         const { name, code, address, city, state, country, phone, email, manager_user_id, location_coordinates, location_radius_meters, attendance_mode } = req.body;
         if (!name || !code) {
@@ -88,7 +96,7 @@ export const createBranch = async (req, res) => {
                 message: 'Branch name and code are required'
             });
         }
-        const existingBranch = await BranchModel.findByCode(code);
+        const existingBranch = await branch_model_1.default.findByCode(code);
         if (existingBranch) {
             return res.status(409).json({
                 success: false,
@@ -109,7 +117,7 @@ export const createBranch = async (req, res) => {
             location_radius_meters: location_radius_meters || null,
             attendance_mode: attendance_mode || null
         };
-        const newBranch = await BranchModel.create(branchData);
+        const newBranch = await branch_model_1.default.create(branchData);
         return res.status(201).json({
             success: true,
             message: 'Branch created successfully',
@@ -124,7 +132,8 @@ export const createBranch = async (req, res) => {
         });
     }
 };
-export const updateBranch = async (req, res) => {
+exports.createBranch = createBranch;
+const updateBranch = async (req, res) => {
     try {
         const idParam = req.params.id;
         const branchIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -136,7 +145,7 @@ export const updateBranch = async (req, res) => {
                 message: 'Invalid branch ID'
             });
         }
-        const existingBranch = await BranchModel.findById(branchId);
+        const existingBranch = await branch_model_1.default.findById(branchId);
         if (!existingBranch) {
             return res.status(404).json({
                 success: false,
@@ -170,7 +179,7 @@ export const updateBranch = async (req, res) => {
             updateData.attendance_mode = attendance_mode;
         if (status !== undefined)
             updateData.status = status;
-        const updatedBranch = await BranchModel.update(branchId, updateData);
+        const updatedBranch = await branch_model_1.default.update(branchId, updateData);
         return res.json({
             success: true,
             message: 'Branch updated successfully',
@@ -185,7 +194,8 @@ export const updateBranch = async (req, res) => {
         });
     }
 };
-export const deleteBranch = async (req, res) => {
+exports.updateBranch = updateBranch;
+const deleteBranch = async (req, res) => {
     try {
         const idParam = req.params.id;
         const branchIdStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -196,7 +206,7 @@ export const deleteBranch = async (req, res) => {
                 message: 'Invalid branch ID'
             });
         }
-        const deleted = await BranchModel.delete(branchId);
+        const deleted = await branch_model_1.default.delete(branchId);
         if (!deleted) {
             return res.status(404).json({
                 success: false,
@@ -216,4 +226,5 @@ export const deleteBranch = async (req, res) => {
         });
     }
 };
+exports.deleteBranch = deleteBranch;
 //# sourceMappingURL=branch-management.controller.js.map

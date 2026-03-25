@@ -1,12 +1,14 @@
-import { Router } from 'express';
-import { getAllBranches, getBranchById, createBranch, updateBranch, deleteBranch } from '../controllers/branch-management.controller';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-const router = Router();
-router.use(authenticateJWT);
-router.get('/', authenticateJWT, checkPermission('branches:read'), getAllBranches);
-router.get('/:id', authenticateJWT, checkPermission('branches:read'), getBranchById);
-router.post('/', checkPermission('branches:create'), createBranch);
-router.put('/:id', checkPermission('branches:update'), updateBranch);
-router.delete('/:id', checkPermission('branches:delete'), deleteBranch);
-export default router;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const branch_management_controller_1 = require("../controllers/branch-management.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authenticateJWT);
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('branches:read'), branch_management_controller_1.getAllBranches);
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('branches:read'), branch_management_controller_1.getBranchById);
+router.post('/', (0, auth_middleware_1.checkPermission)('branches:create'), branch_management_controller_1.createBranch);
+router.put('/:id', (0, auth_middleware_1.checkPermission)('branches:update'), branch_management_controller_1.updateBranch);
+router.delete('/:id', (0, auth_middleware_1.checkPermission)('branches:delete'), branch_management_controller_1.deleteBranch);
+exports.default = router;
 //# sourceMappingURL=branch-management.route.js.map

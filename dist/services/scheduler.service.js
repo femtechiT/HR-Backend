@@ -1,12 +1,15 @@
-import { BirthdayNotificationWorker } from '../workers/birthday-notification.worker';
-export class SchedulerService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SchedulerService = void 0;
+const birthday_notification_worker_1 = require("../workers/birthday-notification.worker");
+class SchedulerService {
     static workers = [];
     static initialized = false;
     static initializeWorkers() {
         console.log('Initializing scheduled workers...');
         this.workers.push({
             name: 'Birthday Notification Worker',
-            start: () => BirthdayNotificationWorker.startWorker()
+            start: () => birthday_notification_worker_1.BirthdayNotificationWorker.startWorker()
         });
         this.startAllWorkers();
         this.initialized = true;
@@ -35,4 +38,5 @@ export class SchedulerService {
         }));
     }
 }
+exports.SchedulerService = SchedulerService;
 //# sourceMappingURL=scheduler.service.js.map

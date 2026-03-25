@@ -1,6 +1,9 @@
-import { pool } from '../config/database';
-import { notificationService } from '../services/notification.service';
-export const getUserNotifications = async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.unregisterDevice = exports.registerDevice = exports.updateUserNotificationPreferences = exports.getNotificationPreferences = exports.markNotificationAsRead = exports.getUserNotifications = void 0;
+const database_1 = require("../config/database");
+const notification_service_1 = require("../services/notification.service");
+const getUserNotifications = async (req, res) => {
     try {
         const userId = req.currentUser.id;
         const { page = 1, limit = 10, type, status } = req.query;
@@ -23,7 +26,7 @@ export const getUserNotifications = async (req, res) => {
         const offset = (Number(page) - 1) * Number(limit);
         query += ' LIMIT ? OFFSET ?';
         params.push(Number(limit), offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `
       SELECT COUNT(*) as total
       FROM notification_logs nl
@@ -38,7 +41,7 @@ export const getUserNotifications = async (req, res) => {
             countQuery += ' AND nl.delivery_status = ?';
             countParams.push(status);
         }
-        const [countRows] = await pool.execute(countQuery, countParams);
+        const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
             success: true,
             data: {
@@ -60,11 +63,12 @@ export const getUserNotifications = async (req, res) => {
         });
     }
 };
-export const markNotificationAsRead = async (req, res) => {
+exports.getUserNotifications = getUserNotifications;
+const markNotificationAsRead = async (req, res) => {
     try {
         const userId = req.currentUser.id;
         const { id } = req.params;
-        const [result] = await pool.execute('UPDATE notification_logs SET opened_at = NOW() WHERE id = ? AND recipient_user_id = ?', [id, userId]);
+        const [result] = await database_1.pool.execute('UPDATE notification_logs SET opened_at = NOW() WHERE id = ? AND recipient_user_id = ?', [id, userId]);
         if (result.affectedRows === 0) {
             return res.status(404).json({
                 success: false,
@@ -84,10 +88,11 @@ export const markNotificationAsRead = async (req, res) => {
         });
     }
 };
-export const getNotificationPreferences = async (req, res) => {
+exports.markNotificationAsRead = markNotificationAsRead;
+const getNotificationPreferences = async (req, res) => {
     try {
         const userId = req.currentUser.id;
-        const [rows] = await pool.execute('SELECT * FROM user_notification_preferences WHERE user_id = ?', [userId]);
+        const [rows] = await database_1.pool.execute('SELECT * FROM user_notification_preferences WHERE user_id = ?', [userId]);
         return res.json({
             success: true,
             data: {
@@ -103,7 +108,8 @@ export const getNotificationPreferences = async (req, res) => {
         });
     }
 };
-export const updateUserNotificationPreferences = async (req, res) => {
+exports.getNotificationPreferences = getNotificationPreferences;
+const updateUserNotificationPreferences = async (req, res) => {
     try {
         const userId = req.currentUser.id;
         const { notificationType, channels, enabled } = req.body;
@@ -121,7 +127,7 @@ export const updateUserNotificationPreferences = async (req, res) => {
                 message: `Invalid channels: ${invalidChannels.join(', ')}. Valid channels are: ${validChannels.join(', ')}`
             });
         }
-        const [result] = await pool.execute(`
+        const [result] = await database_1.pool.execute(`
       INSERT INTO user_notification_preferences 
       (user_id, notification_type, channels, enabled) 
       VALUES (?, ?, ?, ?)
@@ -149,7 +155,8 @@ export const updateUserNotificationPreferences = async (req, res) => {
         });
     }
 };
-export const registerDevice = async (req, res) => {
+exports.updateUserNotificationPreferences = updateUserNotificationPreferences;
+const registerDevice = async (req, res) => {
     try {
         const userId = req.currentUser.id;
         const { deviceToken, deviceType, platform, appVersion, osVersion } = req.body;
@@ -173,7 +180,7 @@ export const registerDevice = async (req, res) => {
                 message: `Invalid device type: ${deviceType}. Valid types are: ${validDeviceTypes.join(', ')}`
             });
         }
-        const success = await notificationService.registerDevice(userId, deviceToken, deviceType || 'mobile', platform, appVersion, osVersion);
+        const success = await notification_service_1.notificationService.registerDevice(userId, deviceToken, deviceType || 'mobile', platform, appVersion, osVersion);
         if (!success) {
             return res.status(500).json({
                 success: false,
@@ -193,7 +200,8 @@ export const registerDevice = async (req, res) => {
         });
     }
 };
-export const unregisterDevice = async (req, res) => {
+exports.registerDevice = registerDevice;
+const unregisterDevice = async (req, res) => {
     try {
         const { deviceToken } = req.body;
         if (!deviceToken) {
@@ -202,7 +210,7 @@ export const unregisterDevice = async (req, res) => {
                 message: 'Device token is required'
             });
         }
-        const success = await notificationService.unregisterDevice(deviceToken);
+        const success = await notification_service_1.notificationService.unregisterDevice(deviceToken);
         if (!success) {
             return res.status(500).json({
                 success: false,
@@ -222,4 +230,5 @@ export const unregisterDevice = async (req, res) => {
         });
     }
 };
+exports.unregisterDevice = unregisterDevice;
 //# sourceMappingURL=notification.controller.js.map

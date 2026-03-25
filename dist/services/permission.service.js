@@ -1,11 +1,16 @@
-import UserModel from '../models/user.model';
-import RoleModel from '../models/role.model';
-import UserPermissionModel from '../models/user-permission.model';
-import RolePermissionModel from '../models/role-permission.model';
-import { CacheService } from './cache.service';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const user_model_1 = __importDefault(require("../models/user.model"));
+const role_model_1 = __importDefault(require("../models/role.model"));
+const user_permission_model_1 = __importDefault(require("../models/user-permission.model"));
+const role_permission_model_1 = __importDefault(require("../models/role-permission.model"));
+const cache_service_1 = require("./cache.service");
 class PermissionService {
     static async hasPermission(userId, permission) {
-        const userPermission = await UserPermissionModel.findByUserAndPermission(userId, permission);
+        const userPermission = await user_permission_model_1.default.findByUserAndPermission(userId, permission);
         if (userPermission) {
             return {
                 hasPermission: userPermission.allow_deny === 'allow',
@@ -13,7 +18,7 @@ class PermissionService {
                 allowDeny: userPermission.allow_deny
             };
         }
-        const user = await UserModel.findById(userId);
+        const user = await user_model_1.default.findById(userId);
         if (!user) {
             return {
                 hasPermission: false,
@@ -21,7 +26,7 @@ class PermissionService {
                 allowDeny: null
             };
         }
-        const role = await RoleModel.findById(user.role_id);
+        const role = await role_model_1.default.findById(user.role_id);
         if (role && role.permissions && role.permissions.includes('*')) {
             return {
                 hasPermission: true,
@@ -29,7 +34,7 @@ class PermissionService {
                 allowDeny: 'allow'
             };
         }
-        const rolePermission = await RolePermissionModel.findByRoleAndPermission(user.role_id, permission);
+        const rolePermission = await role_permission_model_1.default.findByRoleAndPermission(user.role_id, permission);
         if (rolePermission) {
             return {
                 hasPermission: rolePermission.allow_deny === 'allow',
@@ -44,11 +49,11 @@ class PermissionService {
         };
     }
     static async getAllUserPermissions(userId) {
-        const user = await UserModel.findById(userId);
+        const user = await user_model_1.default.findById(userId);
         if (!user) {
             return [];
         }
-        const role = await RoleModel.findById(user.role_id);
+        const role = await role_model_1.default.findById(user.role_id);
         if (role && role.permissions && role.permissions.includes('*')) {
             return [{
                     permission: '*',
@@ -56,13 +61,13 @@ class PermissionService {
                     allowDeny: 'allow'
                 }];
         }
-        const userPermissions = await UserPermissionModel.getUserPermissions(userId);
+        const userPermissions = await user_permission_model_1.default.getUserPermissions(userId);
         const userPermList = userPermissions.map(perm => ({
             permission: perm.permission,
             source: 'user',
             allowDeny: perm.allow_deny
         }));
-        const rolePermissions = await RolePermissionModel.getRolePermissions(user.role_id);
+        const rolePermissions = await role_permission_model_1.default.getRolePermissions(user.role_id);
         const rolePermList = rolePermissions
             .filter(rp => !userPermList.some(up => up.permission === rp.permission))
             .map(perm => ({
@@ -74,18 +79,18 @@ class PermissionService {
     }
     static async generatePermissionManifest(userId) {
         const cacheKey = `user:permissions:${userId}`;
-        const cachedManifest = await CacheService.get(cacheKey);
+        const cachedManifest = await cache_service_1.CacheService.get(cacheKey);
         if (cachedManifest) {
             return cachedManifest;
         }
-        const user = await UserModel.findById(userId);
+        const user = await user_model_1.default.findById(userId);
         if (!user) {
             return {};
         }
-        const role = await RoleModel.findById(user.role_id);
+        const role = await role_model_1.default.findById(user.role_id);
         if (role && role.permissions && role.permissions.includes('*')) {
             const manifest = { '*': true };
-            await CacheService.set(cacheKey, manifest, 3600);
+            await cache_service_1.CacheService.set(cacheKey, manifest, 3600);
             return manifest;
         }
         const allPermissions = await this.getAllUserPermissions(userId);
@@ -93,16 +98,16 @@ class PermissionService {
         allPermissions.forEach(perm => {
             manifest[perm.permission] = perm.allowDeny === 'allow';
         });
-        await CacheService.set(cacheKey, manifest, 3600);
+        await cache_service_1.CacheService.set(cacheKey, manifest, 3600);
         return manifest;
     }
     static async invalidateUserPermissionCache(userId) {
         const cacheKey = `user:permissions:${userId}`;
-        await CacheService.del(cacheKey);
+        await cache_service_1.CacheService.del(cacheKey);
     }
     static async invalidateAllUserPermissionCaches() {
-        await CacheService.invalidatePattern('user:permissions:*');
+        await cache_service_1.CacheService.invalidatePattern('user:permissions:*');
     }
 }
-export default PermissionService;
+exports.default = PermissionService;
 //# sourceMappingURL=permission.service.js.map

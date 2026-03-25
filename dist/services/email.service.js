@@ -1,6 +1,9 @@
-import { Resend } from 'resend';
-const resend = new Resend(process.env.RESEND_API_KEY);
-export const sendWelcomeEmail = async ({ to, fullName }) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.sendPayrollReady = exports.sendStaffInvitationEmail = exports.sendWelcomeEmail = void 0;
+const resend_1 = require("resend");
+const resend = new resend_1.Resend(process.env.RESEND_API_KEY);
+const sendWelcomeEmail = async ({ to, fullName }) => {
     try {
         const { error } = await resend.emails.send({
             from: process.env.FROM_EMAIL || 'onboarding@tripa.com.ng',
@@ -49,7 +52,8 @@ export const sendWelcomeEmail = async ({ to, fullName }) => {
         throw error;
     }
 };
-export const sendStaffInvitationEmail = async ({ to, fullName, workEmail, invitationToken, fromAdmin }) => {
+exports.sendWelcomeEmail = sendWelcomeEmail;
+const sendStaffInvitationEmail = async ({ to, fullName, workEmail, invitationToken, fromAdmin }) => {
     try {
         const { error } = await resend.emails.send({
             from: process.env.FROM_EMAIL || 'invitations@tripa.com.ng',
@@ -100,7 +104,8 @@ export const sendStaffInvitationEmail = async ({ to, fullName, workEmail, invita
         throw error;
     }
 };
-export const sendPayrollReady = async ({ to, month, year }) => {
+exports.sendStaffInvitationEmail = sendStaffInvitationEmail;
+const sendPayrollReady = async ({ to, month, year }) => {
     try {
         const { error } = await resend.emails.send({
             from: process.env.FROM_EMAIL || 'payroll@tripa.com.ng',
@@ -140,4 +145,5 @@ export const sendPayrollReady = async ({ to, month, year }) => {
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
+exports.sendPayrollReady = sendPayrollReady;
 //# sourceMappingURL=email.service.js.map

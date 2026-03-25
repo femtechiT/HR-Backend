@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class FormFieldModel {
     static tableName = 'form_fields';
     static async findAll(formId) {
@@ -9,19 +11,19 @@ class FormFieldModel {
             params.push(formId);
         }
         query += ' ORDER BY field_order ASC';
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByFormId(formId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE form_id = ? ORDER BY field_order ASC`, [formId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE form_id = ? ORDER BY field_order ASC`, [formId]);
         return rows;
     }
     static async findByFormAndName(formId, fieldName) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE form_id = ? AND field_name = ?`, [formId, fieldName]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE form_id = ? AND field_name = ?`, [formId, fieldName]);
         return rows[0] || null;
     }
     static async create(fieldData) {
@@ -69,7 +71,7 @@ class FormFieldModel {
             return v;
         });
         console.log('✅ FINAL SAFE PARAMS:', safeParams);
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (form_id, field_name, field_label, field_type, is_required, placeholder, help_text, validation_rule, options, field_order)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (form_id, field_name, field_label, field_type, is_required, placeholder, help_text, validation_rule, options, field_order)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, safeParams);
         const insertedId = result.insertId;
         const createdItem = await this.findById(insertedId);
@@ -121,17 +123,17 @@ class FormFieldModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async deleteByFormId(formId) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE form_id = ?`, [formId]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE form_id = ?`, [formId]);
         return result.affectedRows > 0;
     }
 }
-export default FormFieldModel;
+exports.default = FormFieldModel;
 //# sourceMappingURL=form-field.model.js.map

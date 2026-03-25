@@ -1,16 +1,21 @@
-import { Router } from 'express';
-import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import AttendanceModel from '../models/attendance.model';
-import ShiftTimingModel from '../models/shift-timing.model';
-import HolidayModel from '../models/holiday.model';
-import LeaveHistoryModel from '../models/leave-history.model';
-import AttendanceProcessorWorker from '../workers/attendance-processor.worker';
-import attendanceProcessRoutes from './attendance-process.route';
-import attendanceSettingsRoutes from './attendance-settings.route';
-import attendanceCheckRoutes from './attendance-check.route';
-import { pool } from '../config/database';
-const router = Router();
-router.get('/history/user/:userId', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const attendance_model_1 = __importDefault(require("../models/attendance.model"));
+const shift_timing_model_1 = __importDefault(require("../models/shift-timing.model"));
+const holiday_model_1 = __importDefault(require("../models/holiday.model"));
+const leave_history_model_1 = __importDefault(require("../models/leave-history.model"));
+const attendance_processor_worker_1 = __importDefault(require("../workers/attendance-processor.worker"));
+const attendance_process_route_1 = __importDefault(require("./attendance-process.route"));
+const attendance_settings_route_1 = __importDefault(require("./attendance-settings.route"));
+const attendance_check_route_1 = __importDefault(require("./attendance-check.route"));
+const database_1 = require("../config/database");
+const router = (0, express_1.Router)();
+router.get('/history/user/:userId', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const userIdParam = req.params.userId;
         const userIdStr = Array.isArray(userIdParam) ? userIdParam[0] : userIdParam;
@@ -29,7 +34,7 @@ router.get('/history/user/:userId', authenticateJWT, checkPermission('attendance
                 message: 'Cannot access other users\' attendance records'
             });
         }
-        const attendanceRecords = await AttendanceModel.findByUserId(userId);
+        const attendanceRecords = await attendance_model_1.default.findByUserId(userId);
         return res.json({
             success: true,
             message: 'Attendance history retrieved successfully',
@@ -44,7 +49,7 @@ router.get('/history/user/:userId', authenticateJWT, checkPermission('attendance
         });
     }
 });
-router.get('/', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+router.get('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const { userId, date, startDate, endDate, status } = req.query;
         const currentUserId = req.currentUser?.id;
@@ -65,14 +70,14 @@ router.get('/', authenticateJWT, checkPermission('attendance:read'), async (req,
         }
         let attendanceRecords;
         if (date) {
-            const singleAttendance = await AttendanceModel.findByUserIdAndDate(targetUserId, new Date(date));
+            const singleAttendance = await attendance_model_1.default.findByUserIdAndDate(targetUserId, new Date(date));
             attendanceRecords = singleAttendance ? [singleAttendance] : [];
         }
         else if (startDate && endDate) {
-            attendanceRecords = await AttendanceModel.findByDateRange(targetUserId, new Date(startDate), new Date(endDate));
+            attendanceRecords = await attendance_model_1.default.findByDateRange(targetUserId, new Date(startDate), new Date(endDate));
         }
         else {
-            attendanceRecords = await AttendanceModel.findByUserId(targetUserId);
+            attendanceRecords = await attendance_model_1.default.findByUserId(targetUserId);
         }
         if (status) {
             attendanceRecords = attendanceRecords.filter(record => record.status === status);
@@ -91,20 +96,20 @@ router.get('/', authenticateJWT, checkPermission('attendance:read'), async (req,
         });
     }
 });
-router.get('/my', authenticateJWT, async (req, res) => {
+router.get('/my', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { date, startDate, endDate, status } = req.query;
         const currentUserId = req.currentUser?.id;
         let attendanceRecords;
         if (date) {
-            const singleAttendance = await AttendanceModel.findByUserIdAndDate(currentUserId, new Date(date));
+            const singleAttendance = await attendance_model_1.default.findByUserIdAndDate(currentUserId, new Date(date));
             attendanceRecords = singleAttendance ? [singleAttendance] : [];
         }
         else if (startDate && endDate) {
-            attendanceRecords = await AttendanceModel.findByDateRange(currentUserId, new Date(startDate), new Date(endDate));
+            attendanceRecords = await attendance_model_1.default.findByDateRange(currentUserId, new Date(startDate), new Date(endDate));
         }
         else {
-            attendanceRecords = await AttendanceModel.findByUserId(currentUserId);
+            attendanceRecords = await attendance_model_1.default.findByUserId(currentUserId);
         }
         if (status) {
             attendanceRecords = attendanceRecords.filter(record => record.status === status);
@@ -123,7 +128,7 @@ router.get('/my', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/summary', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+router.get('/summary', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const { userId, startDate, endDate } = req.query;
         const currentUserId = req.currentUser?.id;
@@ -148,8 +153,8 @@ router.get('/summary', authenticateJWT, checkPermission('attendance:read'), asyn
                 message: 'startDate and endDate are required for summary'
             });
         }
-        const summary = await AttendanceModel.getAttendanceSummary(targetUserId, new Date(startDate), new Date(endDate));
-        const percentage = await AttendanceModel.getAttendancePercentage(targetUserId, new Date(startDate), new Date(endDate));
+        const summary = await attendance_model_1.default.getAttendanceSummary(targetUserId, new Date(startDate), new Date(endDate));
+        const percentage = await attendance_model_1.default.getAttendancePercentage(targetUserId, new Date(startDate), new Date(endDate));
         return res.json({
             success: true,
             message: 'Attendance summary retrieved successfully',
@@ -169,7 +174,7 @@ router.get('/summary', authenticateJWT, checkPermission('attendance:read'), asyn
         });
     }
 });
-router.get('/my/summary', authenticateJWT, async (req, res) => {
+router.get('/my/summary', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
         const currentUserId = req.currentUser?.id;
@@ -179,8 +184,8 @@ router.get('/my/summary', authenticateJWT, async (req, res) => {
                 message: 'startDate and endDate are required for summary'
             });
         }
-        const summary = await AttendanceModel.getAttendanceSummary(currentUserId, new Date(startDate), new Date(endDate));
-        const percentage = await AttendanceModel.getAttendancePercentage(currentUserId, new Date(startDate), new Date(endDate));
+        const summary = await attendance_model_1.default.getAttendanceSummary(currentUserId, new Date(startDate), new Date(endDate));
+        const percentage = await attendance_model_1.default.getAttendancePercentage(currentUserId, new Date(startDate), new Date(endDate));
         return res.json({
             success: true,
             message: 'Your attendance summary retrieved successfully',
@@ -200,7 +205,7 @@ router.get('/my/summary', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/reports/monthly', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+router.get('/reports/monthly', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const { year, month, userId } = req.query;
         const currentUserId = req.currentUser?.id;
@@ -235,9 +240,9 @@ router.get('/reports/monthly', authenticateJWT, checkPermission('attendance:read
         }
         const startDate = new Date(yearNum, monthNum - 1, 1);
         const endDate = new Date(yearNum, monthNum, 0);
-        const attendanceRecords = await AttendanceModel.findByDateRange(targetUserId, startDate, endDate);
-        const monthlySummary = await AttendanceModel.getAttendanceSummary(targetUserId, startDate, endDate);
-        const monthlyPercentage = await AttendanceModel.getAttendancePercentage(targetUserId, startDate, endDate);
+        const attendanceRecords = await attendance_model_1.default.findByDateRange(targetUserId, startDate, endDate);
+        const monthlySummary = await attendance_model_1.default.getAttendanceSummary(targetUserId, startDate, endDate);
+        const monthlyPercentage = await attendance_model_1.default.getAttendancePercentage(targetUserId, startDate, endDate);
         return res.json({
             success: true,
             message: 'Monthly attendance report generated successfully',
@@ -263,7 +268,7 @@ router.get('/reports/monthly', authenticateJWT, checkPermission('attendance:read
         });
     }
 });
-router.get('/records', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+router.get('/records', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const { page, limit, userId, date, startDate, endDate, status } = req.query;
         const currentPage = parseInt(page) || 1;
@@ -319,10 +324,10 @@ router.get('/records', authenticateJWT, checkPermission('attendance:read'), asyn
             countQuery += ' AND a.status = ?';
             countParams.push(status);
         }
-        const [countResult] = await pool.execute(countQuery, countParams);
+        const [countResult] = await database_1.pool.execute(countQuery, countParams);
         const totalRecords = countResult[0]?.total || 0;
         const totalPages = Math.ceil(totalRecords / perPage);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return res.json({
             success: true,
             message: 'Attendance records retrieved successfully',
@@ -353,7 +358,7 @@ router.get('/records', authenticateJWT, checkPermission('attendance:read'), asyn
         });
     }
 });
-router.get('/staff-data', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+router.get('/staff-data', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const { startDate, endDate, branchId, departmentId } = req.query;
         let query = `
@@ -394,7 +399,7 @@ router.get('/staff-data', authenticateJWT, checkPermission('attendance:read'), a
       GROUP BY s.id, s.user_id, u.full_name, s.employee_id, d.name, b.name
       ORDER BY u.full_name
     `;
-        const [results] = await pool.execute(query, params);
+        const [results] = await database_1.pool.execute(query, params);
         return res.json({
             success: true,
             message: 'Staff attendance data retrieved successfully',
@@ -409,7 +414,7 @@ router.get('/staff-data', authenticateJWT, checkPermission('attendance:read'), a
         });
     }
 });
-router.get('/monthly-stats', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+router.get('/monthly-stats', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const months = [];
         const now = new Date();
@@ -417,7 +422,7 @@ router.get('/monthly-stats', authenticateJWT, checkPermission('attendance:read')
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
             const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-            const [rows] = await pool.execute(`SELECT
+            const [rows] = await database_1.pool.execute(`SELECT
           COUNT(CASE WHEN status = 'present' THEN 1 END) as present,
           COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent,
           COUNT(CASE WHEN status = 'late' THEN 1 END) as late,
@@ -444,7 +449,7 @@ router.get('/monthly-stats', authenticateJWT, checkPermission('attendance:read')
         });
     }
 });
-router.delete('/:id', authenticateJWT, checkPermission('attendance:delete'), async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:delete'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -455,14 +460,14 @@ router.delete('/:id', authenticateJWT, checkPermission('attendance:delete'), asy
                 message: 'Invalid attendance ID'
             });
         }
-        const existingAttendance = await AttendanceModel.findById(attendanceId);
+        const existingAttendance = await attendance_model_1.default.findById(attendanceId);
         if (!existingAttendance) {
             return res.status(404).json({
                 success: false,
                 message: 'Attendance record not found'
             });
         }
-        await AttendanceModel.delete(attendanceId);
+        await attendance_model_1.default.delete(attendanceId);
         return res.json({
             success: true,
             message: 'Attendance record deleted successfully'
@@ -476,7 +481,7 @@ router.delete('/:id', authenticateJWT, checkPermission('attendance:delete'), asy
         });
     }
 });
-router.put('/:id', authenticateJWT, checkPermission('attendance:update'), async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:update'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -488,7 +493,7 @@ router.put('/:id', authenticateJWT, checkPermission('attendance:update'), async 
                 message: 'Invalid attendance ID'
             });
         }
-        const existingAttendance = await AttendanceModel.findById(attendanceId);
+        const existingAttendance = await attendance_model_1.default.findById(attendanceId);
         if (!existingAttendance) {
             return res.status(404).json({
                 success: false,
@@ -504,7 +509,7 @@ router.put('/:id', authenticateJWT, checkPermission('attendance:update'), async 
             updateData.check_out_time = check_out_time;
         if (location_verified !== undefined)
             updateData.location_verified = location_verified;
-        const updatedAttendance = await AttendanceModel.update(attendanceId, updateData);
+        const updatedAttendance = await attendance_model_1.default.update(attendanceId, updateData);
         return res.json({
             success: true,
             message: 'Attendance record updated successfully',
@@ -519,7 +524,7 @@ router.put('/:id', authenticateJWT, checkPermission('attendance:update'), async 
         });
     }
 });
-router.get('/:id', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -530,7 +535,7 @@ router.get('/:id', authenticateJWT, checkPermission('attendance:read'), async (r
                 message: 'Invalid attendance ID'
             });
         }
-        const attendanceRecord = await AttendanceModel.findById(attendanceId);
+        const attendanceRecord = await attendance_model_1.default.findById(attendanceId);
         if (!attendanceRecord) {
             return res.status(404).json({
                 success: false,
@@ -559,7 +564,7 @@ router.get('/:id', authenticateJWT, checkPermission('attendance:read'), async (r
         });
     }
 });
-router.get('/records/:id', authenticateJWT, checkPermission('attendance:read'), async (req, res) => {
+router.get('/records/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:read'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -570,7 +575,7 @@ router.get('/records/:id', authenticateJWT, checkPermission('attendance:read'), 
                 message: 'Invalid attendance ID'
             });
         }
-        const attendanceRecord = await AttendanceModel.findById(attendanceId);
+        const attendanceRecord = await attendance_model_1.default.findById(attendanceId);
         if (!attendanceRecord) {
             return res.status(404).json({
                 success: false,
@@ -599,7 +604,7 @@ router.get('/records/:id', authenticateJWT, checkPermission('attendance:read'), 
         });
     }
 });
-router.get('/my/:id', authenticateJWT, async (req, res) => {
+router.get('/my/:id', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -610,7 +615,7 @@ router.get('/my/:id', authenticateJWT, async (req, res) => {
                 message: 'Invalid attendance ID'
             });
         }
-        const attendanceRecord = await AttendanceModel.findById(attendanceId);
+        const attendanceRecord = await attendance_model_1.default.findById(attendanceId);
         if (!attendanceRecord) {
             return res.status(404).json({
                 success: false,
@@ -638,7 +643,7 @@ router.get('/my/:id', authenticateJWT, async (req, res) => {
         });
     }
 });
-router.get('/holidays', authenticateJWT, checkPermission('attendance:view'), async (req, res) => {
+router.get('/holidays', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:view'), async (req, res) => {
     try {
         const { branchId, date, startDate, endDate } = req.query;
         let holidays;
@@ -653,7 +658,7 @@ router.get('/holidays', authenticateJWT, checkPermission('attendance:view'), asy
             }
             const branchIdStr = Array.isArray(branchId) ? branchId[0] : branchId;
             const branchIdNum = branchIdStr ? parseInt(branchIdStr) : undefined;
-            holidays = await HolidayModel.getHolidaysInRange(new Date(startDateStr), new Date(endDateStr), branchIdNum);
+            holidays = await holiday_model_1.default.getHolidaysInRange(new Date(startDateStr), new Date(endDateStr), branchIdNum);
         }
         else if (branchId) {
             const branchIdStr = Array.isArray(branchId) ? branchId[0] : branchId;
@@ -664,7 +669,7 @@ router.get('/holidays', authenticateJWT, checkPermission('attendance:view'), asy
                     message: 'Invalid branch ID'
                 });
             }
-            holidays = await HolidayModel.findByBranch(branchIdNum);
+            holidays = await holiday_model_1.default.findByBranch(branchIdNum);
         }
         else if (date) {
             const dateStr = Array.isArray(date) ? date[0] : date;
@@ -674,10 +679,10 @@ router.get('/holidays', authenticateJWT, checkPermission('attendance:view'), asy
                     message: 'date must be a valid date string'
                 });
             }
-            holidays = await HolidayModel.findByDate(new Date(dateStr));
+            holidays = await holiday_model_1.default.findByDate(new Date(dateStr));
         }
         else {
-            holidays = await HolidayModel.findAll();
+            holidays = await holiday_model_1.default.findAll();
         }
         return res.json({
             success: true,
@@ -693,7 +698,7 @@ router.get('/holidays', authenticateJWT, checkPermission('attendance:view'), asy
         });
     }
 });
-router.get('/holidays/:id', authenticateJWT, checkPermission('attendance:view'), async (req, res) => {
+router.get('/holidays/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:view'), async (req, res) => {
     try {
         const idParam = req.params.id;
         const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -704,7 +709,7 @@ router.get('/holidays/:id', authenticateJWT, checkPermission('attendance:view'),
                 message: 'Invalid holiday ID'
             });
         }
-        const holiday = await HolidayModel.findById(holidayId);
+        const holiday = await holiday_model_1.default.findById(holidayId);
         if (!holiday) {
             return res.status(404).json({
                 success: false,
@@ -725,7 +730,7 @@ router.get('/holidays/:id', authenticateJWT, checkPermission('attendance:view'),
         });
     }
 });
-router.post('/process-daily', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+router.post('/process-daily', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { date } = req.body;
         if (!date) {
@@ -734,15 +739,15 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
                 message: 'Date is required'
             });
         }
-        const [staffResults] = await pool.execute(`SELECT s.user_id FROM staff s 
+        const [staffResults] = await database_1.pool.execute(`SELECT s.user_id FROM staff s 
        JOIN users u ON s.user_id = u.id 
        WHERE s.status = 'active' AND u.status = 'active'`);
         const userIds = staffResults.map((staff) => staff.user_id);
-        const isHoliday = await HolidayModel.isHoliday(new Date(date));
+        const isHoliday = await holiday_model_1.default.isHoliday(new Date(date));
         if (isHoliday) {
             const results = [];
             for (const userId of userIds) {
-                const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+                const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
                 if (existingAttendance) {
                     results.push({
                         user_id: userId,
@@ -762,7 +767,7 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
                     location_address: null,
                     notes: 'Public holiday - no attendance required'
                 };
-                const newAttendance = await AttendanceModel.create(attendanceData);
+                const newAttendance = await attendance_model_1.default.create(attendanceData);
                 results.push({
                     user_id: userId,
                     status: 'success',
@@ -777,7 +782,7 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
         }
         const results = [];
         for (const userId of userIds) {
-            const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+            const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
             if (existingAttendance) {
                 results.push({
                     user_id: userId,
@@ -786,7 +791,7 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
                 });
                 continue;
             }
-            const leaveHistory = await LeaveHistoryModel.findByUserIdAndDateRange(userId, new Date(date), new Date(date));
+            const leaveHistory = await leave_history_model_1.default.findByUserIdAndDateRange(userId, new Date(date), new Date(date));
             if (leaveHistory.length > 0) {
                 const attendanceData = {
                     user_id: userId,
@@ -799,7 +804,7 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
                     location_address: null,
                     notes: 'On approved leave'
                 };
-                const newAttendance = await AttendanceModel.create(attendanceData);
+                const newAttendance = await attendance_model_1.default.create(attendanceData);
                 results.push({
                     user_id: userId,
                     status: 'success',
@@ -807,7 +812,7 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
                 });
                 continue;
             }
-            const shift = await ShiftTimingModel.findCurrentShiftForUser(userId, new Date(date));
+            const shift = await shift_timing_model_1.default.findCurrentShiftForUser(userId, new Date(date));
             if (!shift) {
                 results.push({
                     user_id: userId,
@@ -827,7 +832,7 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
                 location_address: null,
                 notes: 'Scheduled shift but no check-in recorded'
             };
-            const newAttendance = await AttendanceModel.create(attendanceData);
+            const newAttendance = await attendance_model_1.default.create(attendanceData);
             results.push({
                 user_id: userId,
                 status: 'success',
@@ -848,7 +853,7 @@ router.post('/process-daily', authenticateJWT, checkPermission('attendance:manag
         });
     }
 });
-router.post('/process-range', authenticateJWT, checkPermission('attendance:manage'), async (req, res) => {
+router.post('/process-range', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { startDate, endDate } = req.body;
         if (!startDate || !endDate) {
@@ -867,7 +872,7 @@ router.post('/process-range', authenticateJWT, checkPermission('attendance:manag
         const results = [];
         for (const date of dates) {
             try {
-                await AttendanceProcessorWorker.processAttendanceForDate(date);
+                await attendance_processor_worker_1.default.processAttendanceForDate(date);
                 totalProcessed++;
                 results.push({
                     date: date.toISOString().split('T')[0],
@@ -900,8 +905,8 @@ router.post('/process-range', authenticateJWT, checkPermission('attendance:manag
         });
     }
 });
-router.use('/process', attendanceProcessRoutes);
-router.use('/settings', attendanceSettingsRoutes);
-router.use(attendanceCheckRoutes);
-export default router;
+router.use('/process', attendance_process_route_1.default);
+router.use('/settings', attendance_settings_route_1.default);
+router.use(attendance_check_route_1.default);
+exports.default = router;
 //# sourceMappingURL=attendance.route.js.map

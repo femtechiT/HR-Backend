@@ -1,4 +1,6 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class StaffModel {
     static tableName = 'staff';
     static async findAll(limit = 20, offset = 0, branchId) {
@@ -12,14 +14,14 @@ class StaffModel {
         }
         query += ' ORDER BY s.created_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName} s`;
         const countParams = [];
         if (branchId) {
             countQuery += ' WHERE s.branch_id = ?';
             countParams.push(branchId);
         }
-        const [countResult] = await pool.execute(countQuery, countParams);
+        const [countResult] = await database_1.pool.execute(countQuery, countParams);
         const totalCount = countResult[0].count;
         return {
             staff: rows,
@@ -49,12 +51,12 @@ class StaffModel {
         }
         query += ' ORDER BY s.created_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName} s`;
         if (conditions.length > 0) {
             countQuery += ' WHERE ' + conditions.join(' AND ');
         }
-        const [countResult] = await pool.execute(countQuery, params.slice(0, conditions.length));
+        const [countResult] = await database_1.pool.execute(countQuery, params.slice(0, conditions.length));
         const totalCount = countResult[0].count;
         return {
             staff: rows,
@@ -62,28 +64,28 @@ class StaffModel {
         };
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT s.*, u.full_name, u.email
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
        WHERE s.id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByUserId(userId) {
-        const [rows] = await pool.execute(`SELECT s.*, u.full_name, u.email
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
        WHERE s.user_id = ?`, [userId]);
         return rows[0] || null;
     }
     static async findByEmployeeId(employeeId) {
-        const [rows] = await pool.execute(`SELECT s.*, u.full_name, u.email
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
        WHERE s.employee_id = ?`, [employeeId]);
         return rows[0] || null;
     }
     static async create(staffData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (
         user_id, employee_id, designation, department, branch_id, joining_date, employment_type,
         reporting_manager_id, work_mode, bank_name, bank_account_number, bank_ifsc_code,
         tax_identification_number, base_salary, pay_grade, pension_insurance_id,
@@ -410,15 +412,15 @@ class StaffModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET status = 'terminated' WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET status = 'terminated' WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async deactivate(id) {
-        const result = await pool.execute(`UPDATE ${this.tableName} SET status = 'inactive' WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET status = 'inactive' WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async findByDepartment(department, branchId) {
@@ -431,16 +433,16 @@ class StaffModel {
             query += ' AND s.branch_id = ?';
             params.push(branchId.toString());
         }
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await database_1.pool.execute(query, params);
         return rows;
     }
     static async findByBranch(branchId) {
-        const [rows] = await pool.execute(`SELECT s.*, u.full_name, u.email
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
        WHERE s.branch_id = ?`, [branchId.toString()]);
         return rows;
     }
 }
-export default StaffModel;
+exports.default = StaffModel;
 //# sourceMappingURL=staff.model.js.map

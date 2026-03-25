@@ -1,28 +1,30 @@
-import { pool } from '../config/database';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
 class HolidayDutyRosterModel {
     static tableName = 'holiday_duty_roster';
     static async findAll() {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         return rows;
     }
     static async findById(id) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByHolidayId(holidayId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE holiday_id = ? ORDER BY shift_start_time`, [holidayId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE holiday_id = ? ORDER BY shift_start_time`, [holidayId]);
         return rows;
     }
     static async findByUserId(userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
         return rows;
     }
     static async findByHolidayAndUser(holidayId, userId) {
-        const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} WHERE holiday_id = ? AND user_id = ?`, [holidayId, userId]);
+        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE holiday_id = ? AND user_id = ?`, [holidayId, userId]);
         return rows[0] || null;
     }
     static async create(rosterData) {
-        const [result] = await pool.execute(`INSERT INTO ${this.tableName} (holiday_id, user_id, shift_start_time, shift_end_time, notes)
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (holiday_id, user_id, shift_start_time, shift_end_time, notes)
        VALUES (?, ?, ?, ?, ?)`, [
             rosterData.holiday_id,
             rosterData.user_id,
@@ -64,17 +66,17 @@ class HolidayDutyRosterModel {
             return await this.findById(id);
         }
         values.push(id);
-        await pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
         return await this.findById(id);
     }
     static async delete(id) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
     static async deleteByHolidayId(holidayId) {
-        const result = await pool.execute(`DELETE FROM ${this.tableName} WHERE holiday_id = ?`, [holidayId]);
+        const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE holiday_id = ?`, [holidayId]);
         return result.affectedRows;
     }
 }
-export default HolidayDutyRosterModel;
+exports.default = HolidayDutyRosterModel;
 //# sourceMappingURL=holiday-duty-roster.model.js.map

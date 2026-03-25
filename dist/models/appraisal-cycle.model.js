@@ -1,38 +1,41 @@
-import { pool } from '../config/database';
-export const AppraisalCycleModel = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AppraisalCycleModel = void 0;
+const database_1 = require("../config/database");
+exports.AppraisalCycleModel = {
     tableName: 'appraisal_cycles',
     async findAll() {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         connection.release();
         return rows;
     },
     async findById(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return rows[0] || null;
     },
     async findByStatus(status) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE status = ? ORDER BY created_at DESC`, [status]);
         connection.release();
         return rows;
     },
     async findByTemplateId(templateId) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE template_id = ? ORDER BY created_at DESC`, [templateId]);
         connection.release();
         return rows;
     },
     async findByDateRange(startDate, endDate) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [rows] = await connection.execute(`SELECT * FROM ${this.tableName} WHERE start_date >= ? AND end_date <= ? ORDER BY created_at DESC`, [startDate, endDate]);
         connection.release();
         return rows;
     },
     async create(cycle) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`INSERT INTO ${this.tableName}
        (name, description, template_id, start_date, end_date, status, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`, [
@@ -53,7 +56,7 @@ export const AppraisalCycleModel = {
         };
     },
     async update(id, cycle) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const fields = [];
         const values = [];
         if (cycle.name !== undefined) {
@@ -94,7 +97,7 @@ export const AppraisalCycleModel = {
         return result.affectedRows > 0;
     },
     async delete(id) {
-        const connection = await pool.getConnection();
+        const connection = await database_1.pool.getConnection();
         const [result] = await connection.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
         connection.release();
         return result.affectedRows > 0;
