@@ -6,15 +6,19 @@ import { pool } from '../config/database';
 const router = Router();
 
 // GET /api/attendance/settings - Get attendance settings for a branch
-router.get('/settings', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
+router.get('/', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const { branchId } = req.query;
+
+    console.log('[Attendance Settings GET] Query params:', req.query);
+    console.log('[Attendance Settings GET] Current user:', req.currentUser);
 
     // If no branchId provided, get settings for user's branch
     let targetBranchId = req.currentUser?.branch_id;
     if (branchId) {
       const branchIdNum = parseInt(branchId as string);
       if (isNaN(branchIdNum)) {
+        console.warn('[Attendance Settings GET] Invalid branch ID:', branchId);
         return res.status(400).json({
           success: false,
           message: 'Invalid branch ID'
@@ -23,15 +27,19 @@ router.get('/settings', authenticateJWT, checkPermission('attendance:manage'), a
       targetBranchId = branchIdNum;
     }
 
+    console.log('[Attendance Settings GET] Target branch ID:', targetBranchId);
+
     if (!targetBranchId) {
+      console.warn('[Attendance Settings GET] No branch ID available');
       return res.status(400).json({
         success: false,
-        message: 'Branch ID is required'
+        message: 'Branch ID is required. Please select a branch or ensure your user has a branch assigned.'
       });
     }
 
     const branch = await BranchModel.findById(targetBranchId);
     if (!branch) {
+      console.warn('[Attendance Settings GET] Branch not found:', targetBranchId);
       return res.status(404).json({
         success: false,
         message: 'Branch not found'
@@ -83,7 +91,7 @@ router.get('/settings', authenticateJWT, checkPermission('attendance:manage'), a
 });
 
 // PATCH /api/attendance/settings - Update attendance settings for a branch
-router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
+router.patch('/', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
   try {
     const { branchId, settings } = req.body;
 
@@ -290,7 +298,7 @@ router.patch('/settings', authenticateJWT, checkPermission('attendance:manage'),
 });
 
 // GET /api/attendance/settings/global - Get global attendance settings
-router.get('/settings/global', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
+router.get('/global', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
   try {
     // Get global attendance settings
     const [globalSettings] = await pool.execute(
@@ -329,7 +337,7 @@ router.get('/settings/global', authenticateJWT, checkPermission('attendance:mana
 });
 
 // PATCH /api/attendance/settings/global - Update global attendance settings
-router.patch('/settings/global', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
+router.patch('/global', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
   try {
     const settings = req.body.settings;
 
@@ -413,7 +421,7 @@ export default router;
  * PATCH /api/attendance/settings/auto-mark
  * Update auto-mark absent settings for a branch
  */
-router.patch('/settings/auto-mark', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
+router.patch('/auto-mark', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
   try {
     const { branchId, auto_mark_absent_enabled, auto_mark_absent_time, auto_mark_absent_timezone } = req.body;
 
@@ -501,7 +509,7 @@ router.patch('/settings/auto-mark', authenticateJWT, checkPermission('attendance
  * POST /api/attendance/settings/lock-date
  * Manually lock attendance for a specific date
  */
-router.post('/settings/lock-date', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
+router.post('/lock-date', authenticateJWT, checkPermission('attendance:manage'), async (req: Request, res: Response) => {
   try {
     const { date, branchId, reason } = req.body;
 
@@ -585,7 +593,7 @@ router.post('/settings/lock-date', authenticateJWT, checkPermission('attendance:
  * GET /api/attendance/settings/lock-status
  * Get lock status for a branch
  */
-router.get('/settings/lock-status', authenticateJWT, async (req: Request, res: Response) => {
+router.get('/lock-status', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const { branchId } = req.query;
     

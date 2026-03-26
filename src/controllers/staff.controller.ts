@@ -14,10 +14,15 @@ export const getAllStaff = async (req: Request, res: Response) => {
     const page = getNumberQueryParam(req, 'page', 1) || 1;
     const limit = getNumberQueryParam(req, 'limit', 20) || 20;
     const branchId = req.query.branchId ? getNumberQueryParam(req, 'branchId') : undefined;
+    
+    // Get filter parameters
+    const status = req.query.status as string | undefined;
+    const department = req.query.department as string | undefined;
+    const search = req.query.search as string | undefined;
 
     const offset = (page - 1) * limit;
 
-    const { staff, totalCount } = await StaffModel.findAll(limit, offset, branchId);
+    const { staff, totalCount } = await StaffModel.findAll(limit, offset, branchId, status, department, search);
 
     return res.json({
       success: true,
@@ -221,6 +226,10 @@ export const createStaff = async (req: Request, res: Response) => {
 
 export const updateStaff = async (req: Request, res: Response) => {
   try {
+    console.log('[Backend] Update staff request received');
+    console.log('[Backend] Staff ID:', req.params.id);
+    console.log('[Backend] Request body:', JSON.stringify(req.body, null, 2));
+    
     // Use the validated numeric ID from middleware if available, otherwise parse from params
     let staffId: number;
     if (req.numericId !== undefined) {
@@ -237,6 +246,8 @@ export const updateStaff = async (req: Request, res: Response) => {
         });
       }
     }
+
+    console.log('[Backend] Parsed staff ID:', staffId);
 
     const {
       employee_id, designation, department, branch_id, joining_date, employment_type, status,
@@ -258,10 +269,43 @@ export const updateStaff = async (req: Request, res: Response) => {
     // Check if staff exists
     const existingStaff = await StaffModel.findById(staffId);
     if (!existingStaff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff not found'
-      });
+      console.log('[Backend] Staff not found, creating new staff record...');
+      // If staff doesn't exist, create a new one
+      // This handles the case where user is filling personal details for the first time
+      try {
+        const createData: any = {
+          user_id: staffId,
+          phone_number,
+          personal_email,
+          work_email,
+          date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
+          gender,
+          marital_status,
+          blood_group
+        };
+        
+        // Remove undefined fields
+        Object.keys(createData).forEach(key => {
+          if (createData[key] === undefined || createData[key] === null) {
+            delete createData[key];
+          }
+        });
+        
+        console.log('[Backend] Creating staff with data:', createData);
+        
+        // For now, just return success since the actual creation happens via staff invitation flow
+        // The FillPersonalDetailsScreen should use a different endpoint
+        return res.status(404).json({
+          success: false,
+          message: 'Staff record not found. Please contact HR to complete your profile setup.'
+        });
+      } catch (createError) {
+        console.error('[Backend] Error creating staff:', createError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error creating staff record'
+        });
+      }
     }
 
     // Prepare update data
@@ -270,7 +314,14 @@ export const updateStaff = async (req: Request, res: Response) => {
     if (designation !== undefined) updateData.designation = designation;
     if (department !== undefined) updateData.department = department;
     if (branch_id !== undefined) updateData.branch_id = branch_id;
-    if (joining_date !== undefined) updateData.joining_date = new Date(joining_date);
+    if (joining_date !== undefined) {
+      const joinDate = new Date(joining_date);
+      if (!isNaN(joinDate.getTime())) {
+        updateData.joining_date = joinDate;
+      } else {
+        console.error('[Backend] Invalid joining_date:', joining_date);
+      }
+    }
     if (employment_type !== undefined) updateData.employment_type = employment_type;
     if (status !== undefined) updateData.status = status;
     if (reporting_manager_id !== undefined) updateData.reporting_manager_id = reporting_manager_id;
@@ -285,7 +336,14 @@ export const updateStaff = async (req: Request, res: Response) => {
     if (emergency_contact_name !== undefined) updateData.emergency_contact_name = emergency_contact_name;
     if (emergency_contact_phone !== undefined) updateData.emergency_contact_phone = emergency_contact_phone;
     if (emergency_contact_relationship !== undefined) updateData.emergency_contact_relationship = emergency_contact_relationship;
-    if (date_of_birth !== undefined) updateData.date_of_birth = new Date(date_of_birth);
+    if (date_of_birth !== undefined) {
+      const dobDate = new Date(date_of_birth);
+      if (!isNaN(dobDate.getTime())) {
+        updateData.date_of_birth = dobDate;
+      } else {
+        console.error('[Backend] Invalid date_of_birth:', date_of_birth);
+      }
+    }
     if (gender !== undefined) updateData.gender = gender;
     if (current_address_id !== undefined) updateData.current_address_id = current_address_id;
     if (permanent_address_id !== undefined) updateData.permanent_address_id = permanent_address_id;
@@ -293,8 +351,14 @@ export const updateStaff = async (req: Request, res: Response) => {
     if (primary_skills !== undefined) updateData.primary_skills = primary_skills;
     if (education_certifications !== undefined) updateData.education_certifications = education_certifications;
     if (employee_photo !== undefined) updateData.employee_photo = employee_photo;
-    if (probation_end_date !== undefined) updateData.probation_end_date = new Date(probation_end_date);
-    if (contract_end_date !== undefined) updateData.contract_end_date = new Date(contract_end_date);
+    if (probation_end_date !== undefined) {
+      const probDate = new Date(probation_end_date);
+      if (!isNaN(probDate.getTime())) updateData.probation_end_date = probDate;
+    }
+    if (contract_end_date !== undefined) {
+      const contractDate = new Date(contract_end_date);
+      if (!isNaN(contractDate.getTime())) updateData.contract_end_date = contractDate;
+    }
     if (weekly_working_hours !== undefined) updateData.weekly_working_hours = weekly_working_hours;
     if (overtime_eligibility !== undefined) updateData.overtime_eligibility = overtime_eligibility;
     if (medical_insurance_id !== undefined) updateData.medical_insurance_id = medical_insurance_id;

@@ -202,43 +202,16 @@ export interface StaffUpdate {
   assigned_location_id?: number;
   location_assignments?: any;
   location_notes?: string;
+  // Branch name from join (not stored in staff table)
+  branch_name?: string;
 }
 
 class StaffModel {
   static tableName = 'staff';
 
-  static async findAll(limit: number = 20, offset: number = 0, branchId?: number): Promise<{staff: Staff[], totalCount: number}> {
-    let query = `SELECT s.*, u.full_name, u.email
-                 FROM ${this.tableName} s
-                 LEFT JOIN users u ON s.user_id = u.id`;
-    const params: any[] = [];
-
-    if (branchId) {
-      query += ' WHERE s.branch_id = ?';
-      params.push(branchId);
-    }
-
-    query += ' ORDER BY s.created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
-
-    const [rows] = await pool.execute(query, params);
-
-    // Get total count
-    let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName} s`;
-    const countParams: any[] = [];
-
-    if (branchId) {
-      countQuery += ' WHERE s.branch_id = ?';
-      countParams.push(branchId);
-    }
-
-    const [countResult] = await pool.execute(countQuery, countParams);
-    const totalCount = (countResult as any)[0].count;
-
-    return {
-      staff: rows as Staff[],
-      totalCount
-    };
+  static async findAll(limit: number = 20, offset: number = 0, branchId?: number, status?: string, department?: string, search?: string): Promise<{staff: Staff[], totalCount: number}> {
+    // Delegate to findAllWithFilters for consistency
+    return this.findAllWithFilters(limit, offset, branchId, department, status, search);
   }
 
   // Enhanced method with additional filtering
@@ -247,11 +220,13 @@ class StaffModel {
     offset: number = 0,
     branchId?: number,
     department?: string,
-    status?: string
+    status?: string,
+    search?: string
   ): Promise<{staff: Staff[], totalCount: number}> {
-    let query = `SELECT s.*, u.full_name, u.email
+    let query = `SELECT s.*, u.full_name, u.email, b.name as branch_name
                  FROM ${this.tableName} s
-                 LEFT JOIN users u ON s.user_id = u.id`;
+                 LEFT JOIN users u ON s.user_id = u.id
+                 LEFT JOIN branches b ON s.branch_id = b.id`;
     const params: any[] = [];
     const conditions: string[] = [];
 
@@ -270,6 +245,12 @@ class StaffModel {
       params.push(status);
     }
 
+    if (search) {
+      conditions.push('(u.full_name LIKE ? OR u.email LIKE ? OR s.employee_id LIKE ? OR s.designation LIKE ?)');
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
@@ -279,14 +260,23 @@ class StaffModel {
 
     const [rows] = await pool.execute(query, params);
 
-    // Get total count with same filters
-    let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName} s`;
+    // Get total count with same filters (without limit/offset)
+    let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName} s LEFT JOIN users u ON s.user_id = u.id`;
+    const countParams: any[] = [];
 
     if (conditions.length > 0) {
       countQuery += ' WHERE ' + conditions.join(' AND ');
+      // Add only the condition params (not limit/offset)
+      if (branchId) countParams.push(branchId);
+      if (department) countParams.push(department);
+      if (status) countParams.push(status);
+      if (search) {
+        const searchPattern = `%${search}%`;
+        countParams.push(searchPattern, searchPattern, searchPattern, searchPattern);
+      }
     }
 
-    const [countResult] = await pool.execute(countQuery, params.slice(0, conditions.length));
+    const [countResult] = await pool.execute(countQuery, countParams);
     const totalCount = (countResult as any)[0].count;
 
     return {
@@ -297,24 +287,26 @@ class StaffModel {
 
   static async findById(id: number): Promise<Staff | null> {
     const [rows] = await pool.execute(
-      `SELECT s.*, u.full_name, u.email
+      `SELECT s.*, u.full_name, u.email, b.name as branch_name
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
+       LEFT JOIN branches b ON s.branch_id = b.id
        WHERE s.id = ?`,
       [id]
     );
-    return (rows as Staff[])[0] || null;
+    return (rows as any)[0] || null;
   }
 
   static async findByUserId(userId: number): Promise<Staff | null> {
     const [rows] = await pool.execute(
-      `SELECT s.*, u.full_name, u.email
+      `SELECT s.*, u.full_name, u.email, b.name as branch_name
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
+       LEFT JOIN branches b ON s.branch_id = b.id
        WHERE s.user_id = ?`,
       [userId]
     );
-    return (rows as Staff[])[0] || null;
+    return (rows as any)[0] || null;
   }
 
   static async findByEmployeeId(employeeId: string): Promise<Staff | null> {
@@ -719,17 +711,24 @@ class StaffModel {
       values.push(staffData.background_verification_status);
     }
 
+    console.log('[StaffModel] Update called for ID:', id);
+    console.log('[StaffModel] Number of fields to update:', updates.length);
+    console.log('[StaffModel] Updates:', updates.join(', '));
+    console.log('[StaffModel] Values:', values);
+
     if (updates.length === 0) {
+      console.log('[StaffModel] No fields to update, returning current data');
       return await this.findById(id);
     }
 
     values.push(id);
 
-    await pool.execute(
-      `UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`,
-      values
-    );
+    const sql = `UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`;
+    console.log('[StaffModel] Executing SQL:', sql);
+    
+    await pool.execute(sql, values);
 
+    console.log('[StaffModel] Update completed, fetching updated record...');
     return await this.findById(id);
   }
 
