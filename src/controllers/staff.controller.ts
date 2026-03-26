@@ -360,10 +360,11 @@ export const updateStaff = async (req: Request, res: Response) => {
       if (!isNaN(contractDate.getTime())) updateData.contract_end_date = contractDate;
     }
     if (weekly_working_hours !== undefined) updateData.weekly_working_hours = weekly_working_hours;
-    if (overtime_eligibility !== undefined) updateData.overtime_eligibility = overtime_eligibility;
+    // Convert boolean fields to 0/1 for MySQL tinyint columns
+    if (overtime_eligibility !== undefined) updateData.overtime_eligibility = overtime_eligibility ? 1 : 0;
     if (medical_insurance_id !== undefined) updateData.medical_insurance_id = medical_insurance_id;
     if (provident_fund_id !== undefined) updateData.provident_fund_id = provident_fund_id;
-    if (gratuity_applicable !== undefined) updateData.gratuity_applicable = gratuity_applicable;
+    if (gratuity_applicable !== undefined) updateData.gratuity_applicable = gratuity_applicable ? 1 : 0;
     if (notice_period_days !== undefined) updateData.notice_period_days = notice_period_days;
     if (work_email !== undefined) updateData.work_email = work_email;
     if (personal_email !== undefined) updateData.personal_email = personal_email;
