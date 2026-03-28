@@ -1538,8 +1538,32 @@ async function seedAttendanceLocations() {
   // Create attendance locations for all branches that have coordinates
   for (const branch of branches) {
     if (branch.location_coordinates) {
-      // Parse branch coordinates (format: "lat,lng")
-      const [lat, lng] = branch.location_coordinates.split(',');
+      // Parse branch coordinates (format: "lat,lng" or "POINT(lng lat)")
+      let lat: string, lng: string;
+      
+      if (!branch.location_coordinates) {
+        console.log(`   ⚠️  Skipping ${branch.name} - no coordinates`);
+        continue;
+      }
+      
+      if (branch.location_coordinates.includes('POINT')) {
+        // Format: "POINT(lng lat)"
+        const match = branch.location_coordinates.match(/POINT\(([-+]?\d*\.?\d*)\s+([-+]?\d*\.?\d*)\)/);
+        if (!match) {
+          console.log(`   ⚠️  Skipping ${branch.name} - invalid POINT format`);
+          continue;
+        }
+        lng = match[1];
+        lat = match[2];
+      } else {
+        // Format: "lat,lng"
+        const parts = branch.location_coordinates.split(',');
+        if (parts.length !== 2) {
+          console.log(`   ⚠️  Skipping ${branch.name} - invalid coordinates format`);
+          continue;
+        }
+        [lat, lng] = parts;
+      }
 
       // Create main office location
       await pool.execute(
@@ -1608,7 +1632,8 @@ async function seedStaffLocationAssignments() {
   `);
 
   let assignmentCount = 0;
-  let secondaryCount = 0;
+  let multiLocationCount = 0;
+  let crossBranchCount = 0;
 
   // Assign each staff member to locations (with support for multiple locations)
   for (const employee of staff) {
@@ -1621,41 +1646,75 @@ async function seedStaffLocationAssignments() {
       // Build array of location assignments
       const locationAssignments: number[] = [mainOffice.id];
 
-      // 60% of staff get multiple locations (increased from 40%)
-      if (Math.random() < 0.6) {
-        // Get remote sites for this branch
-        const remoteSites = locations.filter((loc: any) =>
-          loc.branch_id === employee.branch_id && loc.location_type === 'remote_site'
-        );
+      // Get remote sites for this branch
+      const branchRemoteSites = locations.filter((loc: any) =>
+        loc.branch_id === employee.branch_id && loc.location_type === 'remote_site'
+      );
 
-        if (remoteSites.length > 0) {
-          // Pick 1-2 random remote sites
-          const numRemotes = Math.min(remoteSites.length, Math.floor(Math.random() * 2) + 1);
-          const shuffled = remoteSites.sort(() => 0.5 - Math.random());
+      // Get locations from OTHER branches (for cross-branch workers)
+      const otherBranchLocations = locations.filter((loc: any) =>
+        loc.branch_id !== employee.branch_id
+      );
+
+      // Determine assignment pattern
+      const rand = Math.random();
+
+      if (rand < 0.25) {
+        // 25%: Cross-branch workers (work at multiple branches)
+        // Add 2-4 locations from other branches
+        const numCrossBranch = Math.min(otherBranchLocations.length, Math.floor(Math.random() * 3) + 2);
+        const shuffled = otherBranchLocations.sort(() => 0.5 - Math.random());
+        const selectedCrossBranch = shuffled.slice(0, numCrossBranch);
+
+        selectedCrossBranch.forEach((site: any) => {
+          locationAssignments.push(site.id);
+        });
+
+        // Also add 0-1 remote sites from their own branch
+        if (branchRemoteSites.length > 0 && Math.random() > 0.5) {
+          locationAssignments.push(branchRemoteSites[0].id);
+        }
+
+        crossBranchCount++;
+      } else if (rand < 0.65) {
+        // 40%: Multi-location workers (multiple locations within their branch)
+        if (branchRemoteSites.length > 0) {
+          // Pick 1-3 random remote sites
+          const numRemotes = Math.min(branchRemoteSites.length, Math.floor(Math.random() * 3) + 1);
+          const shuffled = branchRemoteSites.sort(() => 0.5 - Math.random());
           const selectedSites = shuffled.slice(0, numRemotes);
-          
-          // Add to location assignments array
+
           selectedSites.forEach((site: any) => {
             locationAssignments.push(site.id);
           });
         }
       }
+      // else: 35% have only their primary location
 
       // Update staff with location assignments (JSON array)
       await pool.execute(
         `UPDATE staff SET assigned_location_id = ?, location_assignments = ? WHERE id = ?`,
         [mainOffice.id, JSON.stringify(locationAssignments), employee.staff_id]
       );
-      
+
       if (locationAssignments.length > 1) {
-        secondaryCount++;
+        multiLocationCount++;
       }
       assignmentCount++;
+
+      // Log some examples
+      if (assignmentCount <= 5 || (crossBranchCount > 0 && assignmentCount % 20 === 0)) {
+        const locNames = locationAssignments.map(id => {
+          const loc = locations.find((l: any) => l.id === id);
+          return loc ? loc.name : id.toString();
+        });
+        console.log(`   → ${employee.full_name}: ${locationAssignments.length} location(s) ${crossBranchCount > 0 ? '(cross-branch)' : ''}`);
+      }
     }
   }
 
   console.log(`   ✓ Assigned locations to ${assignmentCount} staff`);
-  console.log(`   ✓ ${secondaryCount} staff have multiple location assignments`);
+  console.log(`   ✓ ${multiLocationCount} staff have multiple locations (${crossBranchCount} cross-branch)`);
   console.log(`✅ Staff location assignments seeded\n`);
 }
 

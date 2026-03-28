@@ -69,16 +69,65 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
 
       // Verify location if provided
       let locationVerified = false;
-      
-      // Get user's branch settings early
+
+      // Get user's staff record
       const staffRecord = await StaffModel.findByUserId(userId);
       if (!staffRecord) {
         return res.status(404).json({ success: false, message: 'Staff record not found' });
       }
-      const branchId = staffRecord.branch_id;
+
+      // Default to staff's primary branch
+      let branchId = staffRecord.branch_id;
       if (!branchId) {
         return res.status(400).json({ success: false, message: 'No branch assigned' });
       }
+
+      // NEW: If staff has location assignments and provided GPS, determine branch from location
+      if (location_coordinates && typeof location_coordinates === 'object') {
+        const userLng = parseFloat(location_coordinates.longitude);
+        const userLat = parseFloat(location_coordinates.latitude);
+
+        if (!isNaN(userLng) && !isNaN(userLat)) {
+          // Find which attendance location the user is at
+          const nearbyLocations = await AttendanceLocationModel.getLocationsNearby(
+            userLat, userLng, 1000 // Search within 1km
+          );
+
+          // Get staff's assigned location IDs
+          const assignedLocationIds: number[] = [];
+
+          if (staffRecord.assigned_location_id) {
+            assignedLocationIds.push(staffRecord.assigned_location_id);
+          }
+
+          if (staffRecord.location_assignments && staffRecord.location_assignments.secondary_locations) {
+            try {
+              const secondary = JSON.parse(staffRecord.location_assignments.secondary_locations);
+              if (Array.isArray(secondary)) {
+                assignedLocationIds = [...assignedLocationIds, ...secondary];
+              }
+            } catch (e) {
+              console.error('Failed to parse secondary_locations:', e);
+            }
+          }
+
+          // If user is at one of their assigned locations, use that location's branch
+          if (assignedLocationIds.length > 0 && nearbyLocations.length > 0) {
+            const atAssignedLocation = nearbyLocations.some(loc =>
+              assignedLocationIds.includes(loc.id) && loc.branch_id
+            );
+
+            if (atAssignedLocation) {
+              const locationBranch = nearbyLocations.find(loc => loc.branch_id)?.branch_id;
+              if (locationBranch) {
+                branchId = locationBranch;
+                console.log(`✅ Using location's branch ${branchId} for attendance verification`);
+              }
+            }
+          }
+        }
+      }
+
       const branch = await BranchModel.findById(branchId);
       if (!branch) {
         return res.status(404).json({ success: false, message: 'Branch not found' });
@@ -525,7 +574,7 @@ router.post('/check-out', authenticateJWT, async (req: Request, res: Response) =
       });
     }
 
-    // Get user's branch to determine attendance mode
+    // Get user's staff record
     const staffRecord = await StaffModel.findByUserId(userId);
     if (!staffRecord) {
       return res.status(404).json({
@@ -534,12 +583,59 @@ router.post('/check-out', authenticateJWT, async (req: Request, res: Response) =
       });
     }
 
-    const branchId = staffRecord.branch_id;
+    // Default to staff's primary branch
+    let branchId = staffRecord.branch_id;
     if (!branchId) {
       return res.status(400).json({
         success: false,
         message: 'Staff record does not have a branch assigned'
       });
+    }
+
+    // NEW: If staff has location assignments and provided GPS, determine branch from location
+    if (location_coordinates && typeof location_coordinates === 'object') {
+      const userLng = parseFloat(location_coordinates.longitude);
+      const userLat = parseFloat(location_coordinates.latitude);
+
+      if (!isNaN(userLng) && !isNaN(userLat)) {
+        // Find which attendance location the user is at
+        const nearbyLocations = await AttendanceLocationModel.getLocationsNearby(
+          userLat, userLng, 1000 // Search within 1km
+        );
+
+        // Get staff's assigned location IDs
+        const assignedLocationIds: number[] = [];
+
+        if (staffRecord.assigned_location_id) {
+          assignedLocationIds.push(staffRecord.assigned_location_id);
+        }
+
+        if (staffRecord.location_assignments && staffRecord.location_assignments.secondary_locations) {
+          try {
+            const secondary = JSON.parse(staffRecord.location_assignments.secondary_locations);
+            if (Array.isArray(secondary)) {
+              assignedLocationIds = [...assignedLocationIds, ...secondary];
+            }
+          } catch (e) {
+            console.error('Failed to parse secondary_locations:', e);
+          }
+        }
+
+        // If user is at one of their assigned locations, use that location's branch
+        if (assignedLocationIds.length > 0 && nearbyLocations.length > 0) {
+          const atAssignedLocation = nearbyLocations.some(loc =>
+            assignedLocationIds.includes(loc.id) && loc.branch_id
+          );
+
+          if (atAssignedLocation) {
+            const locationBranch = nearbyLocations.find(loc => loc.branch_id)?.branch_id;
+            if (locationBranch) {
+              branchId = locationBranch;
+              console.log(`✅ Using location's branch ${branchId} for check-out verification`);
+            }
+          }
+        }
+      }
     }
 
     // Get attendance settings for this branch
