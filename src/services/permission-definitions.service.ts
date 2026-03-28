@@ -29,6 +29,13 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   { key: 'roles:update', category: 'Role Management', description: 'Update roles' },
   { key: 'roles:delete', category: 'Role Management', description: 'Delete roles' },
 
+  // Dashboard Access Permission
+  { key: 'dashboard:access', category: 'Dashboard', description: 'Access HR Admin Dashboard' },
+  { key: 'dashboard:read', category: 'Dashboard', description: 'View dashboard statistics' },
+
+  // Super User Permission (Grants All Permissions)
+  { key: '*', category: 'System', description: 'Super User - Grants ALL permissions (use with caution)' },
+
   // Permission Management Permissions
   { key: 'permissions:manage', category: 'Permission Management', description: 'Manage permissions' },
 

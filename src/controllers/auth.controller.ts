@@ -83,6 +83,23 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
     // Get user permissions manifest
     const permissions = await PermissionService.generatePermissionManifest(user.id);
 
+    // SECURITY: Check if user has ANY permissions (reject login if no permissions)
+    const permissionKeys = Object.keys(permissions);
+    const hasAnyPermission = permissionKeys.length > 0 && 
+      !permissionKeys.every(key => permissions[key] === false);
+    
+    // Admin (role_id: 1) OR users with wildcard (*) permission always allowed
+    const isAdmin = user.role_id === 1;
+    const hasWildcard = permissions['*'] === true;
+    
+    if (!hasAnyPermission && !isAdmin && !hasWildcard) {
+      console.log(`[Auth] User ${user.id} (${user.email}) has no permissions - denying login`);
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Your account has no permissions assigned. Please contact your administrator.'
+      });
+    }
+
     // Check if user must change password and if profile is complete
     const needsPasswordChange = !!user.must_change_password;
     const needsProfileCompletion = !(user.phone && user.date_of_birth);

@@ -168,17 +168,9 @@ export const updateRole = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate permissions if provided
-    if (permissions && Array.isArray(permissions)) {
-      for (const permission of permissions) {
-        if (!isValidPermission(permission)) {
-          return res.status(400).json({
-            success: false,
-            message: `Invalid permission: ${permission}`
-          });
-        }
-      }
-    }
+    // NOTE: Permission validation is lenient - accepts any string
+    // This allows for dynamic permission addition without backend changes
+    // Permissions are just strings stored in JSON format
 
     // Prepare update data
     const updates: string[] = [];

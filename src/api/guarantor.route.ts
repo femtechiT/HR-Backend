@@ -66,22 +66,22 @@ router.get('/uploads/:filename', (req, res) => {
 // GET /api/guarantors/staff/:staffId - Get all guarantors for a staff member
 router.get('/staff/:staffId', authenticateJWT, getGuarantors);
 
-// GET /api/guarantors/:id - Get specific guarantor
-router.get('/:id', authenticateJWT, checkPermission('staff:read'), getGuarantor);
+// GET /api/guarantors/:id - Get specific guarantor (only requires authentication)
+router.get('/:id', authenticateJWT, getGuarantor);
 
-// POST /api/guarantors - Create new guarantor
-router.post('/', authenticateJWT, checkPermission('staff:create'), createGuarantor);
+// POST /api/guarantors - Create new guarantor (only requires authentication)
+router.post('/', authenticateJWT, createGuarantor);
 
-// PUT /api/guarantors/:id - Update guarantor
-router.put('/:id', authenticateJWT, checkPermission('staff:update'), updateGuarantor);
+// PUT /api/guarantors/:id - Update guarantor (only requires authentication)
+router.put('/:id', authenticateJWT, updateGuarantor);
 
-// DELETE /api/guarantors/:id - Delete guarantor
-router.delete('/:id', authenticateJWT, checkPermission('staff:delete'), deleteGuarantor);
+// DELETE /api/guarantors/:id - Delete guarantor (only requires authentication)
+router.delete('/:id', authenticateJWT, deleteGuarantor);
 
 // POST /api/guarantors/:id/verify - Verify guarantor (admin only)
-router.post('/:id/verify', authenticateJWT, checkPermission('staff:update'), verifyGuarantor);
+router.post('/:id/verify', authenticateJWT, verifyGuarantor);
 
-// POST /api/guarantors/:id/upload/:documentType - Upload guarantor document (form or id)
-router.post('/:id/upload/:documentType', authenticateJWT, checkPermission('staff:update'), upload.single('document'), uploadGuarantorDocument);
+// POST /api/guarantors/:id/upload/:documentType - Upload guarantor document
+router.post('/:id/upload/:documentType', authenticateJWT, upload.single('document'), uploadGuarantorDocument);
 
 export default router;
