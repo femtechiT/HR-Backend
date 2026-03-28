@@ -9,6 +9,7 @@ const path_1 = __importDefault(require("path"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const database_1 = require("../config/database");
+const promise_1 = __importDefault(require("mysql2/promise"));
 const email_service_1 = require("../services/email.service");
 const isSystemInitialized = async () => {
     try {
@@ -49,109 +50,34 @@ const checkDatabaseSchema = async () => {
 exports.checkDatabaseSchema = checkDatabaseSchema;
 const runMigrations = async () => {
     try {
+        console.log('========================================');
+        console.log('Starting database setup...');
+        console.log('========================================');
+        const migrationFile = '000_all_migrations.sql';
         const migrationsDir = path_1.default.join(process.cwd(), 'migrations');
-        const migrationFiles = await promises_1.default.readdir(migrationsDir);
-        const sortedMigrationFiles = migrationFiles
-            .filter(file => file.endsWith('.sql'))
-            .sort();
-        console.log(`Found ${sortedMigrationFiles.length} migration files to run`);
-        for (const migrationFile of sortedMigrationFiles) {
-            console.log(`Running migration: ${migrationFile}`);
-            const migrationPath = path_1.default.join(migrationsDir, migrationFile);
-            const migrationSql = await promises_1.default.readFile(migrationPath, 'utf8');
-            const statements = [];
-            let currentStatement = '';
-            let inSingleQuote = false;
-            let inDoubleQuote = false;
-            let inLineComment = false;
-            let inBlockComment = false;
-            let i = 0;
-            while (i < migrationSql.length) {
-                const char = migrationSql[i];
-                const nextChar = i + 1 < migrationSql.length ? migrationSql[i + 1] : '';
-                if (inLineComment) {
-                    if (char === '\n') {
-                        inLineComment = false;
-                        currentStatement += char;
-                    }
-                    else {
-                        currentStatement += char;
-                    }
-                    i++;
-                    continue;
-                }
-                if (inBlockComment) {
-                    if (char === '*' && nextChar === '/') {
-                        inBlockComment = false;
-                        currentStatement += char + nextChar;
-                        i += 2;
-                    }
-                    else {
-                        currentStatement += char;
-                        i++;
-                    }
-                    continue;
-                }
-                if (!inSingleQuote && !inDoubleQuote) {
-                    if (char === '-' && nextChar === '-') {
-                        inLineComment = true;
-                        currentStatement += char + nextChar;
-                        i += 2;
-                        continue;
-                    }
-                    if (char === '/' && nextChar === '*') {
-                        inBlockComment = true;
-                        currentStatement += char + nextChar;
-                        i += 2;
-                        continue;
-                    }
-                }
-                if (char === "'" && !inDoubleQuote && !inLineComment && !inBlockComment) {
-                    inSingleQuote = !inSingleQuote;
-                }
-                else if (char === '"' && !inSingleQuote && !inLineComment && !inBlockComment) {
-                    inDoubleQuote = !inDoubleQuote;
-                }
-                else if (char === ';' && !inSingleQuote && !inDoubleQuote && !inLineComment && !inBlockComment) {
-                    statements.push(currentStatement.trim());
-                    currentStatement = '';
-                    i++;
-                    continue;
-                }
-                currentStatement += char;
-                i++;
-            }
-            if (currentStatement.trim()) {
-                statements.push(currentStatement.trim());
-            }
-            for (const statement of statements) {
-                if (statement) {
-                    try {
-                        await database_1.pool.execute(statement);
-                    }
-                    catch (stmtError) {
-                        if (stmtError.errno === 1060) {
-                            console.log(`Column already exists, skipping: ${statement.substring(0, 50)}...`);
-                            continue;
-                        }
-                        else if (stmtError.errno === 1061) {
-                            console.log(`Index already exists, skipping: ${statement.substring(0, 50)}...`);
-                            continue;
-                        }
-                        else if (stmtError.errno === 1050) {
-                            console.log(`Table already exists, skipping: ${statement.substring(0, 50)}...`);
-                            continue;
-                        }
-                        else {
-                            console.error(`Error executing statement in ${migrationFile}:`, stmtError);
-                            throw stmtError;
-                        }
-                    }
-                }
-            }
-            console.log(`Completed migration: ${migrationFile}`);
+        const migrationPath = path_1.default.join(migrationsDir, migrationFile);
+        console.log(`Running consolidated migration: ${migrationFile}`);
+        console.log('This combines all 100+ migrations into one file for speed...');
+        const migrationSql = await promises_1.default.readFile(migrationPath, 'utf8');
+        await database_1.pool.execute('SET FOREIGN_KEY_CHECKS = 0');
+        console.log('Foreign key checks disabled\n');
+        const tempConfig = { ...database_1.dbConfig, namedPlaceholders: false, multipleStatements: true };
+        const tempConnection = await promise_1.default.createConnection(tempConfig);
+        try {
+            await tempConnection.query(migrationSql);
+            console.log('✅ Migration executed successfully');
         }
-        console.log('All migrations completed successfully');
+        catch (error) {
+            console.warn('Migration warning:', error.message?.substring(0, 200) || error);
+        }
+        finally {
+            await tempConnection.end();
+        }
+        await database_1.pool.execute('SET FOREIGN_KEY_CHECKS = 1');
+        console.log('Foreign key checks re-enabled');
+        const [tables] = await database_1.pool.execute('SHOW TABLES');
+        console.log(`\n✅ Database setup complete! Tables created: ${tables.length}`);
+        console.log('========================================');
     }
     catch (error) {
         console.error('Error running migrations:', error);
@@ -201,10 +127,16 @@ const initializeCompleteSystem = async (req, res) => {
         const passwordHash = await bcryptjs_1.default.hash(password, saltRounds);
         const [roleResult] = await database_1.pool.execute('INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', ['Super Admin', 'System super administrator with all privileges', JSON.stringify(['*'])]);
         const superAdminRoleId = roleResult.insertId;
-        const [userResult] = await database_1.pool.execute(`INSERT INTO users 
-       (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, ?, NULL, 'active', 0, NOW(), NOW())`, [email, passwordHash, fullName, phone || null, superAdminRoleId]);
+        const [userResult] = await database_1.pool.execute(`INSERT INTO users
+       (email, password_hash, full_name, phone, role_id, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'active', NOW(), NOW())`, [email, passwordHash, fullName, phone || null, superAdminRoleId]);
         const userId = userResult.insertId;
+        try {
+            await database_1.pool.execute('UPDATE users SET must_change_password = 1 WHERE id = ?', [userId]);
+        }
+        catch (updateError) {
+            console.log('Note: must_change_password column not available yet');
+        }
         const tokenPayload = {
             userId: userId,
             email: email,

@@ -153,6 +153,7 @@ const inviteStaffMember = async (req, res) => {
             }
         }
         const token = generateInvitationToken();
+        const temporaryPassword = generateTemporaryPassword();
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
         let departmentName = null;
@@ -163,9 +164,34 @@ const inviteStaffMember = async (req, res) => {
             }
         }
         const adminId = req.currentUser?.userId;
+        const passwordHash = await bcryptjs_1.default.hash(temporaryPassword, 10);
+        const workEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@tripa.com.ng`;
+        const [userResult] = await database_1.pool.execute(`INSERT INTO users
+       (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', 1, NOW(), NOW())`, [
+            workEmail,
+            passwordHash,
+            `${firstName} ${lastName}`,
+            phone ?? null,
+            roleId ?? null,
+            branchId ?? null
+        ]);
+        const userId = userResult.insertId;
+        if (departmentId) {
+            await database_1.pool.execute(`INSERT INTO staff
+         (user_id, employee_id, designation, department, branch_id, joining_date, employment_type, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'full_time', 'active')`, [
+                userId,
+                `EMP${userId.toString().padStart(4, '0')}`,
+                'Employee',
+                departmentName || 'General',
+                branchId ?? null,
+                new Date().toISOString().split('T')[0]
+            ]);
+        }
         await database_1.pool.execute(`INSERT INTO staff_invitations
-       (email, token, first_name, last_name, phone, role_id, branch_id, department_id, expires_at, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+       (email, token, first_name, last_name, phone, role_id, branch_id, department_id, user_id, expires_at, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             personalEmail,
             token,
             firstName,
@@ -174,10 +200,10 @@ const inviteStaffMember = async (req, res) => {
             roleId ?? null,
             branchId ?? null,
             departmentId ?? null,
+            userId,
             expiresAt,
             adminId ?? null
         ]);
-        const workEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@tripa.com.ng`;
         let adminName = 'an administrator';
         if (adminId) {
             const [adminRows] = await database_1.pool.execute('SELECT full_name FROM users WHERE id = ?', [adminId]);
@@ -190,12 +216,20 @@ const inviteStaffMember = async (req, res) => {
                 to: personalEmail,
                 fullName: `${firstName} ${lastName}`,
                 workEmail: workEmail,
+                temporaryPassword: temporaryPassword,
                 invitationToken: token,
                 fromAdmin: adminName
             });
         }
         catch (emailError) {
             console.error('Error sending invitation email:', emailError);
+            await database_1.pool.execute('DELETE FROM staff WHERE user_id = ?', [userId]);
+            await database_1.pool.execute('DELETE FROM users WHERE id = ?', [userId]);
+            await database_1.pool.execute('DELETE FROM staff_invitations WHERE user_id = ?', [userId]);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to send invitation email. Please try again.'
+            });
         }
         return res.status(201).json({
             success: true,
@@ -371,8 +405,14 @@ const resendInvitation = async (req, res) => {
             });
         }
         const newToken = generateInvitationToken();
+        const newTemporaryPassword = generateTemporaryPassword();
         const newExpiresAt = new Date();
         newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+        const userId = invitation.user_id;
+        if (userId) {
+            const newPasswordHash = await bcryptjs_1.default.hash(newTemporaryPassword, 10);
+            await database_1.pool.execute(`UPDATE users SET password_hash = ?, must_change_password = 1, updated_at = NOW() WHERE id = ?`, [newPasswordHash, userId]);
+        }
         await database_1.pool.execute('UPDATE staff_invitations SET token = ?, expires_at = ? WHERE id = ?', [newToken, newExpiresAt, id]);
         const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@tripa.com.ng`;
         try {
@@ -380,16 +420,21 @@ const resendInvitation = async (req, res) => {
                 to: invitation.email,
                 fullName: `${invitation.first_name} ${invitation.last_name}`,
                 workEmail: workEmail,
+                temporaryPassword: newTemporaryPassword,
                 invitationToken: newToken,
                 fromAdmin: 'HR Team'
             });
         }
         catch (emailError) {
             console.error('Error sending invitation email:', emailError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to resend invitation email'
+            });
         }
         return res.json({
             success: true,
-            message: 'Invitation resent successfully',
+            message: 'Invitation resent successfully with new credentials',
             data: {
                 email: invitation.email,
                 expiresAt: newExpiresAt.toISOString()
@@ -459,44 +504,22 @@ const acceptInvitation = async (req, res) => {
                 message: 'Invitation has expired'
             });
         }
-        const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@tripa.com.ng`;
-        const [existingUsers] = await database_1.pool.execute('SELECT id FROM users WHERE email = ?', [workEmail]);
-        if (existingUsers.length > 0) {
-            return res.status(400).json({
+        const userId = invitation.user_id;
+        if (!userId) {
+            return res.status(500).json({
                 success: false,
-                message: 'User already exists with this email'
+                message: 'Invalid invitation: no user account found'
             });
         }
-        const passwordHash = await bcryptjs_1.default.hash(password, 10);
+        const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@tripa.com.ng`;
+        const newPasswordHash = await bcryptjs_1.default.hash(password, 10);
         const connection = await database_1.pool.getConnection();
         try {
             await connection.beginTransaction();
-            const [userResult] = await connection.execute(`INSERT INTO users 
-         (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'active', 0, NOW(), NOW())`, [
-                workEmail,
-                passwordHash,
-                `${invitation.first_name} ${invitation.last_name}`,
-                invitation.phone,
-                invitation.role_id,
-                invitation.branch_id
-            ]);
-            const userId = userResult.insertId;
-            if (invitation.department_id) {
-                const [deptRows] = await connection.execute('SELECT name FROM departments WHERE id = ?', [invitation.department_id]);
-                if (deptRows.length > 0) {
-                    await connection.execute(`INSERT INTO staff 
-             (user_id, employee_id, designation, department, branch_id, joining_date, employment_type, status)
-             VALUES (?, ?, ?, ?, ?, ?, 'full_time', 'active')`, [
-                        userId,
-                        `EMP${userId.toString().padStart(4, '0')}`,
-                        'Employee',
-                        deptRows[0].name,
-                        invitation.branch_id,
-                        new Date().toISOString().split('T')[0]
-                    ]);
-                }
-            }
+            await connection.execute(`UPDATE users 
+         SET status = 'active', password_hash = ?, must_change_password = 0, updated_at = NOW()
+         WHERE id = ?`, [newPasswordHash, userId]);
+            await connection.execute(`UPDATE staff SET status = 'active' WHERE user_id = ?`, [userId]);
             await connection.execute('UPDATE staff_invitations SET status = "accepted", accepted_at = NOW() WHERE id = ?', [invitation.id]);
             await connection.commit();
             return res.json({

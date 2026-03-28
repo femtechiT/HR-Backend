@@ -53,35 +53,44 @@ const sendWelcomeEmail = async ({ to, fullName }) => {
     }
 };
 exports.sendWelcomeEmail = sendWelcomeEmail;
-const sendStaffInvitationEmail = async ({ to, fullName, workEmail, invitationToken, fromAdmin }) => {
+const sendStaffInvitationEmail = async ({ to, fullName, workEmail, temporaryPassword, invitationToken, fromAdmin }) => {
     try {
         const { error } = await resend.emails.send({
             from: process.env.FROM_EMAIL || 'invitations@tripa.com.ng',
             to: to,
-            subject: 'Welcome to Tripa! Your New Work Account Awaits',
+            subject: 'Welcome to Tripa! Your Work Account Credentials',
             html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #2c3e50;">Welcome to Tripa, ${fullName}!</h1>
 
           <p>You've been invited by ${fromAdmin} to join Tripa HR Management System.</p>
 
-          <h2 style="color: #3498db;">Your New Work Identity:</h2>
-          <p><strong>Work Email:</strong> ${workEmail}</p>
+          <h2 style="color: #3498db;">Your Work Account Credentials:</h2>
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; margin: 20px 0;">
+            <p style="margin: 10px 0;"><strong>Work Email:</strong> <span style="color: #2c3e50; font-family: monospace; font-size: 14px;">${workEmail}</span></p>
+            <p style="margin: 10px 0;"><strong>Temporary Password:</strong> <span style="color: #2c3e50; font-family: monospace; font-size: 14px;">${temporaryPassword}</span></p>
+          </div>
 
-          <p>To complete your registration and set up your password, please click the link below:</p>
+          <h2 style="color: #3498db; margin-top: 30px;">Access Your Account:</h2>
           
+          <p style="margin: 20px 0;">You can access your account through our Staff Portal:</p>
           <p style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/accept-invitation/${invitationToken}" 
-               style="background-color: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Accept Invitation & Set Password
+            <a href="https://fempwa.vercel.app"
+               style="background-color: #27ae60; color: white; padding: 14px 35px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+              Open Staff Portal
             </a>
           </p>
-          
-          <p><strong>Important:</strong> This invitation link will expire in 7 days.</p>
 
-          <p>Once you've set your password, you'll be able to log in and access your dashboard, track your KPIs, request time off, and more.</p>
+          <p style="margin: 20px 0;"><strong>Important Security Notes:</strong></p>
+          <ul style="line-height: 1.8;">
+            <li>Please change your temporary password immediately after logging in</li>
+            <li>Keep your work email and password secure</li>
+            <li>Do not share your credentials with anyone</li>
+            <li>This temporary password will expire after first use</li>
+          </ul>
 
-          <p>If you have any questions, please contact your administrator.</p>
+          <p style="margin: 20px 0;"><strong>Need Help?</strong></p>
+          <p>If you have any questions or need assistance, please contact your administrator.</p>
 
           <p>Welcome aboard!<br/>
           The Tripa HR Management Team</p>

@@ -16,6 +16,20 @@ const login = async (req, res) => {
                 message: 'Email and password are required'
             });
         }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid email format'
+            });
+        }
+        const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN;
+        if (allowedDomain && !email.endsWith(`@${allowedDomain}`)) {
+            return res.status(403).json({
+                success: false,
+                message: `Only ${allowedDomain} email addresses are allowed`
+            });
+        }
         const user = await user_model_1.default.findByEmail(email);
         if (!user) {
             return res.status(401).json({
@@ -41,10 +55,23 @@ const login = async (req, res) => {
             email: user.email,
             role: user.role_id
         };
+        const { rememberMe } = req.body;
+        const usePersistentLogin = rememberMe === true || rememberMe === 'true';
         const accessToken = jwt_util_1.default.generateAccessToken(payload);
         const refreshToken = jwt_util_1.default.generateRefreshToken(payload);
+        const cookieMaxAge = usePersistentLogin
+            ? 90 * 24 * 60 * 60 * 1000
+            : 7 * 24 * 60 * 60 * 1000;
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: cookieMaxAge,
+            path: '/'
+        });
         const permissions = await permission_service_1.default.generatePermissionManifest(user.id);
-        const mustChangePassword = user.must_change_password;
+        const needsPasswordChange = !!user.must_change_password;
+        const needsProfileCompletion = !(user.phone && user.date_of_birth);
         return res.json({
             success: true,
             message: 'Login successful',
@@ -56,7 +83,9 @@ const login = async (req, res) => {
                     roleId: user.role_id,
                     branchId: user.branch_id,
                     status: user.status,
-                    mustChangePassword: mustChangePassword
+                    profile_picture: user.profile_picture,
+                    needs_password_change: needsPasswordChange,
+                    needs_profile_completion: needsProfileCompletion
                 },
                 permissions,
                 tokens: {

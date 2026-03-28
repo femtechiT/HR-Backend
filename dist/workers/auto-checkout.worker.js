@@ -15,17 +15,29 @@ class AutoCheckoutWorker {
             const currentTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
             const todayStr = now.toISOString().split('T')[0];
             console.log(`[Auto-Checkout] Checking for auto-checkouts at ${currentTime}`);
-            const [branches] = await database_1.pool.execute(`
-        SELECT 
-          id,
-          name,
-          code,
-          auto_checkout_enabled,
-          auto_checkout_minutes_after_close,
-          closing_time
-        FROM branches
-        WHERE auto_checkout_enabled = TRUE
-      `);
+            let branches = [];
+            try {
+                const [result] = await database_1.pool.execute(`
+          SELECT
+            id,
+            name,
+            code,
+            auto_checkout_enabled,
+            auto_checkout_minutes_after_close,
+            closing_time
+          FROM branches
+          WHERE auto_checkout_enabled = TRUE
+        `);
+                branches = result;
+            }
+            catch (error) {
+                if (error.errno === 1054 || error.code === 'ER_BAD_FIELD_ERROR') {
+                    console.log('[Auto-Checkout] Column auto_checkout_enabled not found, skipping auto-checkout');
+                    this.isRunning = false;
+                    return;
+                }
+                throw error;
+            }
             if (branches.length === 0) {
                 console.log('[Auto-Checkout] No branches with auto-checkout enabled');
                 this.isRunning = false;

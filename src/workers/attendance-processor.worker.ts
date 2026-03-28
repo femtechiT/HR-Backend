@@ -48,72 +48,10 @@ class AttendanceProcessorWorker {
       const userIds = staffResults.map((staff: any) => staff.user_id);
       console.log(`${logPrefix} Processing attendance for ${userIds.length} active staff members`);
 
-      // Check if it's a holiday
-      const isHoliday = await HolidayModel.isHoliday(date);
-      if (isHoliday) {
-        console.log(`${logPrefix} Date ${dateStr} is a holiday, marking staff as holiday or holiday-working`);
-
-        let holidayProcessedCount = 0;
-        let holidayWorkingCount = 0;
-
-        for (const userId of userIds) {
-          // Check if attendance already exists
-          const existingAttendance = await AttendanceModel.findByUserIdAndDate(userId, date);
-          if (existingAttendance) {
-            console.log(`${logPrefix} Attendance already exists for user ${userId} on ${dateStr}, skipping`);
-            continue;
-          }
-
-          // Check if user is on holiday duty roster
-          const [dutyRoster] = await pool.execute(
-            `SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`,
-            [date, userId]
-          ) as [any[], any];
-
-          if (dutyRoster.length > 0) {
-            // User is on holiday duty - mark as holiday-working
-            const roster = dutyRoster[0];
-            const attendanceData = {
-              user_id: userId,
-              date: date,
-              status: 'holiday-working' as any,
-              check_in_time: null,
-              check_out_time: null,
-              location_coordinates: null,
-              location_verified: false,
-              location_address: null,
-              notes: `Scheduled for holiday duty: ${roster.shift_start_time} - ${roster.shift_end_time}`
-            };
-
-            await AttendanceModel.create(attendanceData);
-            holidayWorkingCount++;
-            console.log(`${logPrefix} Holiday-working attendance processed for user ${userId}`);
-          } else {
-            // User is not on duty - mark as holiday
-            const attendanceData = {
-              user_id: userId,
-              date: date,
-              status: 'holiday' as const,
-              check_in_time: null,
-              check_out_time: null,
-              location_coordinates: null,
-              location_verified: false,
-              location_address: null,
-              notes: 'Public holiday - no attendance required'
-            };
-
-            await AttendanceModel.create(attendanceData);
-            holidayProcessedCount++;
-          }
-        }
-
-        console.log(`${logPrefix} Holiday attendance processed: ${holidayProcessedCount} on holiday, ${holidayWorkingCount} on duty`);
-        return { processed: holidayProcessedCount + holidayWorkingCount, absent: 0, holiday: holidayProcessedCount, holidayWorking: holidayWorkingCount };
-      }
-
       // Process attendance for each user individually
       let absentProcessedCount = 0;
       let leaveProcessedCount = 0;
+      let holidayProcessedCount = 0;
       let skippedCount = 0;
 
       for (const userId of userIds) {
@@ -125,19 +63,40 @@ class AttendanceProcessorWorker {
           continue;
         }
 
+        // Get user's effective schedule for this date using the new shift scheduling system
+        // This handles exceptions, holidays, custom shifts, and branch defaults
+        const effectiveSchedule = await ShiftSchedulingService.getEffectiveScheduleForDate(userId, date);
+
+        if (effectiveSchedule && effectiveSchedule.schedule_type === 'holiday') {
+          // Employee has no exception to work, so they get the day off for the holiday
+          const attendanceData = {
+            user_id: userId,
+            date: date,
+            status: 'holiday' as const,
+            check_in_time: null,
+            check_out_time: null,
+            location_coordinates: null,
+            location_verified: false,
+            location_address: null,
+            notes: effectiveSchedule.schedule_note
+          };
+          await AttendanceModel.create(attendanceData);
+          holidayProcessedCount++;
+          console.log(`${logPrefix} Holiday attendance processed for user ${userId}`);
+          continue;
+        }
+
         // Check if user has approved leave on this date
+        // Note: leave_history and leave_requests could logically be integrated into ShiftSchedulingService later,
+        // but for now we keep the existing leave checks here.
         const leaveHistory = await LeaveHistoryModel.findByUserIdAndDateRange(userId, date, date);
         if (leaveHistory.length > 0) {
-          // Check for approved leave that hasn't been cancelled
-          const activeApprovedLeave = leaveHistory.filter(
-            leave => leave.status === 'approved'
-          );
-
+          const activeApprovedLeave = leaveHistory.filter(leave => leave.status === 'approved');
           if (activeApprovedLeave.length > 0) {
             const attendanceData = {
               user_id: userId,
               date: date,
-              status: 'leave' as const,
+              status: 'leave' as any,
               check_in_time: null,
               check_out_time: null,
               location_coordinates: null,
@@ -145,7 +104,6 @@ class AttendanceProcessorWorker {
               location_address: null,
               notes: 'On approved leave'
             };
-
             await AttendanceModel.create(attendanceData);
             leaveProcessedCount++;
             console.log(`${logPrefix} Leave attendance processed for user ${userId}`);
@@ -153,13 +111,8 @@ class AttendanceProcessorWorker {
           }
         }
 
-        // Also check leave_requests table for approved but not cancelled leave
         const [leaveRequests]: any = await pool.execute(
-          `SELECT * FROM leave_requests
-           WHERE user_id = ?
-             AND ? BETWEEN start_date AND end_date
-             AND status = 'approved'
-             AND (cancelled_by IS NULL OR cancelled_at IS NULL)`,
+          `SELECT * FROM leave_requests WHERE user_id = ? AND ? BETWEEN start_date AND end_date AND status = 'approved' AND (cancelled_by IS NULL OR cancelled_at IS NULL)`,
           [userId, date]
         );
 
@@ -167,7 +120,7 @@ class AttendanceProcessorWorker {
           const attendanceData = {
             user_id: userId,
             date: date,
-            status: 'leave' as const,
+            status: 'leave' as any,
             check_in_time: null,
             check_out_time: null,
             location_coordinates: null,
@@ -175,57 +128,44 @@ class AttendanceProcessorWorker {
             location_address: null,
             notes: 'On approved leave'
           };
-
           await AttendanceModel.create(attendanceData);
           leaveProcessedCount++;
           console.log(`${logPrefix} Leave attendance processed for user ${userId} from leave_requests`);
           continue;
         }
 
-        // Check if it's a working day for this user's branch
-        const staffRecord = await StaffModel.findByUserId(userId);
-        if (staffRecord && staffRecord.branch_id) {
-          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-          const dayOfWeek = dayNames[date.getDay()];
-          
-          const isWorkingDay = await BranchWorkingDaysModel.isWorkingDay(staffRecord.branch_id, dayOfWeek);
-          
-          if (!isWorkingDay) {
-            // It's a non-working day (weekend/off-day) for this branch
-            const attendanceData = {
-              user_id: userId,
-              date: date,
-              status: 'weekend' as const,
-              check_in_time: null,
-              check_out_time: null,
-              location_coordinates: null,
-              location_verified: false,
-              location_address: null,
-              notes: 'Non-working day for branch'
-            };
-
-            await AttendanceModel.create(attendanceData);
-            skippedCount++;
-            console.log(`${logPrefix} Non-working day for user ${userId} on ${dateStr} (${dayOfWeek}), marking as weekend`);
-            continue;
-          }
-        }
-
-        // Get user's effective schedule for this date using the new shift scheduling system
-        const effectiveSchedule = await ShiftSchedulingService.getEffectiveScheduleForDate(userId, date);
-
-        // If no schedule is defined for this user on this date, don't mark attendance (they're not scheduled)
+        // If no schedule is defined for this user on this date, it's a weekend or off day
         if (!effectiveSchedule || !effectiveSchedule.start_time || !effectiveSchedule.end_time) {
-          skippedCount++;
-          console.log(`${logPrefix} No shift assigned for user ${userId} on ${dateStr}, skipping`);
+          // Determine status based on schedule type
+          let status: any = 'weekend';
+          let notes = effectiveSchedule?.schedule_note || 'Non-working day';
+
+          if (effectiveSchedule?.schedule_type === 'holiday') {
+            status = 'holiday';
+          }
+
+          const attendanceData = {
+            user_id: userId,
+            date: date,
+            status: status,
+            check_in_time: null,
+            check_out_time: null,
+            location_coordinates: null,
+            location_verified: false,
+            location_address: null,
+            notes: notes
+          };
+          await AttendanceModel.create(attendanceData);
+          skippedCount++; // count weekend as skipped for summary
+          console.log(`${logPrefix} Non-working day for user ${userId} on ${dateStr}, marking as ${status}`);
           continue;
         }
 
-        // If shift exists but no check-in time was recorded, mark as absent
+        // If a valid working schedule exists but no check-in time was recorded, mark as absent
         const attendanceData = {
           user_id: userId,
           date: date,
-          status: 'absent' as const,
+          status: 'absent' as any,
           check_in_time: null,
           check_out_time: null,
           location_coordinates: null,

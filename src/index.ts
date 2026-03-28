@@ -46,6 +46,7 @@ import applicationSubmissionRoutes from './api/application-submission.route';
 import applicationManagementRoutes from './api/application-management.route';
 import shiftSchedulingRoutes from './api/shift-scheduling.route';
 import shiftExceptionRoutes from './api/shift-exception.route';
+import shiftExceptionBulkRoutes from './api/shift-exception-bulk.route';
 import shiftExceptionTypeRoutes from './api/shift-exception-type.route';
 import myShiftsRoutes from './api/my-shifts.route';
 import holidayDutyRosterRoutes from './api/holiday-duty-roster.route';
@@ -168,6 +169,7 @@ app.use('/api/job-applications', applicationSubmissionRoutes);
 app.use('/api/job-application-management', applicationManagementRoutes);
 app.use('/api/shift-scheduling', shiftSchedulingRoutes);
 app.use('/api/shift-scheduling/exceptions', shiftExceptionRoutes);
+app.use('/api/shift-exceptions', shiftExceptionBulkRoutes);  // Bulk exception creation
 app.use('/api/shift-exception-types', shiftExceptionTypeRoutes);
 app.use('/api/my-shifts', myShiftsRoutes);
 app.use('/api/holiday-duty-roster', holidayDutyRosterRoutes);

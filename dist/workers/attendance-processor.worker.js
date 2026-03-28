@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const database_1 = require("../config/database");
 const attendance_model_1 = __importDefault(require("../models/attendance.model"));
-const holiday_model_1 = __importDefault(require("../models/holiday.model"));
 const leave_history_model_1 = __importDefault(require("../models/leave-history.model"));
 const shift_scheduling_service_1 = require("../services/shift-scheduling.service");
 class AttendanceProcessorWorker {
@@ -31,62 +30,33 @@ class AttendanceProcessorWorker {
             const [staffResults] = await database_1.pool.execute(query, params);
             const userIds = staffResults.map((staff) => staff.user_id);
             console.log(`${logPrefix} Processing attendance for ${userIds.length} active staff members`);
-            const isHoliday = await holiday_model_1.default.isHoliday(date);
-            if (isHoliday) {
-                console.log(`${logPrefix} Date ${dateStr} is a holiday, marking staff as holiday or holiday-working`);
-                let holidayProcessedCount = 0;
-                let holidayWorkingCount = 0;
-                for (const userId of userIds) {
-                    const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(userId, date);
-                    if (existingAttendance) {
-                        console.log(`${logPrefix} Attendance already exists for user ${userId} on ${dateStr}, skipping`);
-                        continue;
-                    }
-                    const [dutyRoster] = await database_1.pool.execute(`SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`, [date, userId]);
-                    if (dutyRoster.length > 0) {
-                        const roster = dutyRoster[0];
-                        const attendanceData = {
-                            user_id: userId,
-                            date: date,
-                            status: 'holiday-working',
-                            check_in_time: null,
-                            check_out_time: null,
-                            location_coordinates: null,
-                            location_verified: false,
-                            location_address: null,
-                            notes: `Scheduled for holiday duty: ${roster.shift_start_time} - ${roster.shift_end_time}`
-                        };
-                        await attendance_model_1.default.create(attendanceData);
-                        holidayWorkingCount++;
-                        console.log(`${logPrefix} Holiday-working attendance processed for user ${userId}`);
-                    }
-                    else {
-                        const attendanceData = {
-                            user_id: userId,
-                            date: date,
-                            status: 'holiday',
-                            check_in_time: null,
-                            check_out_time: null,
-                            location_coordinates: null,
-                            location_verified: false,
-                            location_address: null,
-                            notes: 'Public holiday - no attendance required'
-                        };
-                        await attendance_model_1.default.create(attendanceData);
-                        holidayProcessedCount++;
-                    }
-                }
-                console.log(`${logPrefix} Holiday attendance processed: ${holidayProcessedCount} on holiday, ${holidayWorkingCount} on duty`);
-                return { processed: holidayProcessedCount + holidayWorkingCount, absent: 0, holiday: holidayProcessedCount, holidayWorking: holidayWorkingCount };
-            }
             let absentProcessedCount = 0;
             let leaveProcessedCount = 0;
+            let holidayProcessedCount = 0;
             let skippedCount = 0;
             for (const userId of userIds) {
                 const existingAttendance = await attendance_model_1.default.findByUserIdAndDate(userId, date);
                 if (existingAttendance) {
                     console.log(`${logPrefix} Attendance already exists for user ${userId} on ${dateStr}, skipping`);
                     skippedCount++;
+                    continue;
+                }
+                const effectiveSchedule = await shift_scheduling_service_1.ShiftSchedulingService.getEffectiveScheduleForDate(userId, date);
+                if (effectiveSchedule && effectiveSchedule.schedule_type === 'holiday') {
+                    const attendanceData = {
+                        user_id: userId,
+                        date: date,
+                        status: 'holiday',
+                        check_in_time: null,
+                        check_out_time: null,
+                        location_coordinates: null,
+                        location_verified: false,
+                        location_address: null,
+                        notes: effectiveSchedule.schedule_note
+                    };
+                    await attendance_model_1.default.create(attendanceData);
+                    holidayProcessedCount++;
+                    console.log(`${logPrefix} Holiday attendance processed for user ${userId}`);
                     continue;
                 }
                 const leaveHistory = await leave_history_model_1.default.findByUserIdAndDateRange(userId, date, date);
@@ -110,11 +80,7 @@ class AttendanceProcessorWorker {
                         continue;
                     }
                 }
-                const [leaveRequests] = await database_1.pool.execute(`SELECT * FROM leave_requests
-           WHERE user_id = ?
-             AND ? BETWEEN start_date AND end_date
-             AND status = 'approved'
-             AND (cancelled_by IS NULL OR cancelled_at IS NULL)`, [userId, date]);
+                const [leaveRequests] = await database_1.pool.execute(`SELECT * FROM leave_requests WHERE user_id = ? AND ? BETWEEN start_date AND end_date AND status = 'approved' AND (cancelled_by IS NULL OR cancelled_at IS NULL)`, [userId, date]);
                 if (leaveRequests.length > 0) {
                     const attendanceData = {
                         user_id: userId,
@@ -132,10 +98,21 @@ class AttendanceProcessorWorker {
                     console.log(`${logPrefix} Leave attendance processed for user ${userId} from leave_requests`);
                     continue;
                 }
-                const effectiveSchedule = await shift_scheduling_service_1.ShiftSchedulingService.getEffectiveScheduleForDate(userId, date);
                 if (!effectiveSchedule || !effectiveSchedule.start_time || !effectiveSchedule.end_time) {
+                    const attendanceData = {
+                        user_id: userId,
+                        date: date,
+                        status: 'weekend',
+                        check_in_time: null,
+                        check_out_time: null,
+                        location_coordinates: null,
+                        location_verified: false,
+                        location_address: null,
+                        notes: effectiveSchedule?.schedule_note || 'Non-working day'
+                    };
+                    await attendance_model_1.default.create(attendanceData);
                     skippedCount++;
-                    console.log(`${logPrefix} No shift assigned for user ${userId} on ${dateStr}, skipping`);
+                    console.log(`${logPrefix} Non-working day for user ${userId} on ${dateStr}, marking as weekend`);
                     continue;
                 }
                 const attendanceData = {

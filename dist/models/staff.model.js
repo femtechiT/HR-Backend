@@ -3,35 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const database_1 = require("../config/database");
 class StaffModel {
     static tableName = 'staff';
-    static async findAll(limit = 20, offset = 0, branchId) {
-        let query = `SELECT s.*, u.full_name, u.email
-                 FROM ${this.tableName} s
-                 LEFT JOIN users u ON s.user_id = u.id`;
-        const params = [];
-        if (branchId) {
-            query += ' WHERE s.branch_id = ?';
-            params.push(branchId);
-        }
-        query += ' ORDER BY s.created_at DESC LIMIT ? OFFSET ?';
-        params.push(limit, offset);
-        const [rows] = await database_1.pool.execute(query, params);
-        let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName} s`;
-        const countParams = [];
-        if (branchId) {
-            countQuery += ' WHERE s.branch_id = ?';
-            countParams.push(branchId);
-        }
-        const [countResult] = await database_1.pool.execute(countQuery, countParams);
-        const totalCount = countResult[0].count;
-        return {
-            staff: rows,
-            totalCount
-        };
+    static async findAll(limit = 20, offset = 0, branchId, status, department, search) {
+        return this.findAllWithFilters(limit, offset, branchId, department, status, search);
     }
-    static async findAllWithFilters(limit = 20, offset = 0, branchId, department, status) {
-        let query = `SELECT s.*, u.full_name, u.email
+    static async findAllWithFilters(limit = 20, offset = 0, branchId, department, status, search) {
+        let query = `SELECT s.*, u.full_name, u.email, b.name as branch_name
                  FROM ${this.tableName} s
-                 LEFT JOIN users u ON s.user_id = u.id`;
+                 LEFT JOIN users u ON s.user_id = u.id
+                 LEFT JOIN branches b ON s.branch_id = b.id`;
         const params = [];
         const conditions = [];
         if (branchId) {
@@ -46,17 +25,33 @@ class StaffModel {
             conditions.push('s.status = ?');
             params.push(status);
         }
+        if (search) {
+            conditions.push('(u.full_name LIKE ? OR u.email LIKE ? OR s.employee_id LIKE ? OR s.designation LIKE ?)');
+            const searchPattern = `%${search}%`;
+            params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+        }
         if (conditions.length > 0) {
             query += ' WHERE ' + conditions.join(' AND ');
         }
         query += ' ORDER BY s.created_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
         const [rows] = await database_1.pool.execute(query, params);
-        let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName} s`;
+        let countQuery = `SELECT COUNT(*) as count FROM ${this.tableName} s LEFT JOIN users u ON s.user_id = u.id`;
+        const countParams = [];
         if (conditions.length > 0) {
             countQuery += ' WHERE ' + conditions.join(' AND ');
+            if (branchId)
+                countParams.push(branchId);
+            if (department)
+                countParams.push(department);
+            if (status)
+                countParams.push(status);
+            if (search) {
+                const searchPattern = `%${search}%`;
+                countParams.push(searchPattern, searchPattern, searchPattern, searchPattern);
+            }
         }
-        const [countResult] = await database_1.pool.execute(countQuery, params.slice(0, conditions.length));
+        const [countResult] = await database_1.pool.execute(countQuery, countParams);
         const totalCount = countResult[0].count;
         return {
             staff: rows,
@@ -64,16 +59,18 @@ class StaffModel {
         };
     }
     static async findById(id) {
-        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email, b.name as branch_name
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
+       LEFT JOIN branches b ON s.branch_id = b.id
        WHERE s.id = ?`, [id]);
         return rows[0] || null;
     }
     static async findByUserId(userId) {
-        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email, b.name as branch_name
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
+       LEFT JOIN branches b ON s.branch_id = b.id
        WHERE s.user_id = ?`, [userId]);
         return rows[0] || null;
     }
@@ -408,11 +405,19 @@ class StaffModel {
             updates.push('background_verification_status = ?');
             values.push(staffData.background_verification_status);
         }
+        console.log('[StaffModel] Update called for ID:', id);
+        console.log('[StaffModel] Number of fields to update:', updates.length);
+        console.log('[StaffModel] Updates:', updates.join(', '));
+        console.log('[StaffModel] Values:', values);
         if (updates.length === 0) {
+            console.log('[StaffModel] No fields to update, returning current data');
             return await this.findById(id);
         }
         values.push(id);
-        await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
+        const sql = `UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`;
+        console.log('[StaffModel] Executing SQL:', sql);
+        await database_1.pool.execute(sql, values);
+        console.log('[StaffModel] Update completed, fetching updated record...');
         return await this.findById(id);
     }
     static async delete(id) {

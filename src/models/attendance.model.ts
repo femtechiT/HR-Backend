@@ -4,13 +4,15 @@ export interface Attendance {
   id: number;
   user_id: number;
   date: Date;
-  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working';
+  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend';
   check_in_time: Date | null;
   check_out_time: Date | null;
   location_coordinates: string | null; // POINT data stored as string
   location_verified: boolean;
   location_address: string | null;
   notes: string | null;
+  is_locked: boolean;
+  locked_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -18,13 +20,15 @@ export interface Attendance {
 export interface AttendanceInput {
   user_id: number;
   date: Date;
-  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working';
+  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend';
   check_in_time?: Date | null;
   check_out_time?: Date | null;
   location_coordinates?: string | null; // WKT format: "POINT(longitude latitude)"
   location_verified?: boolean;
   location_address?: string | null;
   notes?: string | null;
+  is_locked?: boolean;
+  locked_at?: Date | null;
 }
 
 // Helper function to convert lat/lng object to WKT format
@@ -38,13 +42,15 @@ export function locationToWKT(location: { longitude: number; latitude: number } 
 }
 
 export interface AttendanceUpdate {
-  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday';
+  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'weekend';
   check_in_time?: Date | null;
   check_out_time?: Date | null;
   location_coordinates?: string | null;
   location_verified?: boolean;
   location_address?: string | null;
   notes?: string | null;
+  is_locked?: boolean;
+  locked_at?: Date | null;
 }
 
 class AttendanceModel {
@@ -89,8 +95,8 @@ class AttendanceModel {
 
   static async create(attendanceData: AttendanceInput): Promise<Attendance> {
     const [result]: any = await pool.execute(
-      `INSERT INTO ${this.tableName} (user_id, date, status, check_in_time, check_out_time, location_coordinates, location_verified, location_address, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO ${this.tableName} (user_id, date, status, check_in_time, check_out_time, location_coordinates, location_verified, location_address, notes, is_locked, locked_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         attendanceData.user_id,
         attendanceData.date,
@@ -100,7 +106,9 @@ class AttendanceModel {
         attendanceData.location_coordinates || null,
         attendanceData.location_verified || false,
         attendanceData.location_address || null,
-        attendanceData.notes || null
+        attendanceData.notes || null,
+        attendanceData.is_locked || false,
+        attendanceData.locked_at || null
       ]
     );
 
@@ -151,6 +159,16 @@ class AttendanceModel {
     if (attendanceData.notes !== undefined) {
       updates.push('notes = ?');
       values.push(attendanceData.notes);
+    }
+    
+    if (attendanceData.is_locked !== undefined) {
+      updates.push('is_locked = ?');
+      values.push(attendanceData.is_locked);
+    }
+    
+    if (attendanceData.locked_at !== undefined) {
+      updates.push('locked_at = ?');
+      values.push(attendanceData.locked_at);
     }
 
     if (updates.length === 0) {

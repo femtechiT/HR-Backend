@@ -16,12 +16,14 @@ export class ShiftSchedulingService {
     schedule_note: string;
   } | null> {
     try {
+      const dateStr = date.toISOString().split('T')[0];
+      
       // First, check for any shift exceptions on this specific date
       const [exceptions]: any = await pool.execute(
         `SELECT se.new_start_time, se.new_end_time, se.new_break_duration_minutes, se.exception_type, se.reason
          FROM shift_exceptions se
          WHERE se.user_id = ? AND se.exception_date = ? AND se.status = 'active'`,
-        [userId, date.toISOString().split('T')[0]]
+        [userId, dateStr]
       );
 
       if (exceptions.length > 0) {
@@ -32,6 +34,23 @@ export class ShiftSchedulingService {
           break_duration_minutes: exception.new_break_duration_minutes,
           schedule_type: `exception_${exception.exception_type}`,
           schedule_note: exception.reason || `Special schedule for ${exception.exception_type}`
+        };
+      }
+
+      // Next, check if it's a holiday
+      // If it's a holiday and we didn't find an active exception above, they shouldn't work.
+      const [holidays]: any = await pool.execute(
+        `SELECT * FROM holidays WHERE date = ? AND (branch_id IS NULL OR branch_id = (SELECT branch_id FROM staff WHERE user_id = ?))`,
+        [dateStr, userId]
+      );
+
+      if (holidays.length > 0) {
+        return {
+          start_time: null,
+          end_time: null,
+          break_duration_minutes: 0,
+          schedule_type: 'holiday',
+          schedule_note: `Holiday: ${holidays[0].holiday_name}`
         };
       }
 
@@ -46,7 +65,7 @@ export class ShiftSchedulingService {
          WHERE esa.user_id = ? 
            AND esa.status = 'active'
            AND ? BETWEEN esa.effective_from AND COALESCE(esa.effective_to, '9999-12-31')`,
-        [userId, date.toISOString().split('T')[0]]
+        [userId, dateStr]
       );
 
       if (assignments.length > 0) {
@@ -107,14 +126,24 @@ export class ShiftSchedulingService {
           [branchId, dayName]
         );
 
-        if (branchHours.length > 0 && branchHours[0].is_working_day) {
-          return {
-            start_time: branchHours[0].start_time,
-            end_time: branchHours[0].end_time,
-            break_duration_minutes: branchHours[0].break_duration_minutes || 0,
-            schedule_type: 'branch_default',
-            schedule_note: `Standard ${dayName} hours for branch`
-          };
+        if (branchHours.length > 0) {
+          if (branchHours[0].is_working_day) {
+            return {
+              start_time: branchHours[0].start_time,
+              end_time: branchHours[0].end_time,
+              break_duration_minutes: branchHours[0].break_duration_minutes || 0,
+              schedule_type: 'branch_default',
+              schedule_note: `Standard ${dayName} hours for branch`
+            };
+          } else {
+            return {
+              start_time: null,
+              end_time: null,
+              break_duration_minutes: 0,
+              schedule_type: 'non_working_day',
+              schedule_note: `Branch is closed on ${dayName}`
+            };
+          }
         }
       }
 

@@ -27,6 +27,7 @@ const parseConnectionString = (connectionString) => {
             enableKeepAlive: true,
             keepAliveInitialDelay: 0,
             namedPlaceholders: true,
+            multipleStatements: true,
             ssl: {
                 rejectUnauthorized: true
             }
@@ -49,6 +50,7 @@ const dbConfig = parseConnectionString(process.env.DATABASE_URL) || {
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
     namedPlaceholders: true,
+    multipleStatements: true,
 };
 exports.dbConfig = dbConfig;
 const pool = promise_1.default.createPool(dbConfig);

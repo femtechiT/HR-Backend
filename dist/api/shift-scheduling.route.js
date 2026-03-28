@@ -12,6 +12,7 @@ router.post('/shift-templates', auth_middleware_1.authenticateJWT, (0, auth_midd
 router.put('/shift-templates/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_template:update'), shift_management_controller_1.updateShiftTemplate);
 router.delete('/shift-templates/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_template:delete'), shift_management_controller_1.deleteShiftTemplate);
 router.get('/employee-shift-assignments', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:read'), shift_management_controller_1.getAllEmployeeShiftAssignments);
+router.get('/employee-shift-assignments/my', auth_middleware_1.authenticateJWT, shift_management_controller_1.getMyShiftAssignments);
 router.get('/employee-shift-assignments/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:read'), shift_management_controller_1.getEmployeeShiftAssignmentById);
 router.post('/employee-shift-assignments', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:create'), shift_management_controller_1.assignShiftToEmployee);
 router.put('/employee-shift-assignments/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:update'), shift_management_controller_1.updateEmployeeShiftAssignment);

@@ -25,6 +25,24 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
       });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Optional: Validate company email domain (configure via environment variable)
+    const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN;
+    if (allowedDomain && !email.endsWith(`@${allowedDomain}`)) {
+      return res.status(403).json({
+        success: false,
+        message: `Only ${allowedDomain} email addresses are allowed`
+      });
+    }
+
     // Find user by email
     const user = await UserModel.findByEmail(email);
     if (!user) {
@@ -83,22 +101,10 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
     // Get user permissions manifest
     const permissions = await PermissionService.generatePermissionManifest(user.id);
 
-    // SECURITY: Check if user has ANY permissions (reject login if no permissions)
-    const permissionKeys = Object.keys(permissions);
-    const hasAnyPermission = permissionKeys.length > 0 && 
-      !permissionKeys.every(key => permissions[key] === false);
-    
-    // Admin (role_id: 1) OR users with wildcard (*) permission always allowed
-    const isAdmin = user.role_id === 1;
-    const hasWildcard = permissions['*'] === true;
-    
-    if (!hasAnyPermission && !isAdmin && !hasWildcard) {
-      console.log(`[Auth] User ${user.id} (${user.email}) has no permissions - denying login`);
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied: Your account has no permissions assigned. Please contact your administrator.'
-      });
-    }
+    // NOTE: We do NOT block login based on permissions
+    // - All authenticated users can access the mobile app
+    // - HR Admin Dashboard access is controlled by frontend permissions
+    // - Users without permissions can still use self-service features
 
     // Check if user must change password and if profile is complete
     const needsPasswordChange = !!user.must_change_password;

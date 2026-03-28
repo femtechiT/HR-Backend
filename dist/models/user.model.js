@@ -123,6 +123,10 @@ class UserModel {
             updates.push('status = ?');
             values.push(userData.status);
         }
+        if (userData.profile_picture !== undefined) {
+            updates.push('profile_picture = ?');
+            values.push(userData.profile_picture);
+        }
         if (updates.length === 0) {
             return this.findById(id);
         }

@@ -5,9 +5,10 @@ const database_1 = require("../config/database");
 class ShiftSchedulingService {
     static async getEffectiveScheduleForDate(userId, date) {
         try {
+            const dateStr = date.toISOString().split('T')[0];
             const [exceptions] = await database_1.pool.execute(`SELECT se.new_start_time, se.new_end_time, se.new_break_duration_minutes, se.exception_type, se.reason
          FROM shift_exceptions se
-         WHERE se.user_id = ? AND se.exception_date = ? AND se.status = 'active'`, [userId, date.toISOString().split('T')[0]]);
+         WHERE se.user_id = ? AND se.exception_date = ? AND se.status = 'active'`, [userId, dateStr]);
             if (exceptions.length > 0) {
                 const exception = exceptions[0];
                 return {
@@ -18,6 +19,16 @@ class ShiftSchedulingService {
                     schedule_note: exception.reason || `Special schedule for ${exception.exception_type}`
                 };
             }
+            const [holidays] = await database_1.pool.execute(`SELECT * FROM holidays WHERE date = ? AND (branch_id IS NULL OR branch_id = (SELECT branch_id FROM staff WHERE user_id = ?))`, [dateStr, userId]);
+            if (holidays.length > 0) {
+                return {
+                    start_time: null,
+                    end_time: null,
+                    break_duration_minutes: 0,
+                    schedule_type: 'holiday',
+                    schedule_note: `Holiday: ${holidays[0].holiday_name}`
+                };
+            }
             const [assignments] = await database_1.pool.execute(`SELECT esa.custom_start_time, esa.custom_end_time, esa.custom_break_duration_minutes,
                 st.start_time as template_start_time, st.end_time as template_end_time, 
                 st.break_duration_minutes as template_break_duration_minutes,
@@ -26,7 +37,7 @@ class ShiftSchedulingService {
          LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
          WHERE esa.user_id = ? 
            AND esa.status = 'active'
-           AND ? BETWEEN esa.effective_from AND COALESCE(esa.effective_to, '9999-12-31')`, [userId, date.toISOString().split('T')[0]]);
+           AND ? BETWEEN esa.effective_from AND COALESCE(esa.effective_to, '9999-12-31')`, [userId, dateStr]);
             if (assignments.length > 0) {
                 const dayOfWeek = date.getDay();
                 const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];

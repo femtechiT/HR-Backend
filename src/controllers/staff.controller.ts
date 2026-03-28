@@ -11,15 +11,29 @@ import CompanyAssetModel from '../models/company-asset.model';
 // Controller for staff management
 export const getAllStaff = async (req: Request, res: Response) => {
   try {
-    const page = getNumberQueryParam(req, 'page', 1) || 1;
-    const limit = getNumberQueryParam(req, 'limit', 20) || 20;
+    const paginate = req.query.paginate !== 'false';
     const branchId = req.query.branchId ? getNumberQueryParam(req, 'branchId') : undefined;
-    
-    // Get filter parameters
     const status = req.query.status as string | undefined;
     const department = req.query.department as string | undefined;
     const search = req.query.search as string | undefined;
 
+    if (!paginate) {
+      // Fetch all staff matching filters without pagination
+      // We'll use a very large limit for findAllWithFilters if it doesn't support null limit
+      const { staff, totalCount } = await StaffModel.findAll(10000, 0, branchId, status, department, search);
+      
+      return res.json({
+        success: true,
+        message: 'All staff retrieved successfully',
+        data: {
+          staff,
+          totalCount
+        }
+      });
+    }
+
+    const page = getNumberQueryParam(req, 'page', 1) || 1;
+    const limit = getNumberQueryParam(req, 'limit', 20) || 20;
     const offset = (page - 1) * limit;
 
     const { staff, totalCount } = await StaffModel.findAll(limit, offset, branchId, status, department, search);
@@ -138,7 +152,7 @@ export const createStaff = async (req: Request, res: Response) => {
       notice_period_end_date, relieving_date, experience_years, previous_company,
       resignation_date, last_working_date, reason_for_leaving, reference_check_status,
       background_verification_status
-    }: StaffInput = req.body;
+    } = req.body as any;
 
     // Validate required fields
     if (!user_id) {
@@ -208,10 +222,10 @@ export const createStaff = async (req: Request, res: Response) => {
       emergency_contact_name,
       emergency_contact_phone,
       emergency_contact_relationship,
-      date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
+      date_of_birth,
       gender,
-      current_address_id,
-      permanent_address_id,
+      //current_address_id,
+      //permanent_address_id,
       company_assets,
       primary_skills,
       education_certifications,
@@ -334,7 +348,7 @@ export const updateStaff = async (req: Request, res: Response) => {
       resignation_date, last_working_date, reason_for_leaving, reference_check_status,
       background_verification_status, state_of_origin, lga, course_of_study,
       first_name, last_name, middle_name
-    }: StaffUpdate & { state_of_origin?: string; lga?: string; course_of_study?: string; first_name?: string; last_name?: string; middle_name?: string } = req.body;
+    } = req.body as any;
 
     // SECURITY: employee_id is AUTO-GENERATED and CANNOT be changed
     // Ignore any employee_id field from request body (even from admins)
@@ -395,11 +409,11 @@ export const updateStaff = async (req: Request, res: Response) => {
       if (!isNaN(contractDate.getTime())) updateData.contract_end_date = contractDate;
     }
     if (weekly_working_hours !== undefined) updateData.weekly_working_hours = weekly_working_hours;
-    // Convert boolean fields to 0/1 for MySQL tinyint columns
-    if (overtime_eligibility !== undefined) updateData.overtime_eligibility = overtime_eligibility ? 1 : 0;
+    // Convert boolean fields
+    if (overtime_eligibility !== undefined) updateData.overtime_eligibility = !!overtime_eligibility;
     if (medical_insurance_id !== undefined) updateData.medical_insurance_id = medical_insurance_id;
     if (provident_fund_id !== undefined) updateData.provident_fund_id = provident_fund_id;
-    if (gratuity_applicable !== undefined) updateData.gratuity_applicable = gratuity_applicable ? 1 : 0;
+    if (gratuity_applicable !== undefined) updateData.gratuity_applicable = !!gratuity_applicable;
     if (notice_period_days !== undefined) updateData.notice_period_days = notice_period_days;
     if (work_email !== undefined) updateData.work_email = work_email;
     if (personal_email !== undefined) updateData.personal_email = personal_email;
@@ -423,7 +437,7 @@ export const updateStaff = async (req: Request, res: Response) => {
     if (notice_period_end_date !== undefined) updateData.notice_period_end_date = new Date(notice_period_end_date);
     if (relieving_date !== undefined) updateData.relieving_date = new Date(relieving_date);
     // Handle numeric fields - convert empty strings to null
-    if (experience_years !== undefined && experience_years !== '') updateData.experience_years = experience_years;
+    if (experience_years !== undefined && experience_years !== ('' as any)) updateData.experience_years = experience_years;
     if (previous_company !== undefined) updateData.previous_company = previous_company;
     if (resignation_date !== undefined) updateData.resignation_date = new Date(resignation_date);
     if (last_working_date !== undefined) updateData.last_working_date = new Date(last_working_date);

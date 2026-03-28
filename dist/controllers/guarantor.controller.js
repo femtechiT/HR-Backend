@@ -10,13 +10,17 @@ const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const getGuarantors = async (req, res) => {
     try {
-        const staffId = req.params.staffId ? parseInt(req.params.staffId) : undefined;
+        let staffId = req.params.staffId ? parseInt(req.params.staffId) : undefined;
         const isActiveOnly = req.query.isActiveOnly === 'true';
         if (!staffId) {
             return res.status(400).json({
                 success: false,
                 message: 'Staff ID is required'
             });
+        }
+        const staffRecord = await staff_model_1.default.findByUserId(staffId);
+        if (staffRecord) {
+            staffId = staffRecord.id;
         }
         const guarantors = await guarantor_model_1.default.findByStaffId(staffId, isActiveOnly);
         return res.json({
@@ -74,46 +78,77 @@ const createGuarantor = async (req, res) => {
                 message: 'Staff ID, first name, last name, phone number, and address are required'
             });
         }
-        const staff = await staff_model_1.default.findById(staff_id);
+        const staff = await staff_model_1.default.findByUserId(staff_id);
         if (!staff) {
             return res.status(404).json({
                 success: false,
-                message: 'Staff member not found'
+                message: 'Staff member not found. Please ensure your profile is complete.'
             });
         }
+        const actualStaffId = staff.id;
         const guarantorData = {
-            staff_id,
+            staff_id: actualStaffId,
             first_name,
             last_name,
-            middle_name,
-            date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
-            gender,
             phone_number,
-            alternate_phone,
-            email,
-            address_line_1,
-            address_line_2,
-            city,
-            state,
-            postal_code,
-            country: country || 'Nigeria',
-            id_type,
-            id_number,
-            id_issuing_authority,
-            id_issue_date: id_issue_date ? new Date(id_issue_date) : undefined,
-            id_expiry_date: id_expiry_date ? new Date(id_expiry_date) : undefined,
-            relationship,
-            occupation,
-            employer_name,
-            employer_address,
-            employer_phone,
-            guarantee_type,
-            guarantee_amount,
-            guarantee_start_date: guarantee_start_date ? new Date(guarantee_start_date) : undefined,
-            guarantee_end_date: guarantee_end_date ? new Date(guarantee_end_date) : undefined,
-            guarantee_terms,
-            is_active: is_active !== undefined ? is_active : true
+            address_line_1
         };
+        if (middle_name)
+            guarantorData.middle_name = middle_name;
+        if (date_of_birth)
+            guarantorData.date_of_birth = new Date(date_of_birth);
+        if (gender)
+            guarantorData.gender = gender;
+        if (alternate_phone)
+            guarantorData.alternate_phone = alternate_phone;
+        if (email)
+            guarantorData.email = email;
+        if (address_line_2)
+            guarantorData.address_line_2 = address_line_2;
+        if (city)
+            guarantorData.city = city;
+        if (state)
+            guarantorData.state = state;
+        if (postal_code)
+            guarantorData.postal_code = postal_code;
+        if (country)
+            guarantorData.country = country;
+        else
+            guarantorData.country = 'Nigeria';
+        if (id_type)
+            guarantorData.id_type = id_type;
+        if (id_number)
+            guarantorData.id_number = id_number;
+        if (id_issuing_authority)
+            guarantorData.id_issuing_authority = id_issuing_authority;
+        if (id_issue_date)
+            guarantorData.id_issue_date = new Date(id_issue_date);
+        if (id_expiry_date)
+            guarantorData.id_expiry_date = new Date(id_expiry_date);
+        if (relationship)
+            guarantorData.relationship = relationship;
+        if (occupation)
+            guarantorData.occupation = occupation;
+        if (employer_name)
+            guarantorData.employer_name = employer_name;
+        if (employer_address)
+            guarantorData.employer_address = employer_address;
+        if (employer_phone)
+            guarantorData.employer_phone = employer_phone;
+        if (guarantee_type)
+            guarantorData.guarantee_type = guarantee_type;
+        if (guarantee_amount)
+            guarantorData.guarantee_amount = guarantee_amount;
+        if (guarantee_start_date)
+            guarantorData.guarantee_start_date = new Date(guarantee_start_date);
+        if (guarantee_end_date)
+            guarantorData.guarantee_end_date = new Date(guarantee_end_date);
+        if (guarantee_terms)
+            guarantorData.guarantee_terms = guarantee_terms;
+        if (is_active !== undefined)
+            guarantorData.is_active = is_active;
+        else
+            guarantorData.is_active = true;
         const guarantor = await guarantor_model_1.default.create(guarantorData);
         return res.status(201).json({
             success: true,
@@ -283,13 +318,13 @@ const uploadGuarantorDocument = async (req, res) => {
                 message: 'Guarantor not found'
             });
         }
-        if (!req.files || req.files.length === 0) {
+        if (!req.file) {
             return res.status(400).json({
                 success: false,
                 message: 'No file uploaded'
             });
         }
-        const file = req.files[0];
+        const file = req.file;
         const filePath = `/uploads/guarantors/${file.filename}`;
         const oldFilePath = documentType === 'id'
             ? guarantor.id_document_path

@@ -84,14 +84,17 @@ router.get('/:branchId/working-days/:dayOfWeek', auth_middleware_1.authenticateJ
 router.put('/:branchId/working-days', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('branches:update'), async (req, res) => {
     try {
         const branchId = parseInt(req.params.branchId);
+        const { workingDays } = req.body;
+        console.log('[Working Days PUT] Branch ID:', branchId);
+        console.log('[Working Days PUT] Request body:', JSON.stringify(req.body, null, 2));
         if (isNaN(branchId)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid branch ID'
             });
         }
-        const { workingDays } = req.body;
         if (!workingDays || !Array.isArray(workingDays)) {
+            console.error('[Working Days PUT] Invalid workingDays:', workingDays);
             return res.status(400).json({
                 success: false,
                 message: 'workingDays array is required'

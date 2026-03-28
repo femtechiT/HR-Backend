@@ -14,4 +14,5 @@ export declare const bulkAssignRecurringShiftsByBranch: (req: Request, res: Resp
 export declare const getRecurringShifts: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 export declare const updateRecurringShift: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 export declare const deleteRecurringShift: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const getMyShiftAssignments: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 //# sourceMappingURL=shift-management.controller.d.ts.map

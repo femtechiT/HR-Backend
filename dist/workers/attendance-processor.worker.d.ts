@@ -7,33 +7,18 @@ declare class AttendanceProcessorWorker {
         absent: number;
         leave: number;
         skipped: number;
-    } | {
-        processed: number;
-        absent: number;
-        holiday: number;
-        holidayWorking: number;
     }>;
     static processYesterdayAttendance(): Promise<{
         processed: number;
         absent: number;
         leave: number;
         skipped: number;
-    } | {
-        processed: number;
-        absent: number;
-        holiday: number;
-        holidayWorking: number;
     }>;
     static processTodayAttendance(): Promise<{
         processed: number;
         absent: number;
         leave: number;
         skipped: number;
-    } | {
-        processed: number;
-        absent: number;
-        holiday: number;
-        holidayWorking: number;
     }>;
     static checkAndRunAutoMark(): Promise<void>;
     static lockAttendanceForDate(branchId: number, date: Date, lockedBy: number, reason?: string): Promise<{

@@ -122,16 +122,6 @@ const updateRole = async (req, res) => {
                 message: 'Role not found'
             });
         }
-        if (permissions && Array.isArray(permissions)) {
-            for (const permission of permissions) {
-                if (!(0, permission_definitions_service_1.isValidPermission)(permission)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `Invalid permission: ${permission}`
-                    });
-                }
-            }
-        }
         const updates = [];
         const values = [];
         if (name !== undefined) {

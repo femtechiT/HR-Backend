@@ -53,11 +53,11 @@ router.get('/uploads/:filename', (req, res) => {
     res.sendFile(filePath);
 });
 router.get('/staff/:staffId', auth_middleware_1.authenticateJWT, guarantor_controller_1.getGuarantors);
-router.get('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:read'), guarantor_controller_1.getGuarantor);
-router.post('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:create'), guarantor_controller_1.createGuarantor);
-router.put('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:update'), guarantor_controller_1.updateGuarantor);
-router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:delete'), guarantor_controller_1.deleteGuarantor);
-router.post('/:id/verify', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:update'), guarantor_controller_1.verifyGuarantor);
-router.post('/:id/upload/:documentType', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:update'), upload.single('document'), guarantor_controller_1.uploadGuarantorDocument);
+router.get('/:id', auth_middleware_1.authenticateJWT, guarantor_controller_1.getGuarantor);
+router.post('/', auth_middleware_1.authenticateJWT, guarantor_controller_1.createGuarantor);
+router.put('/:id', auth_middleware_1.authenticateJWT, guarantor_controller_1.updateGuarantor);
+router.delete('/:id', auth_middleware_1.authenticateJWT, guarantor_controller_1.deleteGuarantor);
+router.post('/:id/verify', auth_middleware_1.authenticateJWT, guarantor_controller_1.verifyGuarantor);
+router.post('/:id/upload/:documentType', auth_middleware_1.authenticateJWT, upload.single('document'), guarantor_controller_1.uploadGuarantorDocument);
 exports.default = router;
 //# sourceMappingURL=guarantor.route.js.map

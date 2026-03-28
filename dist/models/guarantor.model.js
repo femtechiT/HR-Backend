@@ -29,52 +29,119 @@ class GuarantorModel {
         return await this.findAll(staffId, isActiveOnly);
     }
     static async create(guarantorData) {
-        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (
-        staff_id, first_name, middle_name, last_name, date_of_birth, gender,
-        phone_number, alternate_phone, email,
-        address_line_1, address_line_2, city, state, postal_code, country,
-        id_type, id_number, id_issuing_authority, id_issue_date, id_expiry_date,
-        relationship, occupation, employer_name, employer_address, employer_phone,
-        guarantee_type, guarantee_amount, guarantee_start_date, guarantee_end_date, guarantee_terms,
-        guarantor_form_path, id_document_path,
-        is_verified, verified_by, is_active
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
-            guarantorData.staff_id,
-            guarantorData.first_name,
-            guarantorData.middle_name,
-            guarantorData.last_name,
-            guarantorData.date_of_birth,
-            guarantorData.gender,
-            guarantorData.phone_number,
-            guarantorData.alternate_phone,
-            guarantorData.email,
-            guarantorData.address_line_1,
-            guarantorData.address_line_2,
-            guarantorData.city,
-            guarantorData.state,
-            guarantorData.postal_code,
-            guarantorData.country || 'Nigeria',
-            guarantorData.id_type,
-            guarantorData.id_number,
-            guarantorData.id_issuing_authority,
-            guarantorData.id_issue_date,
-            guarantorData.id_expiry_date,
-            guarantorData.relationship,
-            guarantorData.occupation,
-            guarantorData.employer_name,
-            guarantorData.employer_address,
-            guarantorData.employer_phone,
-            guarantorData.guarantee_type,
-            guarantorData.guarantee_amount,
-            guarantorData.guarantee_start_date,
-            guarantorData.guarantee_end_date,
-            guarantorData.guarantee_terms,
-            guarantorData.guarantor_form_path,
-            guarantorData.id_document_path,
-            guarantorData.is_verified || false,
-            guarantorData.verified_by,
-            guarantorData.is_active !== undefined ? guarantorData.is_active : true
-        ]);
+        const fields = [];
+        const values = [];
+        fields.push('staff_id', 'first_name', 'last_name', 'phone_number', 'address_line_1');
+        values.push(guarantorData.staff_id, guarantorData.first_name, guarantorData.last_name, guarantorData.phone_number, guarantorData.address_line_1);
+        if (guarantorData.middle_name) {
+            fields.push('middle_name');
+            values.push(guarantorData.middle_name);
+        }
+        if (guarantorData.date_of_birth) {
+            fields.push('date_of_birth');
+            values.push(guarantorData.date_of_birth);
+        }
+        if (guarantorData.gender) {
+            fields.push('gender');
+            values.push(guarantorData.gender);
+        }
+        if (guarantorData.alternate_phone) {
+            fields.push('alternate_phone');
+            values.push(guarantorData.alternate_phone);
+        }
+        if (guarantorData.email) {
+            fields.push('email');
+            values.push(guarantorData.email);
+        }
+        if (guarantorData.address_line_2) {
+            fields.push('address_line_2');
+            values.push(guarantorData.address_line_2);
+        }
+        if (guarantorData.city) {
+            fields.push('city');
+            values.push(guarantorData.city);
+        }
+        if (guarantorData.state) {
+            fields.push('state');
+            values.push(guarantorData.state);
+        }
+        if (guarantorData.postal_code) {
+            fields.push('postal_code');
+            values.push(guarantorData.postal_code);
+        }
+        if (guarantorData.country) {
+            fields.push('country');
+            values.push(guarantorData.country);
+        }
+        else {
+            fields.push('country');
+            values.push('Nigeria');
+        }
+        if (guarantorData.id_type) {
+            fields.push('id_type');
+            values.push(guarantorData.id_type);
+        }
+        if (guarantorData.id_number) {
+            fields.push('id_number');
+            values.push(guarantorData.id_number);
+        }
+        if (guarantorData.id_issuing_authority) {
+            fields.push('id_issuing_authority');
+            values.push(guarantorData.id_issuing_authority);
+        }
+        if (guarantorData.id_issue_date) {
+            fields.push('id_issue_date');
+            values.push(guarantorData.id_issue_date);
+        }
+        if (guarantorData.id_expiry_date) {
+            fields.push('id_expiry_date');
+            values.push(guarantorData.id_expiry_date);
+        }
+        if (guarantorData.relationship) {
+            fields.push('relationship');
+            values.push(guarantorData.relationship);
+        }
+        if (guarantorData.occupation) {
+            fields.push('occupation');
+            values.push(guarantorData.occupation);
+        }
+        if (guarantorData.employer_name) {
+            fields.push('employer_name');
+            values.push(guarantorData.employer_name);
+        }
+        if (guarantorData.employer_address) {
+            fields.push('employer_address');
+            values.push(guarantorData.employer_address);
+        }
+        if (guarantorData.employer_phone) {
+            fields.push('employer_phone');
+            values.push(guarantorData.employer_phone);
+        }
+        if (guarantorData.guarantee_type) {
+            fields.push('guarantee_type');
+            values.push(guarantorData.guarantee_type);
+        }
+        if (guarantorData.guarantee_amount) {
+            fields.push('guarantee_amount');
+            values.push(guarantorData.guarantee_amount);
+        }
+        if (guarantorData.guarantee_start_date) {
+            fields.push('guarantee_start_date');
+            values.push(guarantorData.guarantee_start_date);
+        }
+        if (guarantorData.guarantee_end_date) {
+            fields.push('guarantee_end_date');
+            values.push(guarantorData.guarantee_end_date);
+        }
+        if (guarantorData.guarantee_terms) {
+            fields.push('guarantee_terms');
+            values.push(guarantorData.guarantee_terms);
+        }
+        fields.push('is_verified', 'is_active');
+        values.push(false, guarantorData.is_active !== undefined ? guarantorData.is_active : true);
+        const placeholders = fields.map(() => '?').join(', ');
+        const query = `INSERT INTO ${this.tableName} (${fields.join(', ')}) VALUES (${placeholders})`;
+        const [result] = await database_1.pool.execute(query, values);
         const insertedId = result.insertId;
         const createdItem = await this.findById(insertedId);
         if (!createdItem) {

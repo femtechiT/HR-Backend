@@ -136,6 +136,9 @@ export interface StaffInput {
   assigned_location_id?: number;
   location_assignments?: any; // JSON: {primary_location: number, secondary_locations: number[]}
   location_notes?: string;
+  state_of_origin?: string;
+  lga?: string;
+  course_of_study?: string;
 }
 
 export interface StaffUpdate {
@@ -207,6 +210,7 @@ export interface StaffUpdate {
   // Additional fields
   state_of_origin?: string;
   lga?: string;
+  course_of_study?: string;
 }
 
 class StaffModel {

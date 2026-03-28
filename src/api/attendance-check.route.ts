@@ -94,7 +94,7 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
           );
 
           // Get staff's assigned location IDs
-          const assignedLocationIds: number[] = [];
+          let assignedLocationIds: number[] = [];
 
           if (staffRecord.assigned_location_id) {
             assignedLocationIds.push(staffRecord.assigned_location_id);
@@ -256,57 +256,27 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
       // Check if it's a holiday
       const isHoliday = await HolidayModel.isHoliday(new Date(date));
       if (isHoliday) {
-        // Check if user is on holiday duty roster
-        const [dutyRoster] = await pool.execute(
-          `SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`,
-          [new Date(date), userId]
-        ) as [any[], any];
+      // User is not on duty or it's a holiday - mark as holiday
+      const attendanceData = {
+        user_id: userId,
+        date: new Date(date),
+        status: 'holiday' as const,
+        check_in_time: null,
+        check_out_time: null,
+        location_coordinates: null,
+        location_verified: false,
+        location_address: null,
+        notes: 'Holiday - no attendance required'
+      };
 
-        if (dutyRoster.length > 0) {
-          // User is on holiday duty - mark as holiday-working
-          const roster = dutyRoster[0];
-          const attendanceData = {
-            user_id: userId,
-            date: new Date(date),
-            status: 'holiday-working' as any,
-            check_in_time: null,
-            check_out_time: null,
-            location_coordinates: null,
-            location_verified: false,
-            location_address: null,
-            notes: `Holiday duty: ${roster.shift_start_time} - ${roster.shift_end_time}`
-          };
+      const newAttendance = await AttendanceModel.create(attendanceData);
 
-          const newAttendance = await AttendanceModel.create(attendanceData);
-
-          return res.status(201).json({
-            success: true,
-            message: 'Holiday duty attendance recorded successfully',
-            data: { attendance: newAttendance }
-          });
-        } else {
-          // User is not on duty - mark as holiday
-          const attendanceData = {
-            user_id: userId,
-            date: new Date(date),
-            status: 'holiday' as const,
-            check_in_time: null,
-            check_out_time: null,
-            location_coordinates: null,
-            location_verified: false,
-            location_address: null,
-            notes: 'Holiday - no attendance required'
-          };
-
-          const newAttendance = await AttendanceModel.create(attendanceData);
-
-          return res.status(201).json({
-            success: true,
-            message: 'Holiday attendance recorded successfully',
-            data: { attendance: newAttendance }
-          });
-        }
-      }
+      return res.status(201).json({
+        success: true,
+        message: 'Holiday attendance recorded successfully',
+        data: { attendance: newAttendance }
+      });
+    }
 
       // Check if user has approved leave on this date
       const [leaveHistory] = await pool.execute(
@@ -604,7 +574,7 @@ router.post('/check-out', authenticateJWT, async (req: Request, res: Response) =
         );
 
         // Get staff's assigned location IDs
-        const assignedLocationIds: number[] = [];
+        let assignedLocationIds: number[] = [];
 
         if (staffRecord.assigned_location_id) {
           assignedLocationIds.push(staffRecord.assigned_location_id);

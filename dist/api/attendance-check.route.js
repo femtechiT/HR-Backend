@@ -82,9 +82,41 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
             if (!staffRecord) {
                 return res.status(404).json({ success: false, message: 'Staff record not found' });
             }
-            const branchId = staffRecord.branch_id;
+            let branchId = staffRecord.branch_id;
             if (!branchId) {
                 return res.status(400).json({ success: false, message: 'No branch assigned' });
+            }
+            if (location_coordinates && typeof location_coordinates === 'object') {
+                const userLng = parseFloat(location_coordinates.longitude);
+                const userLat = parseFloat(location_coordinates.latitude);
+                if (!isNaN(userLng) && !isNaN(userLat)) {
+                    const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(userLat, userLng, 1000);
+                    const assignedLocationIds = [];
+                    if (staffRecord.assigned_location_id) {
+                        assignedLocationIds.push(staffRecord.assigned_location_id);
+                    }
+                    if (staffRecord.location_assignments && staffRecord.location_assignments.secondary_locations) {
+                        try {
+                            const secondary = JSON.parse(staffRecord.location_assignments.secondary_locations);
+                            if (Array.isArray(secondary)) {
+                                assignedLocationIds = [...assignedLocationIds, ...secondary];
+                            }
+                        }
+                        catch (e) {
+                            console.error('Failed to parse secondary_locations:', e);
+                        }
+                    }
+                    if (assignedLocationIds.length > 0 && nearbyLocations.length > 0) {
+                        const atAssignedLocation = nearbyLocations.some(loc => assignedLocationIds.includes(loc.id) && loc.branch_id);
+                        if (atAssignedLocation) {
+                            const locationBranch = nearbyLocations.find(loc => loc.branch_id)?.branch_id;
+                            if (locationBranch) {
+                                branchId = locationBranch;
+                                console.log(`✅ Using location's branch ${branchId} for attendance verification`);
+                            }
+                        }
+                    }
+                }
             }
             const branch = await branch_model_1.default.findById(branchId);
             if (!branch) {
@@ -225,8 +257,33 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
                     });
                 }
             }
-            const [leaveHistory] = await database_1.pool.execute(`SELECT id, start_date, end_date FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`, [userId, new Date(date)]);
-            if (leaveHistory.length > 0) {
+            const [leaveHistory] = await database_1.pool.execute(`SELECT id, start_date, end_date, status FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`, [userId, new Date(date)]);
+            const approvedLeaves = leaveHistory.filter((l) => l.status === 'approved');
+            if (approvedLeaves.length > 0) {
+                const attendanceData = {
+                    user_id: userId,
+                    date: new Date(date),
+                    status: 'leave',
+                    check_in_time: null,
+                    check_out_time: null,
+                    location_coordinates: null,
+                    location_verified: false,
+                    location_address: null,
+                    notes: 'On approved leave'
+                };
+                const newAttendance = await attendance_model_1.default.create(attendanceData);
+                return res.status(201).json({
+                    success: true,
+                    message: 'Leave attendance recorded successfully',
+                    data: { attendance: newAttendance }
+                });
+            }
+            const [leaveRequests] = await database_1.pool.execute(`SELECT id, start_date, end_date, status, cancelled_by, cancelled_at FROM leave_requests
+         WHERE user_id = ?
+           AND ? BETWEEN start_date AND end_date
+           AND status = 'approved'
+           AND (cancelled_by IS NULL OR cancelled_at IS NULL)`, [userId, new Date(date)]);
+            if (leaveRequests.length > 0) {
                 const attendanceData = {
                     user_id: userId,
                     date: new Date(date),
@@ -400,12 +457,44 @@ router.post('/check-out', auth_middleware_1.authenticateJWT, async (req, res) =>
                 message: 'Staff record not found for user'
             });
         }
-        const branchId = staffRecord.branch_id;
+        let branchId = staffRecord.branch_id;
         if (!branchId) {
             return res.status(400).json({
                 success: false,
                 message: 'Staff record does not have a branch assigned'
             });
+        }
+        if (location_coordinates && typeof location_coordinates === 'object') {
+            const userLng = parseFloat(location_coordinates.longitude);
+            const userLat = parseFloat(location_coordinates.latitude);
+            if (!isNaN(userLng) && !isNaN(userLat)) {
+                const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(userLat, userLng, 1000);
+                const assignedLocationIds = [];
+                if (staffRecord.assigned_location_id) {
+                    assignedLocationIds.push(staffRecord.assigned_location_id);
+                }
+                if (staffRecord.location_assignments && staffRecord.location_assignments.secondary_locations) {
+                    try {
+                        const secondary = JSON.parse(staffRecord.location_assignments.secondary_locations);
+                        if (Array.isArray(secondary)) {
+                            assignedLocationIds = [...assignedLocationIds, ...secondary];
+                        }
+                    }
+                    catch (e) {
+                        console.error('Failed to parse secondary_locations:', e);
+                    }
+                }
+                if (assignedLocationIds.length > 0 && nearbyLocations.length > 0) {
+                    const atAssignedLocation = nearbyLocations.some(loc => assignedLocationIds.includes(loc.id) && loc.branch_id);
+                    if (atAssignedLocation) {
+                        const locationBranch = nearbyLocations.find(loc => loc.branch_id)?.branch_id;
+                        if (locationBranch) {
+                            branchId = locationBranch;
+                            console.log(`✅ Using location's branch ${branchId} for check-out verification`);
+                        }
+                    }
+                }
+            }
         }
         let settings = {
             require_check_in: true,

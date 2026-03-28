@@ -195,14 +195,17 @@ export interface StaffUpdate {
     assigned_location_id?: number;
     location_assignments?: any;
     location_notes?: string;
+    branch_name?: string;
+    state_of_origin?: string;
+    lga?: string;
 }
 declare class StaffModel {
     static tableName: string;
-    static findAll(limit?: number, offset?: number, branchId?: number): Promise<{
+    static findAll(limit?: number, offset?: number, branchId?: number, status?: string, department?: string, search?: string): Promise<{
         staff: Staff[];
         totalCount: number;
     }>;
-    static findAllWithFilters(limit?: number, offset?: number, branchId?: number, department?: string, status?: string): Promise<{
+    static findAllWithFilters(limit?: number, offset?: number, branchId?: number, department?: string, status?: string, search?: string): Promise<{
         staff: Staff[];
         totalCount: number;
     }>;

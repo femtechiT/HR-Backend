@@ -8,13 +8,16 @@ const auth_middleware_1 = require("../middleware/auth.middleware");
 const branch_model_1 = __importDefault(require("../models/branch.model"));
 const database_1 = require("../config/database");
 const router = (0, express_1.Router)();
-router.get('/settings', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
+router.get('/', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { branchId } = req.query;
+        console.log('[Attendance Settings GET] Query params:', req.query);
+        console.log('[Attendance Settings GET] Current user:', req.currentUser);
         let targetBranchId = req.currentUser?.branch_id;
         if (branchId) {
             const branchIdNum = parseInt(branchId);
             if (isNaN(branchIdNum)) {
+                console.warn('[Attendance Settings GET] Invalid branch ID:', branchId);
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid branch ID'
@@ -22,14 +25,17 @@ router.get('/settings', auth_middleware_1.authenticateJWT, (0, auth_middleware_1
             }
             targetBranchId = branchIdNum;
         }
+        console.log('[Attendance Settings GET] Target branch ID:', targetBranchId);
         if (!targetBranchId) {
+            console.warn('[Attendance Settings GET] No branch ID available');
             return res.status(400).json({
                 success: false,
-                message: 'Branch ID is required'
+                message: 'Branch ID is required. Please select a branch or ensure your user has a branch assigned.'
             });
         }
         const branch = await branch_model_1.default.findById(targetBranchId);
         if (!branch) {
+            console.warn('[Attendance Settings GET] Branch not found:', targetBranchId);
             return res.status(404).json({
                 success: false,
                 message: 'Branch not found'
@@ -57,7 +63,7 @@ router.get('/settings', auth_middleware_1.authenticateJWT, (0, auth_middleware_1
             enable_holiday_attendance: false,
             auto_mark_absent_enabled: branch.auto_mark_absent_enabled ?? true,
             auto_mark_absent_time: branch.auto_mark_absent_time ?? '12:00',
-            auto_mark_absent_timezone: branch.auto_mark_absent_timezone ?? 'Africa/Nairobi',
+            auto_mark_absent_timezone: branch.auto_mark_absent_timezone ?? 'Africa/Lagos',
             attendance_lock_date: branch.attendance_lock_date,
             created_at: branch.created_at,
             updated_at: branch.updated_at
@@ -76,7 +82,7 @@ router.get('/settings', auth_middleware_1.authenticateJWT, (0, auth_middleware_1
         });
     }
 });
-router.patch('/settings', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
+router.patch('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { branchId, settings } = req.body;
         if (!settings) {
@@ -218,7 +224,7 @@ router.patch('/settings', auth_middleware_1.authenticateJWT, (0, auth_middleware
         });
     }
 });
-router.get('/settings/global', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
+router.get('/global', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const [globalSettings] = await database_1.pool.execute(`SELECT * FROM global_attendance_settings LIMIT 1`);
         const settings = globalSettings[0] || {
@@ -251,7 +257,7 @@ router.get('/settings/global', auth_middleware_1.authenticateJWT, (0, auth_middl
         });
     }
 });
-router.patch('/settings/global', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
+router.patch('/global', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const settings = req.body.settings;
         if (!settings) {
@@ -304,7 +310,7 @@ router.patch('/settings/global', auth_middleware_1.authenticateJWT, (0, auth_mid
     }
 });
 exports.default = router;
-router.patch('/settings/auto-mark', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
+router.patch('/auto-mark', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { branchId, auto_mark_absent_enabled, auto_mark_absent_time, auto_mark_absent_timezone } = req.body;
         let targetBranchId = req.currentUser?.branch_id;
@@ -374,7 +380,7 @@ router.patch('/settings/auto-mark', auth_middleware_1.authenticateJWT, (0, auth_
         });
     }
 });
-router.post('/settings/lock-date', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
+router.post('/lock-date', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('attendance:manage'), async (req, res) => {
     try {
         const { date, branchId, reason } = req.body;
         if (!date) {
@@ -442,7 +448,7 @@ router.post('/settings/lock-date', auth_middleware_1.authenticateJWT, (0, auth_m
         });
     }
 });
-router.get('/settings/lock-status', auth_middleware_1.authenticateJWT, async (req, res) => {
+router.get('/lock-status', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
         const { branchId } = req.query;
         let targetBranchId = req.currentUser?.branch_id;
