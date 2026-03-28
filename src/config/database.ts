@@ -25,6 +25,7 @@ const parseConnectionString = (connectionString?: string) => {
       enableKeepAlive: true,
       keepAliveInitialDelay: 0,
       namedPlaceholders: true,
+      multipleStatements: true,
       ssl: {
         rejectUnauthorized: true
       }
@@ -48,6 +49,7 @@ const dbConfig = parseConnectionString(process.env.DATABASE_URL) || {
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
   namedPlaceholders: true,
+  multipleStatements: true,
 };
 
 // Create a connection pool
