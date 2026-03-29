@@ -35,8 +35,8 @@ class AttendanceModel {
         return rows;
     }
     static async create(attendanceData) {
-        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (user_id, date, status, check_in_time, check_out_time, location_coordinates, location_verified, location_address, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (user_id, date, status, check_in_time, check_out_time, location_coordinates, location_verified, location_address, notes, is_locked, locked_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             attendanceData.user_id,
             attendanceData.date,
             attendanceData.status || 'absent',
@@ -45,7 +45,9 @@ class AttendanceModel {
             attendanceData.location_coordinates || null,
             attendanceData.location_verified || false,
             attendanceData.location_address || null,
-            attendanceData.notes || null
+            attendanceData.notes || null,
+            attendanceData.is_locked || false,
+            attendanceData.locked_at || null
         ]);
         const insertedId = result.insertId;
         const createdItem = await this.findById(insertedId);
@@ -84,6 +86,14 @@ class AttendanceModel {
         if (attendanceData.notes !== undefined) {
             updates.push('notes = ?');
             values.push(attendanceData.notes);
+        }
+        if (attendanceData.is_locked !== undefined) {
+            updates.push('is_locked = ?');
+            values.push(attendanceData.is_locked);
+        }
+        if (attendanceData.locked_at !== undefined) {
+            updates.push('locked_at = ?');
+            values.push(attendanceData.locked_at);
         }
         if (updates.length === 0) {
             return await this.findById(id);

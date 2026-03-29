@@ -1939,7 +1939,7 @@ export const getMyShiftAssignments = async (req: Request, res: Response) => {
     const userId = req.currentUser.id;
 
     const [rows]: any = await pool.execute(
-      `SELECT 
+      `SELECT
         esa.id,
         esa.user_id,
         esa.shift_template_id,
@@ -1963,11 +1963,32 @@ export const getMyShiftAssignments = async (req: Request, res: Response) => {
       [userId]
     );
 
+    // Parse recurrence_days from JSON string to array for each assignment
+    const parsedRows = rows.map((row: any) => {
+      if (row.recurrence_days) {
+        try {
+          row.recurrence_days = JSON.parse(row.recurrence_days);
+        } catch (e) {
+          // Keep as-is if parsing fails
+        }
+      }
+      // Map to frontend expected format with nested shift_template
+      return {
+        ...row,
+        shift_template: {
+          name: row.shift_template_name,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          break_duration_minutes: row.break_duration_minutes
+        }
+      };
+    });
+
     return res.json({
       success: true,
       message: 'My shift assignments retrieved successfully',
       data: {
-        shiftAssignments: rows
+        shiftAssignments: parsedRows
       }
     });
   } catch (error) {

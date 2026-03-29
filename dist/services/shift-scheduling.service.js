@@ -30,33 +30,61 @@ class ShiftSchedulingService {
                 };
             }
             const [assignments] = await database_1.pool.execute(`SELECT esa.custom_start_time, esa.custom_end_time, esa.custom_break_duration_minutes,
-                st.start_time as template_start_time, st.end_time as template_end_time, 
+                st.start_time as template_start_time, st.end_time as template_end_time,
                 st.break_duration_minutes as template_break_duration_minutes,
-                st.recurrence_pattern, st.recurrence_days
+                st.recurrence_pattern, st.recurrence_days, st.name as template_name,
+                esa.id as assignment_id, esa.recurrence_pattern as assignment_recurrence_pattern,
+                esa.recurrence_days as assignment_recurrence_days, esa.recurrence_day_of_week
          FROM employee_shift_assignments esa
          LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
-         WHERE esa.user_id = ? 
+         WHERE esa.user_id = ?
            AND esa.status = 'active'
            AND ? BETWEEN esa.effective_from AND COALESCE(esa.effective_to, '9999-12-31')`, [userId, dateStr]);
             if (assignments.length > 0) {
                 const dayOfWeek = date.getDay();
                 const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                 const dayName = dayNames[dayOfWeek];
-                for (const assignment of assignments) {
-                    if (assignment.recurrence_pattern) {
-                        if (assignment.recurrence_days) {
-                            const recurrenceDays = JSON.parse(assignment.recurrence_days);
-                            if (!recurrenceDays.includes(dayName) && !recurrenceDays.includes(dayOfWeek)) {
-                                continue;
+                const getDaysFromAssignment = (recurrencePattern, recurrenceDays, recurrenceDayOfWeek) => {
+                    if (!recurrencePattern || recurrencePattern === 'none' || recurrencePattern === 'daily') {
+                        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                    }
+                    if (recurrencePattern === 'weekly') {
+                        if (recurrenceDays) {
+                            try {
+                                const parsed = JSON.parse(recurrenceDays);
+                                return Array.isArray(parsed) ? parsed : [];
+                            }
+                            catch {
+                                return [];
                             }
                         }
+                        if (recurrenceDayOfWeek) {
+                            return [recurrenceDayOfWeek];
+                        }
+                        return [];
+                    }
+                    if (recurrencePattern === 'monthly') {
+                        if (recurrenceDayOfWeek) {
+                            return [recurrenceDayOfWeek];
+                        }
+                        return [];
+                    }
+                    return [];
+                };
+                for (const assignment of assignments) {
+                    const recurrencePattern = assignment.assignment_recurrence_pattern || assignment.recurrence_pattern || 'none';
+                    const recurrenceDays = assignment.assignment_recurrence_days || assignment.recurrence_days;
+                    const recurrenceDayOfWeek = assignment.recurrence_day_of_week;
+                    const assignedDays = getDaysFromAssignment(recurrencePattern, recurrenceDays, recurrenceDayOfWeek);
+                    if (assignedDays.length > 0 && !assignedDays.includes(dayName) && !assignedDays.includes(dayOfWeek.toString())) {
+                        continue;
                     }
                     return {
                         start_time: assignment.custom_start_time || assignment.template_start_time,
                         end_time: assignment.custom_end_time || assignment.template_end_time,
                         break_duration_minutes: assignment.custom_break_duration_minutes || assignment.template_break_duration_minutes || 0,
-                        schedule_type: assignment.recurrence_pattern || 'standard',
-                        schedule_note: 'Standard schedule'
+                        schedule_type: `assignment_${assignment.assignment_id}_${recurrencePattern}`,
+                        schedule_note: assignment.template_name || `Shift assignment ${assignment.assignment_id}`
                     };
                 }
                 return {
@@ -67,6 +95,33 @@ class ShiftSchedulingService {
                     schedule_note: 'Non-working day based on recurrence patterns'
                 };
             }
+            const [shiftTimings] = await database_1.pool.execute(`SELECT shift_name, start_time, end_time, override_branch_id
+         FROM shift_timings
+         WHERE user_id = ? 
+           AND effective_from <= ? 
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY id DESC`, [userId, dateStr, dateStr]);
+            if (shiftTimings.length > 0) {
+                const dayOfWeek = date.getDay();
+                const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const dayName = dayNames[dayOfWeek];
+                for (const shift of shiftTimings) {
+                    const dayMatch = shift.shift_name.match(/\[(.*?)\]/);
+                    if (dayMatch) {
+                        const days = dayMatch[1].split(',').map((d) => d.trim().toLowerCase());
+                        if (!days.includes(dayName) && !days.includes(dayOfWeek.toString())) {
+                            continue;
+                        }
+                    }
+                    return {
+                        start_time: shift.start_time,
+                        end_time: shift.end_time,
+                        break_duration_minutes: 0,
+                        schedule_type: 'multi_shift_timing',
+                        schedule_note: shift.shift_name
+                    };
+                }
+            }
             const [userBranch] = await database_1.pool.execute(`SELECT branch_id FROM staff WHERE user_id = ?`, [userId]);
             if (userBranch.length > 0 && userBranch[0].branch_id) {
                 const branchId = userBranch[0].branch_id;
@@ -76,14 +131,25 @@ class ShiftSchedulingService {
                 const [branchHours] = await database_1.pool.execute(`SELECT start_time, end_time, break_duration_minutes, is_working_day
            FROM branch_working_days
            WHERE branch_id = ? AND day_of_week = ?`, [branchId, dayName]);
-                if (branchHours.length > 0 && branchHours[0].is_working_day) {
-                    return {
-                        start_time: branchHours[0].start_time,
-                        end_time: branchHours[0].end_time,
-                        break_duration_minutes: branchHours[0].break_duration_minutes || 0,
-                        schedule_type: 'branch_default',
-                        schedule_note: `Standard ${dayName} hours for branch`
-                    };
+                if (branchHours.length > 0) {
+                    if (branchHours[0].is_working_day) {
+                        return {
+                            start_time: branchHours[0].start_time,
+                            end_time: branchHours[0].end_time,
+                            break_duration_minutes: branchHours[0].break_duration_minutes || 0,
+                            schedule_type: 'branch_default',
+                            schedule_note: `Standard ${dayName} hours for branch`
+                        };
+                    }
+                    else {
+                        return {
+                            start_time: null,
+                            end_time: null,
+                            break_duration_minutes: 0,
+                            schedule_type: 'non_working_day',
+                            schedule_note: `Branch is closed on ${dayName}`
+                        };
+                    }
                 }
             }
             return null;

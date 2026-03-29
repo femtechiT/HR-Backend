@@ -21,7 +21,7 @@ export const getMyShifts = async (req: Request, res: Response) => {
 
     // Build query to get user's shift assignments with template details
     let query = `
-      SELECT 
+      SELECT
         esa.id,
         esa.user_id,
         esa.shift_template_id,
@@ -36,7 +36,6 @@ export const getMyShifts = async (req: Request, res: Response) => {
         st.start_time,
         st.end_time,
         st.break_duration_minutes,
-        st.type as shift_type,
         u.full_name as user_name,
         u.email as user_email,
         s.department,
@@ -101,8 +100,8 @@ export const getMyShifts = async (req: Request, res: Response) => {
         }
       }
 
-      // Determine shift display type
-      const shiftType = assignment.shift_type || getShiftTypeFromTimes(assignment.start_time, assignment.end_time);
+      // Determine shift display type from times
+      const shiftType = getShiftTypeFromTimes(assignment.start_time, assignment.end_time);
 
       return {
         id: assignment.id,
@@ -324,7 +323,7 @@ export const getTeamShifts = async (req: Request, res: Response) => {
 
     // Get team members' shifts
     const query = `
-      SELECT 
+      SELECT
         esa.id,
         esa.user_id,
         esa.shift_template_id,
@@ -342,7 +341,7 @@ export const getTeamShifts = async (req: Request, res: Response) => {
       FROM employee_shift_assignments esa
       LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
       LEFT JOIN users u ON esa.user_id = u.id
-      LEFT JOIN staff s ON esa.user_id = u.id
+      LEFT JOIN staff s ON esa.user_id = s.user_id
       ${teamFilter}
       AND esa.status = 'active'
       ORDER BY s.department, u.full_name, esa.effective_from DESC

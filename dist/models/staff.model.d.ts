@@ -131,6 +131,9 @@ export interface StaffInput {
     assigned_location_id?: number;
     location_assignments?: any;
     location_notes?: string;
+    state_of_origin?: string;
+    lga?: string;
+    course_of_study?: string;
 }
 export interface StaffUpdate {
     employee_id?: string;
@@ -198,6 +201,7 @@ export interface StaffUpdate {
     branch_name?: string;
     state_of_origin?: string;
     lga?: string;
+    course_of_study?: string;
 }
 declare class StaffModel {
     static tableName: string;

@@ -62,6 +62,34 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
                 message: 'Date and check_in_time are required'
             });
         }
+        const effectiveSchedule = await shift_scheduling_service_1.ShiftSchedulingService.getEffectiveScheduleForDate(userId, new Date(date));
+        if (!effectiveSchedule || !effectiveSchedule.start_time) {
+            if (effectiveSchedule?.schedule_type !== 'holiday') {
+                const leaveCheck = await database_1.pool.execute(`SELECT id FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date AND status = 'approved'`, [userId, new Date(date)]);
+                if (leaveCheck[0].length === 0) {
+                    return res.status(403).json({
+                        success: false,
+                        message: `Today is a non-working day (${effectiveSchedule?.schedule_note || 'Scheduled Day Off'}). Check-in is not allowed.`,
+                        data: { non_working_day: true }
+                    });
+                }
+            }
+        }
+        else {
+            const [startHours, startMinutes] = effectiveSchedule.start_time.split(':').map(Number);
+            const scheduledStart = new Date(date);
+            scheduledStart.setHours(startHours, startMinutes, 0, 0);
+            const cutoffTime = new Date(scheduledStart.getTime() + (4 * 60 * 60 * 1000));
+            const serverTime = new Date();
+            const isToday = new Date(date).toISOString().split('T')[0] === serverTime.toISOString().split('T')[0];
+            if (isToday && serverTime > cutoffTime) {
+                return res.status(403).json({
+                    success: false,
+                    message: `The check-in window for your shift (started at ${effectiveSchedule.start_time}) has closed. Please contact your supervisor.`,
+                    data: { cutoff_exceeded: true, scheduled_start: effectiveSchedule.start_time }
+                });
+            }
+        }
         let attendanceRecord = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
         if (attendanceRecord) {
             if (attendanceRecord.is_locked) {
@@ -91,7 +119,7 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
                 const userLat = parseFloat(location_coordinates.latitude);
                 if (!isNaN(userLng) && !isNaN(userLat)) {
                     const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(userLat, userLng, 1000);
-                    const assignedLocationIds = [];
+                    let assignedLocationIds = [];
                     if (staffRecord.assigned_location_id) {
                         assignedLocationIds.push(staffRecord.assigned_location_id);
                     }
@@ -216,46 +244,23 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
         else {
             const isHoliday = await holiday_model_1.default.isHoliday(new Date(date));
             if (isHoliday) {
-                const [dutyRoster] = await database_1.pool.execute(`SELECT * FROM holiday_duty_roster WHERE holiday_id = (SELECT id FROM holidays WHERE date = ? LIMIT 1) AND user_id = ?`, [new Date(date), userId]);
-                if (dutyRoster.length > 0) {
-                    const roster = dutyRoster[0];
-                    const attendanceData = {
-                        user_id: userId,
-                        date: new Date(date),
-                        status: 'holiday-working',
-                        check_in_time: null,
-                        check_out_time: null,
-                        location_coordinates: null,
-                        location_verified: false,
-                        location_address: null,
-                        notes: `Holiday duty: ${roster.shift_start_time} - ${roster.shift_end_time}`
-                    };
-                    const newAttendance = await attendance_model_1.default.create(attendanceData);
-                    return res.status(201).json({
-                        success: true,
-                        message: 'Holiday duty attendance recorded successfully',
-                        data: { attendance: newAttendance }
-                    });
-                }
-                else {
-                    const attendanceData = {
-                        user_id: userId,
-                        date: new Date(date),
-                        status: 'holiday',
-                        check_in_time: null,
-                        check_out_time: null,
-                        location_coordinates: null,
-                        location_verified: false,
-                        location_address: null,
-                        notes: 'Holiday - no attendance required'
-                    };
-                    const newAttendance = await attendance_model_1.default.create(attendanceData);
-                    return res.status(201).json({
-                        success: true,
-                        message: 'Holiday attendance recorded successfully',
-                        data: { attendance: newAttendance }
-                    });
-                }
+                const attendanceData = {
+                    user_id: userId,
+                    date: new Date(date),
+                    status: 'holiday',
+                    check_in_time: null,
+                    check_out_time: null,
+                    location_coordinates: null,
+                    location_verified: false,
+                    location_address: null,
+                    notes: 'Holiday - no attendance required'
+                };
+                const newAttendance = await attendance_model_1.default.create(attendanceData);
+                return res.status(201).json({
+                    success: true,
+                    message: 'Holiday attendance recorded successfully',
+                    data: { attendance: newAttendance }
+                });
             }
             const [leaveHistory] = await database_1.pool.execute(`SELECT id, start_date, end_date, status FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`, [userId, new Date(date)]);
             const approvedLeaves = leaveHistory.filter((l) => l.status === 'approved');
@@ -469,7 +474,7 @@ router.post('/check-out', auth_middleware_1.authenticateJWT, async (req, res) =>
             const userLat = parseFloat(location_coordinates.latitude);
             if (!isNaN(userLng) && !isNaN(userLat)) {
                 const nearbyLocations = await attendance_location_model_1.default.getLocationsNearby(userLat, userLng, 1000);
-                const assignedLocationIds = [];
+                let assignedLocationIds = [];
                 if (staffRecord.assigned_location_id) {
                     assignedLocationIds.push(staffRecord.assigned_location_id);
                 }

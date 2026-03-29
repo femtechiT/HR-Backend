@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTeamShifts = exports.getMyUpcomingShifts = exports.getMyShifts = void 0;
+exports.getMyTodayShift = exports.getTeamShifts = exports.getMyUpcomingShifts = exports.getMyShifts = void 0;
 const database_1 = require("../config/database");
+const shift_scheduling_service_1 = require("../services/shift-scheduling.service");
 const getMyShifts = async (req, res) => {
     try {
         const userId = req.currentUser?.id;
@@ -13,7 +14,7 @@ const getMyShifts = async (req, res) => {
         }
         const { startDate, endDate, status } = req.query;
         let query = `
-      SELECT 
+      SELECT
         esa.id,
         esa.user_id,
         esa.shift_template_id,
@@ -28,7 +29,6 @@ const getMyShifts = async (req, res) => {
         st.start_time,
         st.end_time,
         st.break_duration_minutes,
-        st.type as shift_type,
         u.full_name as user_name,
         u.email as user_email,
         s.department,
@@ -79,7 +79,7 @@ const getMyShifts = async (req, res) => {
                     recurrenceDaysArray = assignment.recurrence_day_of_week ? [assignment.recurrence_day_of_week] : [];
                 }
             }
-            const shiftType = assignment.shift_type || getShiftTypeFromTimes(assignment.start_time, assignment.end_time);
+            const shiftType = getShiftTypeFromTimes(assignment.start_time, assignment.end_time);
             return {
                 id: assignment.id,
                 templateName: assignment.template_name || 'Custom Shift',
@@ -261,7 +261,7 @@ const getTeamShifts = async (req, res) => {
             params.push(branchId);
         }
         const query = `
-      SELECT 
+      SELECT
         esa.id,
         esa.user_id,
         esa.shift_template_id,
@@ -279,7 +279,7 @@ const getTeamShifts = async (req, res) => {
       FROM employee_shift_assignments esa
       LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
       LEFT JOIN users u ON esa.user_id = u.id
-      LEFT JOIN staff s ON esa.user_id = u.id
+      LEFT JOIN staff s ON esa.user_id = s.user_id
       ${teamFilter}
       AND esa.status = 'active'
       ORDER BY s.department, u.full_name, esa.effective_from DESC
@@ -362,4 +362,26 @@ function checkIfWorkingDay(assignment, dayName, currentDate) {
     const effectiveTo = assignment.effective_to ? new Date(assignment.effective_to) : null;
     return currentDate >= effectiveFrom && (!effectiveTo || currentDate <= effectiveTo);
 }
+const getMyTodayShift = async (req, res) => {
+    try {
+        const userId = req.currentUser?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+        const today = new Date();
+        const schedule = await shift_scheduling_service_1.ShiftSchedulingService.getEffectiveScheduleForDate(userId, today);
+        return res.status(200).json({
+            success: true,
+            data: {
+                schedule,
+                date: today.toISOString().split('T')[0]
+            }
+        });
+    }
+    catch (error) {
+        console.error('Error fetching today\'s shift:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+exports.getMyTodayShift = getMyTodayShift;
 //# sourceMappingURL=my-shifts.controller.js.map

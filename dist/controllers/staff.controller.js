@@ -45,12 +45,24 @@ const cpanel_email_service_1 = __importDefault(require("../services/cpanel-email
 const staff_dynamic_field_model_1 = __importDefault(require("../models/staff-dynamic-field.model"));
 const getAllStaff = async (req, res) => {
     try {
-        const page = (0, type_utils_1.getNumberQueryParam)(req, 'page', 1) || 1;
-        const limit = (0, type_utils_1.getNumberQueryParam)(req, 'limit', 20) || 20;
+        const paginate = req.query.paginate !== 'false';
         const branchId = req.query.branchId ? (0, type_utils_1.getNumberQueryParam)(req, 'branchId') : undefined;
         const status = req.query.status;
         const department = req.query.department;
         const search = req.query.search;
+        if (!paginate) {
+            const { staff, totalCount } = await staff_model_1.default.findAll(10000, 0, branchId, status, department, search);
+            return res.json({
+                success: true,
+                message: 'All staff retrieved successfully',
+                data: {
+                    staff,
+                    totalCount
+                }
+            });
+        }
+        const page = (0, type_utils_1.getNumberQueryParam)(req, 'page', 1) || 1;
+        const limit = (0, type_utils_1.getNumberQueryParam)(req, 'limit', 20) || 20;
         const offset = (page - 1) * limit;
         const { staff, totalCount } = await staff_model_1.default.findAll(limit, offset, branchId, status, department, search);
         return res.json({
@@ -188,10 +200,8 @@ const createStaff = async (req, res) => {
             emergency_contact_name,
             emergency_contact_phone,
             emergency_contact_relationship,
-            date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
+            date_of_birth,
             gender,
-            current_address_id,
-            permanent_address_id,
             company_assets,
             primary_skills,
             education_certifications,
@@ -340,6 +350,24 @@ const updateStaff = async (req, res) => {
             updateData.company_assets = company_assets;
         if (primary_skills !== undefined)
             updateData.primary_skills = primary_skills;
+        const requesterRole = req.user?.roleId;
+        const isSuperAdmin = requesterRole === 1;
+        if (work_email !== undefined) {
+            if (isSuperAdmin) {
+                updateData.work_email = work_email;
+            }
+            else {
+                console.log('[Backend] ⚠️ work_email update blocked - non-admin attempt');
+            }
+        }
+        if (personal_email !== undefined) {
+            if (isSuperAdmin) {
+                updateData.personal_email = personal_email;
+            }
+            else {
+                console.log('[Backend] ⚠️ personal_email update blocked - non-admin attempt');
+            }
+        }
         if (education_certifications !== undefined)
             updateData.education_certifications = education_certifications;
         if (employee_photo !== undefined)
@@ -357,13 +385,13 @@ const updateStaff = async (req, res) => {
         if (weekly_working_hours !== undefined)
             updateData.weekly_working_hours = weekly_working_hours;
         if (overtime_eligibility !== undefined)
-            updateData.overtime_eligibility = overtime_eligibility ? 1 : 0;
+            updateData.overtime_eligibility = !!overtime_eligibility;
         if (medical_insurance_id !== undefined)
             updateData.medical_insurance_id = medical_insurance_id;
         if (provident_fund_id !== undefined)
             updateData.provident_fund_id = provident_fund_id;
         if (gratuity_applicable !== undefined)
-            updateData.gratuity_applicable = gratuity_applicable ? 1 : 0;
+            updateData.gratuity_applicable = !!gratuity_applicable;
         if (notice_period_days !== undefined)
             updateData.notice_period_days = notice_period_days;
         if (work_email !== undefined)

@@ -5,12 +5,16 @@ const database_1 = require("../config/database");
 const shift_scheduling_service_1 = require("../services/shift-scheduling.service");
 const getAllShiftTemplates = async (req, res) => {
     try {
-        const { page = 1, limit = 10, isActive } = req.query;
+        const { page = 1, limit = 10, isActive, branch_id } = req.query;
         let query = 'SELECT * FROM shift_templates WHERE 1=1';
         const params = [];
         if (isActive !== undefined) {
             query += ' AND is_active = ?';
             params.push(isActive === 'true' || isActive === '1');
+        }
+        if (branch_id) {
+            query += ' AND (branch_id = ? OR branch_id IS NULL)';
+            params.push(branch_id);
         }
         query += ' ORDER BY created_at DESC';
         const offset = (Number(page) - 1) * Number(limit);
@@ -22,6 +26,10 @@ const getAllShiftTemplates = async (req, res) => {
         if (isActive !== undefined) {
             countQuery += ' AND is_active = ?';
             countParams.push(isActive === 'true' || isActive === '1');
+        }
+        if (branch_id) {
+            countQuery += ' AND (branch_id = ? OR branch_id IS NULL)';
+            countParams.push(branch_id);
         }
         const [countRows] = await database_1.pool.execute(countQuery, countParams);
         return res.json({
@@ -74,7 +82,7 @@ const getShiftTemplateById = async (req, res) => {
 exports.getShiftTemplateById = getShiftTemplateById;
 const createShiftTemplate = async (req, res) => {
     try {
-        const { name, description, start_time, end_time, break_duration_minutes, effective_from, effective_to, recurrence_pattern, recurrence_days } = req.body;
+        const { name, description, start_time, end_time, break_duration_minutes, effective_from, effective_to, recurrence_pattern, recurrence_days, branch_id } = req.body;
         const createdBy = req.currentUser.id;
         if (!name || !start_time || !end_time || !effective_from) {
             return res.status(400).json({
@@ -109,10 +117,18 @@ const createShiftTemplate = async (req, res) => {
                 message: `Invalid recurrence pattern. Valid values are: ${validPatterns.join(', ')}`
             });
         }
-        const [result] = await database_1.pool.execute(`INSERT INTO shift_templates 
-       (name, description, start_time, end_time, break_duration_minutes, 
-        effective_from, effective_to, recurrence_pattern, recurrence_days, created_by) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        let finalBranchId = branch_id || null;
+        if (!finalBranchId) {
+            const [userBranch] = await database_1.pool.execute('SELECT branch_id FROM staff WHERE user_id = ?', [createdBy]);
+            if (userBranch.length > 0) {
+                finalBranchId = userBranch[0].branch_id;
+            }
+        }
+        const [result] = await database_1.pool.execute(`INSERT INTO shift_templates
+       (branch_id, name, description, start_time, end_time, break_duration_minutes,
+        effective_from, effective_to, recurrence_pattern, recurrence_days, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            finalBranchId,
             name,
             description || null,
             start_time,
@@ -462,9 +478,57 @@ const assignShiftToEmployee = async (req, res) => {
                 message: `Invalid assignment type. Valid values are: ${validTypes.join(', ')}`
             });
         }
-        const [existingActiveRows] = await database_1.pool.execute('SELECT id FROM employee_shift_assignments WHERE user_id = ? AND status = ?', [user_id, 'active']);
-        if (existingActiveRows.length > 0) {
-            await database_1.pool.execute('UPDATE employee_shift_assignments SET status = ?, updated_at = NOW() WHERE user_id = ? AND status = ?', ['expired', user_id, 'active']);
+        const getDaysFromAssignment = (pattern, days, dayOfWeek) => {
+            if (pattern === 'none' || pattern === 'daily') {
+                return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            }
+            if (pattern === 'weekly') {
+                if (days) {
+                    try {
+                        const parsed = JSON.parse(days);
+                        return Array.isArray(parsed) ? parsed : [];
+                    }
+                    catch {
+                        return [];
+                    }
+                }
+                if (dayOfWeek) {
+                    return [dayOfWeek];
+                }
+                return [];
+            }
+            if (pattern === 'monthly') {
+                if (dayOfWeek) {
+                    return [dayOfWeek];
+                }
+                return [];
+            }
+            return [];
+        };
+        const [existingActiveRows] = await database_1.pool.execute('SELECT id, recurrence_pattern, recurrence_days, recurrence_day_of_week, effective_from, effective_to FROM employee_shift_assignments WHERE user_id = ? AND status = ?', [user_id, 'active']);
+        const newAssignmentDays = getDaysFromAssignment(recurrence_pattern || 'none', recurrence_days ? JSON.stringify(recurrence_days) : null, recurrence_day_of_week);
+        for (const existing of existingActiveRows) {
+            const existingEffectiveFrom = new Date(existing.effective_from);
+            const existingEffectiveTo = existing.effective_to ? new Date(existing.effective_to) : null;
+            const newEffectiveFrom = new Date(effective_from);
+            const newEffectiveTo = effective_to ? new Date(effective_to) : null;
+            if (newEffectiveTo && newEffectiveTo < existingEffectiveFrom)
+                continue;
+            if (existingEffectiveTo && existingEffectiveTo < newEffectiveFrom)
+                continue;
+            const existingDays = getDaysFromAssignment(existing.recurrence_pattern, existing.recurrence_days, existing.recurrence_day_of_week);
+            const hasDayOverlap = newAssignmentDays.some(day => existingDays.includes(day));
+            if (hasDayOverlap) {
+                const overlappingDays = newAssignmentDays.filter(day => existingDays.includes(day));
+                return res.status(400).json({
+                    success: false,
+                    message: `Day conflict detected: This shift overlaps with an existing assignment on ${overlappingDays.join(', ')}. An employee cannot have multiple shifts on the same day.`,
+                    conflict: {
+                        existing_assignment_id: existing.id,
+                        overlapping_days: overlappingDays
+                    }
+                });
+            }
         }
         const [result] = await database_1.pool.execute(`INSERT INTO employee_shift_assignments
        (user_id, shift_template_id, custom_start_time, custom_end_time, custom_break_duration_minutes,

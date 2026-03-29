@@ -2,39 +2,45 @@ export interface Attendance {
     id: number;
     user_id: number;
     date: Date;
-    status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working';
+    status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend';
     check_in_time: Date | null;
     check_out_time: Date | null;
     location_coordinates: string | null;
     location_verified: boolean;
     location_address: string | null;
     notes: string | null;
+    is_locked: boolean;
+    locked_at: Date | null;
     created_at: Date;
     updated_at: Date;
 }
 export interface AttendanceInput {
     user_id: number;
     date: Date;
-    status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working';
+    status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend';
     check_in_time?: Date | null;
     check_out_time?: Date | null;
     location_coordinates?: string | null;
     location_verified?: boolean;
     location_address?: string | null;
     notes?: string | null;
+    is_locked?: boolean;
+    locked_at?: Date | null;
 }
 export declare function locationToWKT(location: {
     longitude: number;
     latitude: number;
 } | string | null): string | null;
 export interface AttendanceUpdate {
-    status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday';
+    status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'weekend';
     check_in_time?: Date | null;
     check_out_time?: Date | null;
     location_coordinates?: string | null;
     location_verified?: boolean;
     location_address?: string | null;
     notes?: string | null;
+    is_locked?: boolean;
+    locked_at?: Date | null;
 }
 declare class AttendanceModel {
     static tableName: string;
