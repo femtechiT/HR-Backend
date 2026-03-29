@@ -35,9 +35,10 @@ router.get(
   getMyUpcomingShifts
 );
 
-// GET /api/team-shifts - Get team shifts (for managers)
+// GET /api/my-shifts/team - Get team shifts (for managers)
+// Note: This was previously /api/team-shifts but moved here for consistency
 router.get(
-  '/',
+  '/team',
   authenticateJWT,
   getTeamShifts
 );
