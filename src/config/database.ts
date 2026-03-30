@@ -50,6 +50,9 @@ const dbConfig = parseConnectionString(process.env.DATABASE_URL) || {
   keepAliveInitialDelay: 0,
   namedPlaceholders: true,
   multipleStatements: true,
+  ssl: {
+    rejectUnauthorized: true
+  }
 };
 
 // Create a connection pool
