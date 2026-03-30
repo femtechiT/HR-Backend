@@ -12,7 +12,7 @@ interface GenericEmailProps {
 export const sendGenericEmail = async ({ to, subject, html }: GenericEmailProps): Promise<void> => {
   try {
     const { error } = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@tripa.com.ng',
+      from: process.env.FROM_EMAIL || 'noreply@femtechaccess.com.ng',
       to: to,
       subject: subject,
       html: html

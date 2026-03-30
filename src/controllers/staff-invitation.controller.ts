@@ -206,7 +206,7 @@ export const inviteStaffMember = async (req: Request, res: Response) => {
     const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
     // Generate work email
-    const workEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@tripa.com.ng`;
+    const workEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@femtechaccess.com.ng`;
 
     // Create user account immediately with temporary password
     // Note: Use 'active' status since ENUM doesn't include 'pending'

@@ -54,7 +54,7 @@ class CpanelEmailService {
 
   /**
    * Creates a new email account in cPanel
-   * @param emailPrefix - The prefix for the email (e.g., 'john.doe' for 'john.doe@tripa.com.ng')
+   * @param emailPrefix - The prefix for the email (e.g., 'john.doe' for 'john.doe@femtechaccess.com.ng')
    * @param password - The password for the email account
    * @returns Success status and email address
    */

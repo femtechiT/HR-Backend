@@ -10,7 +10,7 @@ interface WelcomeEmailProps {
 export const sendWelcomeEmail = async ({ to, fullName }: WelcomeEmailProps): Promise<void> => {
   try {
     const { error } = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'onboarding@tripa.com.ng',
+      from: process.env.FROM_EMAIL || 'onboarding@femtechaccess.com.ng',
       to: to,
       subject: 'Welcome to Tripa HR Management System!',
       html: `
@@ -77,7 +77,7 @@ export const sendStaffInvitationEmail = async ({
 }: StaffInvitationEmailProps): Promise<void> => {
   try {
     const { error } = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'invitations@tripa.com.ng',
+      from: process.env.FROM_EMAIL || 'invitations@femtechaccess.com.ng',
       to: to,
       subject: 'Welcome to Tripa! Your Work Account Credentials',
       html: `
@@ -145,7 +145,7 @@ interface PayrollReadyEmailProps {
 export const sendPayrollReady = async ({ to, month, year }: PayrollReadyEmailProps): Promise<{success: boolean, error?: string}> => {
   try {
     const { error } = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'payroll@tripa.com.ng',
+      from: process.env.FROM_EMAIL || 'payroll@femtechaccess.com.ng',
       to: to,
       subject: `Your ${month} ${year} Payslip is Ready`,
       html: `
