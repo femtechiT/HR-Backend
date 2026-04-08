@@ -1162,6 +1162,7 @@ INSERT INTO notification_templates (name, title_template, body_template, subject
 
 CREATE TABLE IF NOT EXISTS shift_templates (
   id INT PRIMARY KEY AUTO_INCREMENT,
+  branch_id INT NULL,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   start_time TIME NOT NULL,
@@ -1177,9 +1178,12 @@ CREATE TABLE IF NOT EXISTS shift_templates (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (created_by) REFERENCES users(id),
+  FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL,
   INDEX idx_name (name),
   INDEX idx_is_active (is_active),
-  INDEX idx_effective_dates (effective_from, effective_to)
+  INDEX idx_effective_dates (effective_from, effective_to),
+  INDEX idx_branch (branch_id),
+  INDEX idx_branch_active (branch_id, is_active)
 );
 
 -- ============================================================================
