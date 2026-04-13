@@ -25,31 +25,67 @@ import fs from 'fs';
 // Helper function to copy profile images
 async function setupProfileImages() {
   console.log('🖼️  Setting up profile images...');
-  
-  const imgDir = path.join(process.cwd(), '..', 'DONE', 'img');
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'profiles');
-  
-  // Create upload directory if it doesn't exist
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-  
-  // Copy profile images
-  let copiedCount = 0;
-  for (const imgFile of PROFILE_IMAGES) {
-    const srcPath = path.join(imgDir, imgFile);
-    const destPath = path.join(uploadDir, imgFile);
-    
-    if (fs.existsSync(srcPath)) {
-      fs.copyFileSync(srcPath, destPath);
-      copiedCount++;
-      console.log(`   ✓ Copied ${imgFile}`);
-    } else {
-      console.log(`   ⚠️  Not found: ${imgFile}`);
+
+  const imgDir = path.join(process.cwd(), '..', 'images');
+  const uploadDir = path.join(process.cwd(), 'uploads', 'profile-photos');
+  const attachmentDir = path.join(process.cwd(), 'uploads', 'leave-requests');
+  const staffDocDir = path.join(process.cwd(), 'uploads', 'staff-documents');
+
+  // Create upload directories if they don't exist
+  for (const dir of [uploadDir, attachmentDir, staffDocDir]) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
   }
-  
-  console.log(`✅ Profile images setup (${copiedCount}/${PROFILE_IMAGES.length})\n`);
+
+  // Get all image files from the images folder
+  const allImages = fs.readdirSync(imgDir).filter(f => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f));
+  console.log(`   Found ${allImages.length} images in images/ folder`);
+
+  // Copy profile images (first 12 for staff profile pictures)
+  const profileImages = allImages.slice(0, 12);
+  let copiedProfileCount = 0;
+  for (const imgFile of profileImages) {
+    const srcPath = path.join(imgDir, imgFile);
+    const destPath = path.join(uploadDir, imgFile);
+
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, destPath);
+      copiedProfileCount++;
+      console.log(`   ✓ Profile: ${imgFile}`);
+    }
+  }
+
+  // Copy attachment images (next 15 for leave requests / form attachments)
+  const attachmentImages = allImages.slice(12, 27);
+  let copiedAttachCount = 0;
+  for (const imgFile of attachmentImages) {
+    const srcPath = path.join(imgDir, imgFile);
+    const destPath = path.join(attachmentDir, imgFile);
+
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, destPath);
+      copiedAttachCount++;
+      console.log(`   ✓ Attachment: ${imgFile}`);
+    }
+  }
+
+  // Copy staff document images (next 10 for guarantor/staff docs)
+  const staffDocImages = allImages.slice(27, 37);
+  let copiedStaffDocCount = 0;
+  for (const imgFile of staffDocImages) {
+    const srcPath = path.join(imgDir, imgFile);
+    const destPath = path.join(staffDocDir, imgFile);
+
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, destPath);
+      copiedStaffDocCount++;
+      console.log(`   ✓ Staff Doc: ${imgFile}`);
+    }
+  }
+
+  const totalCopied = copiedProfileCount + copiedAttachCount + copiedStaffDocCount;
+  console.log(`✅ Images copied: ${totalCopied}/${allImages.length} (${copiedProfileCount} profile, ${copiedAttachCount} attachment, ${copiedStaffDocCount} staff doc)\n`);
 }
 
 // Configuration
@@ -61,20 +97,6 @@ const CONFIG = {
   numDepartments: 6,
   sundayWorkers: 30,        // Number of employees who work on Sundays
 };
-
-// Profile pictures from DONE/img folder
-const PROFILE_IMAGES = [
-  'pp.jpeg',
-  'ppp.jpg',
-  'yuu.jpeg',
-  'niieeee.jpeg',
-  'edgee.jpeg',
-  'smart.jpeg',
-  'elephant.jpg',
-  'lion.jpg',
-  'realnest.jpeg',
-  'toda.jpg',
-];
 
 // Nigerian Cities/Regions for branches
 const BRANCH_DATA = [
@@ -439,11 +461,13 @@ async function seedUsersAndStaff() {
 
     const userId = userResult.insertId;
 
-    // Assign profile picture (cycle through available images)
-    const profileImage = PROFILE_IMAGES[i % PROFILE_IMAGES.length];
+    // Assign profile picture (cycle through available images from images/ folder)
+    const imgDir = path.join(process.cwd(), '..', 'images');
+    const allImages = fs.readdirSync(imgDir).filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(f));
+    const profileImage = allImages[i % allImages.length];
     await pool.execute(
       `UPDATE users SET profile_picture = ? WHERE id = ?`,
-      [`/uploads/profiles/${profileImage}`, userId]
+      [`/uploads/profile-photos/${profileImage}`, userId]
     );
 
     const designations = ['Associate', 'Senior Associate', 'Officer', 'Senior Officer', 'Manager'];
@@ -1422,18 +1446,18 @@ async function seedFormSubmissions() {
 
       submissionCount++;
 
-      // Add attachments to some submissions (30% chance)
-      if (Math.random() < 0.3) {
+      // Add attachments to some submissions (40% chance) — use actual copied images
+      if (Math.random() < 0.4) {
         const submissionId = submissionResult.insertId;
         const numAttachments = Math.floor(Math.random() * 3) + 1;
 
+        // Get available attachment images
+        const attachmentDir = path.join(process.cwd(), '..', 'images');
+        const attachImages = fs.readdirSync(attachmentDir).filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(f)).slice(12, 27);
+
         for (let j = 0; j < numAttachments; j++) {
-          const fileTypes = [
-            { name: 'document.pdf', type: 'application/pdf' },
-            { name: 'image.jpg', type: 'image/jpeg' },
-            { name: 'report.docx', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-          ];
-          const file = randomElement(fileTypes);
+          const imgFile = attachImages[j % attachImages.length];
+          const ext = imgFile.split('.').pop();
 
           await pool.execute(
             `INSERT INTO form_attachments
@@ -1441,11 +1465,11 @@ async function seedFormSubmissions() {
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
               submissionId,
-              Math.floor(Math.random() * 5) + 1, // Random field ID
-              `attachment_${submissionId}_${j + 1}_${file.name}`,
-              `/uploads/attachments/sample_file_${submissionCount}_${j + 1}.${file.name.split('.').pop()}`,
-              Math.floor(Math.random() * 100000) + 10000,
-              file.type
+              Math.floor(Math.random() * 5) + 1,
+              `form_${submissionId}_attach_${j + 1}.${ext}`,
+              `/uploads/leave-requests/${imgFile}`,
+              fs.statSync(path.join(attachmentDir, imgFile)).size,
+              `image/${ext === 'jpg' ? 'jpeg' : ext}`
             ]
           );
         }
@@ -1465,20 +1489,18 @@ async function seedLeaveRequestAttachments() {
 
   let attachmentCount = 0;
 
+  // Get available attachment images from the images/ folder
+  const imgDir = path.join(process.cwd(), '..', 'images');
+  const attachImages = fs.readdirSync(imgDir).filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(f)).slice(12, 27);
+
   // ALL leave requests MUST have at least one attachment
   for (const request of leaveRequests) {
     // Every leave request gets 1-3 attachments (REQUIRED)
     const numAttachments = Math.floor(Math.random() * 3) + 1;
 
     for (let i = 0; i < numAttachments; i++) {
-      const fileTypes = [
-        { name: 'medical_cert.pdf', type: 'application/pdf' },
-        { name: 'supporting_letter.pdf', type: 'application/pdf' },
-        { name: 'doctor_note.jpg', type: 'image/jpeg' },
-        { name: 'application_letter.png', type: 'image/png' },
-        { name: 'approval_form.pdf', type: 'application/pdf' },
-      ];
-      const file = randomElement(fileTypes);
+      const imgFile = attachImages[i % attachImages.length];
+      const ext = imgFile.split('.').pop();
 
       await pool.execute(
         `INSERT INTO form_attachments
@@ -1486,10 +1508,10 @@ async function seedLeaveRequestAttachments() {
          VALUES (?, ?, ?, ?, ?)`,
         [
           request.id,
-          `leave_${request.id}_attachment_${i + 1}_${file.name}`,
-          `/uploads/attachments/leave_${request.id}_file_${i + 1}.${file.name.split('.').pop()}`,
-          Math.floor(Math.random() * 100000) + 10000,
-          file.type
+          `leave_${request.id}_attach_${i + 1}.${ext}`,
+          `/uploads/leave-requests/${imgFile}`,
+          fs.statSync(path.join(imgDir, imgFile)).size,
+          `image/${ext === 'jpg' ? 'jpeg' : ext}`
         ]
       );
 
