@@ -112,36 +112,58 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
     const needsProfileCompletion = !user.phone;
 
     // Track invitation metrics for users who came from invitations
+    // Auto-accept pending invitations + track first login
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     try {
-      // Check if this user has an accepted invitation with no first_login_at
-      const [invRows]: any = await (await import('../config/database')).pool.execute(
-        `SELECT si.id, si.profile_completed
-         FROM staff_invitations si
-         WHERE si.user_id = ? AND si.status = 'accepted' AND si.first_login_at IS NULL
+      const { pool } = await import('../config/database');
+
+      // Step 1: Auto-accept any pending invitation for this user
+      const [pendingRows]: any = await pool.execute(
+        `SELECT si.id FROM staff_invitations si
+         WHERE si.user_id = ? AND si.status = 'pending'
          LIMIT 1`,
         [user.id]
       );
 
-      if (invRows.length > 0) {
-        const invitation = invRows[0];
-        const profileComplete = !!user.phone;
-
-        await (await import('../config/database')).pool.execute(
+      if (pendingRows.length > 0) {
+        await pool.execute(
           `UPDATE staff_invitations
-           SET first_login_at = NOW(),
+           SET status = 'accepted',
+               accepted_at = NOW(),
+               first_login_at = NOW(),
                first_login_ip = ?,
                profile_completed = ?
            WHERE id = ?`,
-          [ip, profileComplete ? 1 : 0, invitation.id]
+          [ip, !!user.phone ? 1 : 0, pendingRows[0].id]
         );
-      } else if (!needsPasswordChange) {
-        // User already logged in before — update last_activity
-        await (await import('../config/database')).pool.execute(
-          `UPDATE staff_invitations SET last_activity_at = NOW()
-           WHERE user_id = ? AND status = 'accepted'`,
+        console.log(`[Invite Tracking] Auto-accepted invitation for user ${user.id} (${user.email}) on first login`);
+      } else {
+        // Step 2: Track first login for already-accepted invitations
+        const [acceptedRows]: any = await pool.execute(
+          `SELECT si.id FROM staff_invitations si
+           WHERE si.user_id = ? AND si.status = 'accepted' AND si.first_login_at IS NULL
+           LIMIT 1`,
           [user.id]
         );
+
+        if (acceptedRows.length > 0) {
+          await pool.execute(
+            `UPDATE staff_invitations
+             SET first_login_at = NOW(),
+                 first_login_ip = ?,
+                 profile_completed = ?
+             WHERE id = ?`,
+            [ip, !!user.phone ? 1 : 0, acceptedRows[0].id]
+          );
+          console.log(`[Invite Tracking] Recorded first login for user ${user.id} (${user.email})`);
+        } else if (!needsPasswordChange) {
+          // Step 3: Update last_activity for returning users
+          await pool.execute(
+            `UPDATE staff_invitations SET last_activity_at = NOW()
+             WHERE user_id = ? AND status = 'accepted'`,
+            [user.id]
+          );
+        }
       }
     } catch (trackingError) {
       // Don't fail login if tracking fails

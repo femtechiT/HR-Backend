@@ -107,22 +107,36 @@ const login = async (req, res) => {
         const needsProfileCompletion = !user.phone;
         const ip = req.ip || req.socket.remoteAddress || 'unknown';
         try {
-            const [invRows] = await (await Promise.resolve().then(() => __importStar(require('../config/database')))).pool.execute(`SELECT si.id, si.profile_completed
-         FROM staff_invitations si
-         WHERE si.user_id = ? AND si.status = 'accepted' AND si.first_login_at IS NULL
+            const { pool } = await Promise.resolve().then(() => __importStar(require('../config/database')));
+            const [pendingRows] = await pool.execute(`SELECT si.id FROM staff_invitations si
+         WHERE si.user_id = ? AND si.status = 'pending'
          LIMIT 1`, [user.id]);
-            if (invRows.length > 0) {
-                const invitation = invRows[0];
-                const profileComplete = !!user.phone;
-                await (await Promise.resolve().then(() => __importStar(require('../config/database')))).pool.execute(`UPDATE staff_invitations
-           SET first_login_at = NOW(),
+            if (pendingRows.length > 0) {
+                await pool.execute(`UPDATE staff_invitations
+           SET status = 'accepted',
+               accepted_at = NOW(),
+               first_login_at = NOW(),
                first_login_ip = ?,
                profile_completed = ?
-           WHERE id = ?`, [ip, profileComplete ? 1 : 0, invitation.id]);
+           WHERE id = ?`, [ip, !!user.phone ? 1 : 0, pendingRows[0].id]);
+                console.log(`[Invite Tracking] Auto-accepted invitation for user ${user.id} (${user.email}) on first login`);
             }
-            else if (!needsPasswordChange) {
-                await (await Promise.resolve().then(() => __importStar(require('../config/database')))).pool.execute(`UPDATE staff_invitations SET last_activity_at = NOW()
-           WHERE user_id = ? AND status = 'accepted'`, [user.id]);
+            else {
+                const [acceptedRows] = await pool.execute(`SELECT si.id FROM staff_invitations si
+           WHERE si.user_id = ? AND si.status = 'accepted' AND si.first_login_at IS NULL
+           LIMIT 1`, [user.id]);
+                if (acceptedRows.length > 0) {
+                    await pool.execute(`UPDATE staff_invitations
+             SET first_login_at = NOW(),
+                 first_login_ip = ?,
+                 profile_completed = ?
+             WHERE id = ?`, [ip, !!user.phone ? 1 : 0, acceptedRows[0].id]);
+                    console.log(`[Invite Tracking] Recorded first login for user ${user.id} (${user.email})`);
+                }
+                else if (!needsPasswordChange) {
+                    await pool.execute(`UPDATE staff_invitations SET last_activity_at = NOW()
+             WHERE user_id = ? AND status = 'accepted'`, [user.id]);
+                }
             }
         }
         catch (trackingError) {

@@ -78,8 +78,7 @@ export const sendStaffInvitationEmail = async ({
 }: StaffInvitationEmailProps): Promise<void> => {
   try {
     const defaultEmail = process.env.EMAIL_FROM || `invitations@${process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng'}`;
-    const appUrl = process.env.APP_URL || 'https://hrapi.femtechaccess.com.ng';
-    const acceptanceUrl = `${appUrl}/invite/accept?token=${invitationToken}`;
+    const staffPortalUrl = process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app';
 
     const { error } = await resend.emails.send({
       from: defaultEmail,
@@ -97,22 +96,22 @@ export const sendStaffInvitationEmail = async ({
             <p style="margin: 10px 0;"><strong>Temporary Password:</strong> <span style="color: #2c3e50; font-family: monospace; font-size: 14px;">${temporaryPassword}</span></p>
           </div>
 
-          <h2 style="color: #3498db; margin-top: 30px;">Set Up Your Account:</h2>
-          <p style="margin: 20px 0;">Click the button below to set up your permanent password and complete your profile:</p>
+          <h2 style="color: #3498db; margin-top: 30px;">Access Your Account:</h2>
+          <p style="margin: 20px 0;">Click the button below to open the Staff Portal and log in with the credentials above:</p>
           <p style="text-align: center; margin: 30px 0;">
-            <a href="${acceptanceUrl}"
+            <a href="${staffPortalUrl}"
                style="background-color: #27ae60; color: white; padding: 14px 35px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-              Set Up My Account
+              Open Staff Portal
             </a>
           </p>
           <p style="text-align: center; margin: 10px 0;">
-            <a href="${acceptanceUrl}" style="color: #3498db; font-size: 12px; word-break: break-all;">${acceptanceUrl}</a>
+            <a href="${staffPortalUrl}" style="color: #3498db; font-size: 12px;">${staffPortalUrl}</a>
           </p>
 
           <p style="margin: 20px 0;"><strong>Important Security Notes:</strong></p>
           <ul style="line-height: 1.8;">
-            <li>You will be asked to set a permanent password during setup</li>
-            <li>This invitation link expires in 7 days</li>
+            <li>Log in with the work email and temporary password above</li>
+            <li>You will be asked to set a permanent password on first login</li>
             <li>Keep your work email and password secure</li>
             <li>Do not share your credentials with anyone</li>
           </ul>
