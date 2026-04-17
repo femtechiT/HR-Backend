@@ -18,7 +18,7 @@ ADD INDEX idx_user_status_dates (user_id, status, effective_from, effective_to);
 -- Step 3: Add index for day-based queries (optional)
 -- Improves performance when filtering by recurrence pattern
 ALTER TABLE employee_shift_assignments
-ADD INDEX idx_recurrence (recurrence_pattern(10), recurrence_days(50));
+ADD INDEX idx_recurrence (recurrence_pattern);
 
 -- Verification: Check that the unique constraint was dropped
 SELECT 

@@ -3282,7 +3282,7 @@ ADD INDEX idx_user_status_dates (user_id, status, effective_from, effective_to);
 -- Step 3: Add index for day-based queries (optional)
 -- Improves performance when filtering by recurrence pattern
 ALTER TABLE employee_shift_assignments
-ADD INDEX idx_recurrence (recurrence_pattern(10), recurrence_days(50));
+ADD INDEX idx_recurrence (recurrence_pattern);
 
 -- Verification: Check that the unique constraint was dropped
 SELECT 
@@ -3319,21 +3319,23 @@ COMMENT 'Multiple active assignments per user are now allowed. Day-based conflic
 
 -- Step 1: Add branch_id column to shift_templates
 ALTER TABLE shift_templates
-ADD COLUMN branch_id INT NULL
+ADD COLUMN IF NOT EXISTS branch_id INT NULL
 AFTER created_by;
 
--- Step 2: Add foreign key constraint
-ALTER TABLE shift_templates
-ADD CONSTRAINT fk_shift_template_branch
-FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+-- Step 2: Add foreign key constraint (Safe check)
+SET @fk_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'shift_templates' AND CONSTRAINT_NAME = 'fk_shift_template_branch');
+SET @sql = IF(@fk_exists = 0, 'ALTER TABLE shift_templates ADD CONSTRAINT fk_shift_template_branch FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL', 'SELECT ''FK already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Step 3: Add index for branch-based queries
 ALTER TABLE shift_templates
-ADD INDEX idx_branch (branch_id);
+ADD INDEX IF NOT EXISTS idx_branch (branch_id);
 
 -- Step 4: Add index for combined branch + active queries
 ALTER TABLE shift_templates
-ADD INDEX idx_branch_active (branch_id, is_active);
+ADD INDEX IF NOT EXISTS idx_branch_active (branch_id, is_active);
 
 -- Step 5: Update existing templates
 -- Set branch_id based on creator's branch for existing templates

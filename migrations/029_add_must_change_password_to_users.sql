@@ -1,1 +1,1 @@
-ALTER TABLE users ADD COLUMN must_change_password BOOLEAN DEFAULT FALSE AFTER status;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE AFTER status;
