@@ -35,15 +35,6 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
       });
     }
 
-    // Optional: Validate company email domain (configure via environment variable)
-    const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN;
-    if (allowedDomain && !email.endsWith(`@${allowedDomain}`)) {
-      return res.status(403).json({
-        success: false,
-        message: `Only ${allowedDomain} email addresses are allowed`
-      });
-    }
-
     // Find user by email
     const user = await UserModel.findByEmail(email);
     if (!user) {

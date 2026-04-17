@@ -9,7 +9,7 @@ interface WelcomeEmailProps {
 
 export const sendWelcomeEmail = async ({ to, fullName }: WelcomeEmailProps): Promise<void> => {
   try {
-    const defaultEmail = process.env.EMAIL_FROM || `onboarding@${process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng'}`;
+    const defaultEmail = process.env.EMAIL_FROM || 'onboarding@femtechaccess.com.ng';
     const { error } = await resend.emails.send({
       from: defaultEmail,
       to: to,
@@ -77,7 +77,7 @@ export const sendStaffInvitationEmail = async ({
   fromAdmin
 }: StaffInvitationEmailProps): Promise<void> => {
   try {
-    const defaultEmail = process.env.EMAIL_FROM || `invitations@${process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng'}`;
+    const defaultEmail = process.env.EMAIL_FROM || 'invitations@femtechaccess.com.ng';
     const staffPortalUrl = process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng';
 
     const { error } = await resend.emails.send({
@@ -150,7 +150,7 @@ interface PayrollReadyEmailProps {
 
 export const sendPayrollReady = async ({ to, month, year }: PayrollReadyEmailProps): Promise<{success: boolean, error?: string}> => {
   try {
-    const defaultEmail = process.env.EMAIL_FROM || `payroll@${process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng'}`;
+    const defaultEmail = process.env.EMAIL_FROM || 'payroll@femtechaccess.com.ng';
     const { error } = await resend.emails.send({
       from: defaultEmail,
       to: to,

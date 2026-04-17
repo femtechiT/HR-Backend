@@ -3,7 +3,6 @@ import { getNumberQueryParam, getStringQueryParam } from '../utils/type-utils';
 import UserModel, { UserInput, UserUpdate } from '../models/user.model';
 import UserPermissionModel from '../models/user-permission.model';
 import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
-import CpanelEmailService from '../services/cpanel-email.service';
 
 // Controller for user management
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -273,34 +272,9 @@ export const terminateUser = async (req: Request, res: Response) => {
       });
     }
 
-    // Remove the email account from cPanel if it belongs to our domain
-    const emailParts = user.email.split('@');
-    if (emailParts.length === 2) {
-      const domain = emailParts[1];
-      const companyDomain = process.env.CPANEL_DOMAIN || 'example.com';
-
-      if (domain === companyDomain) {
-        try {
-          const emailPrefix = emailParts[0];
-          const cpanelService = new CpanelEmailService();
-          const deletionResult = await cpanelService.deleteEmailAccount(emailPrefix);
-
-          if (deletionResult.success) {
-            console.log(`Email account ${user.email} removed from cPanel successfully`);
-          } else {
-            console.error(`Failed to remove email account ${user.email} from cPanel:`, deletionResult.error);
-            // Don't fail the entire operation if email deletion fails
-          }
-        } catch (emailError) {
-          console.error('Error removing email account from cPanel:', emailError);
-          // Don't fail the entire operation if email deletion fails
-        }
-      }
-    }
-
     return res.json({
       success: true,
-      message: 'User terminated successfully and email account removed from cPanel'
+      message: 'User terminated successfully'
     });
   } catch (error) {
     console.error('Terminate user error:', error);

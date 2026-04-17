@@ -44,7 +44,7 @@ export const uploadProfilePhoto = async (req: Request, res: Response) => {
     console.log('[Backend] Current user ID:', req.currentUser?.id);
     console.log('[Backend] File:', req.file);
     
-    const userId = parseInt(req.params.id);
+    const userId = parseInt(req.params.id as string);
 
     if (isNaN(userId)) {
       console.log('[Backend] ❌ Invalid user ID');

@@ -3,7 +3,6 @@ import { getNumberQueryParam } from '../utils/type-utils';
 import StaffModel, { StaffInput, StaffUpdate } from '../models/staff.model';
 import UserModel from '../models/user.model';
 import AuditLogModel from '../models/audit-log.model';
-import CpanelEmailService from '../services/cpanel-email.service';
 import StaffDynamicFieldModel from '../models/staff-dynamic-field.model';
 import StaffSkillModel from '../models/staff-skill.model';
 import CompanyAssetModel from '../models/company-asset.model';
@@ -145,7 +144,7 @@ export const createStaff = async (req: Request, res: Response) => {
       date_of_birth, gender, current_address, permanent_address, company_assets,
       primary_skills, education_certifications, employee_photo, probation_end_date,
       contract_end_date, weekly_working_hours, overtime_eligibility, medical_insurance_id,
-      provident_fund_id, gratuity_applicable, notice_period_days, work_email, personal_email,
+      provident_fund_id, gratuity_applicable, notice_period_days, personal_email,
       phone_number, alternate_phone_number, marital_status, blood_group, allergies,
       special_medical_notes, highest_qualification, university_school, year_of_graduation,
       professional_certifications, certifications_json, languages_known, notice_period_start_date,
@@ -238,7 +237,6 @@ export const createStaff = async (req: Request, res: Response) => {
       provident_fund_id,
       gratuity_applicable,
       notice_period_days,
-      work_email,
       personal_email,
       phone_number,
       alternate_phone_number,
@@ -340,7 +338,7 @@ export const updateStaff = async (req: Request, res: Response) => {
       date_of_birth, gender, current_address, permanent_address, company_assets,
       primary_skills, education_certifications, employee_photo, probation_end_date,
       contract_end_date, weekly_working_hours, overtime_eligibility, medical_insurance_id,
-      provident_fund_id, gratuity_applicable, notice_period_days, work_email, personal_email,
+      provident_fund_id, gratuity_applicable, notice_period_days, personal_email,
       phone_number, alternate_phone_number, marital_status, blood_group, allergies,
       special_medical_notes, highest_qualification, university_school, year_of_graduation,
       professional_certifications, certifications_json, languages_known, notice_period_start_date,
@@ -404,14 +402,6 @@ export const updateStaff = async (req: Request, res: Response) => {
     const requesterRole = (req as any).user?.roleId;
     const isSuperAdmin = requesterRole === 1;
 
-    if (work_email !== undefined) {
-      if (isSuperAdmin) {
-        updateData.work_email = work_email;
-      } else {
-        console.log('[Backend] ⚠️ work_email update blocked - non-admin attempt');
-      }
-    }
-
     if (personal_email !== undefined) {
       if (isSuperAdmin) {
         updateData.personal_email = personal_email;
@@ -436,7 +426,6 @@ export const updateStaff = async (req: Request, res: Response) => {
     if (provident_fund_id !== undefined) updateData.provident_fund_id = provident_fund_id;
     if (gratuity_applicable !== undefined) updateData.gratuity_applicable = !!gratuity_applicable;
     if (notice_period_days !== undefined) updateData.notice_period_days = notice_period_days;
-    if (work_email !== undefined) updateData.work_email = work_email;
     if (personal_email !== undefined) updateData.personal_email = personal_email;
     if (phone_number !== undefined) updateData.phone_number = phone_number;
     if (alternate_phone_number !== undefined) updateData.alternate_phone_number = alternate_phone_number;
@@ -723,34 +712,9 @@ export const deleteStaff = async (req: Request, res: Response) => {
       );
     }
 
-    // Only remove email if it belongs to our domain
-    const emailParts = user.email.split('@');
-    if (emailParts.length === 2) {
-      const domain = emailParts[1];
-      const companyDomain = process.env.CPANEL_DOMAIN || 'example.com';
-
-      if (domain === companyDomain) {
-        try {
-          const emailPrefix = emailParts[0];
-          const cpanelService = new CpanelEmailService();
-          const deletionResult = await cpanelService.deleteEmailAccount(emailPrefix);
-
-          if (deletionResult.success) {
-            console.log(`Email account ${user.email} removed from cPanel successfully`);
-          } else {
-            console.error(`Failed to remove email account ${user.email} from cPanel:`, deletionResult.error);
-            // Don't fail the entire operation if email deletion fails
-          }
-        } catch (emailError) {
-          console.error('Error removing email account from cPanel:', emailError);
-          // Don't fail the entire operation if email deletion fails
-        }
-      }
-    }
-
     return res.json({
       success: true,
-      message: 'Staff deactivated successfully and email account removed from cPanel if applicable'
+      message: 'Staff deactivated successfully'
     });
   } catch (error) {
     console.error('Deactivate staff error:', error);
@@ -819,34 +783,9 @@ export const terminateStaff = async (req: Request, res: Response) => {
       );
     }
 
-    // Only remove email if it belongs to our domain
-    const emailParts = user.email.split('@');
-    if (emailParts.length === 2) {
-      const domain = emailParts[1];
-      const companyDomain = process.env.CPANEL_DOMAIN || 'example.com';
-
-      if (domain === companyDomain) {
-        try {
-          const emailPrefix = emailParts[0];
-          const cpanelService = new CpanelEmailService();
-          const deletionResult = await cpanelService.deleteEmailAccount(emailPrefix);
-
-          if (deletionResult.success) {
-            console.log(`Email account ${user.email} removed from cPanel successfully`);
-          } else {
-            console.error(`Failed to remove email account ${user.email} from cPanel:`, deletionResult.error);
-            // Don't fail the entire operation if email deletion fails
-          }
-        } catch (emailError) {
-          console.error('Error removing email account from cPanel:', emailError);
-          // Don't fail the entire operation if email deletion fails
-        }
-      }
-    }
-
     return res.json({
       success: true,
-      message: 'Staff terminated successfully and email account removed from cPanel if applicable'
+      message: 'Staff terminated successfully'
     });
   } catch (error) {
     console.error('Terminate staff error:', error);

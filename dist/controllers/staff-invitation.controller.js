@@ -132,22 +132,19 @@ async function createSingleInvitation(firstName, lastName, personalEmail, phone,
             departmentName = deptRows[0].name;
     }
     const passwordHash = await bcryptjs_1.default.hash(temporaryPassword, 10);
-    const sanitizedFirstName = firstName.trim().replace(/\s+/g, '').toLowerCase();
-    const sanitizedLastName = lastName.trim().replace(/\s+/g, '').toLowerCase();
-    const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-    const workEmail = `${sanitizedFirstName}.${sanitizedLastName}@${emailDomain}`;
+    const loginEmail = personalEmail.trim().toLowerCase();
     const [userResult] = await database_1.pool.execute(`INSERT INTO users
      (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'active', 1, NOW(), NOW())`, [workEmail, passwordHash, `${firstName} ${lastName}`, phone ?? null, roleId, branchId ?? null]);
+     VALUES (?, ?, ?, ?, ?, ?, 'active', 1, NOW(), NOW())`, [loginEmail, passwordHash, `${firstName} ${lastName}`, phone ?? null, roleId, branchId ?? null]);
     const userId = userResult.insertId;
     if (departmentId) {
         await database_1.pool.execute(`INSERT INTO staff
-       (user_id, employee_id, designation, department, branch_id, joining_date, employment_type, status)
-       VALUES (?, ?, ?, ?, ?, ?, 'full_time', 'active')`, [userId, `EMP${userId.toString().padStart(4, '0')}`, 'Employee', departmentName || 'General', branchId ?? null, new Date().toISOString().split('T')[0]]);
+       (user_id, employee_id, designation, department, branch_id, joining_date, employment_type, status, personal_email)
+       VALUES (?, ?, ?, ?, ?, ?, 'full_time', 'active', ?)`, [userId, `EMP${userId.toString().padStart(4, '0')}`, 'Employee', departmentName || 'General', branchId ?? null, new Date().toISOString().split('T')[0], loginEmail]);
     }
     await database_1.pool.execute(`INSERT INTO staff_invitations
      (email, token, first_name, last_name, phone, role_id, branch_id, department_id, user_id, expires_at, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [personalEmail, token, firstName, lastName, phone ?? null, roleId, branchId ?? null, departmentId ?? null, userId, expiresAt, adminId ?? null]);
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [loginEmail, token, firstName, lastName, phone ?? null, roleId, branchId ?? null, departmentId ?? null, userId, expiresAt, adminId ?? null]);
     let adminName = 'an administrator';
     if (adminId) {
         const [adminRows] = await database_1.pool.execute('SELECT full_name FROM users WHERE id = ?', [adminId]);
@@ -156,46 +153,31 @@ async function createSingleInvitation(firstName, lastName, personalEmail, phone,
     }
     try {
         await (0, email_service_1.sendStaffInvitationEmail)({
-            to: personalEmail,
+            to: loginEmail,
             fullName: `${firstName} ${lastName}`,
-            workEmail,
+            loginEmail,
             temporaryPassword,
             invitationToken: token,
             fromAdmin: adminName
         });
     }
     catch (emailError) {
-        const isDomainError = emailError?.message?.includes('not verified') || emailError?.message?.includes('domain');
-        if (process.env.NODE_ENV !== 'production' && isDomainError) {
-            console.warn('\n' + '='.repeat(60));
-            console.warn('⚠️  Email not sent (unverified Resend domain)');
-            console.warn('='.repeat(60));
-            console.warn(`  Invitee: ${firstName} ${lastName}`);
-            console.warn(`  Personal Email: ${personalEmail}`);
-            console.warn(`  Work Email:     ${workEmail}`);
-            console.warn(`  Temp Password:  ${temporaryPassword}`);
-            console.warn(`  Accept Token:   ${token}`);
-            console.warn('='.repeat(60) + '\n');
-        }
-        else {
-            console.error('Error sending invitation email:', emailError);
-            await database_1.pool.execute('DELETE FROM staff WHERE user_id = ?', [userId]);
-            await database_1.pool.execute('DELETE FROM users WHERE id = ?', [userId]);
-            await database_1.pool.execute('DELETE FROM staff_invitations WHERE user_id = ?', [userId]);
-            return { success: false, message: `Failed to send email to: ${personalEmail}`, code: 'EMAIL_FAILED' };
-        }
+        console.warn('Error sending staff invitation email:', emailError);
+        await database_1.pool.execute('DELETE FROM staff WHERE user_id = ?', [userId]);
+        await database_1.pool.execute('DELETE FROM users WHERE id = ?', [userId]);
+        await database_1.pool.execute('DELETE FROM staff_invitations WHERE user_id = ?', [userId]);
+        return { success: false, message: `Failed to send email to: ${personalEmail}`, code: 'EMAIL_FAILED' };
     }
-    return {
-        success: true,
-        data: {
-            email: personalEmail,
-            firstName,
-            lastName,
-            workEmail,
-            expiresAt: expiresAt.toISOString()
-        }
-    };
 }
+return {
+    success: true,
+    data: {
+        email: loginEmail,
+        firstName,
+        lastName,
+        expiresAt: expiresAt.toISOString()
+    }
+};
 const bulkInviteStaff = async (req, res) => {
     try {
         const { invitations } = req.body;
@@ -217,25 +199,25 @@ const bulkInviteStaff = async (req, res) => {
         let failureCount = 0;
         for (let i = 0; i < invitations.length; i++) {
             const invite = invitations[i];
-            const { firstName, lastName, personalEmail, phone, roleId, branchId, departmentId } = invite;
+            const { firstName, lastName, loginEmail, phone, roleId, branchId, departmentId } = invite;
             if (!firstName || !lastName || !personalEmail || !roleId) {
                 results.push({
                     index: i,
                     email: personalEmail || 'N/A',
                     success: false,
-                    message: 'firstName, lastName, personalEmail, and roleId are required',
+                    message: 'firstName, lastName, loginEmail, and roleId are required',
                     code: 'MISSING_FIELDS'
                 });
                 failureCount++;
                 continue;
             }
-            const result = await createSingleInvitation(firstName, lastName, personalEmail, phone, roleId, branchId, departmentId, adminId);
+            const result = await createSingleInvitation(firstName, lastName, loginEmail, phone, roleId, branchId, departmentId, adminId);
             if (result.success) {
-                results.push({ index: i, email: personalEmail, success: true, data: result.data });
+                results.push({ index: i, email: loginEmail, success: true, data: result.data });
                 successCount++;
             }
             else {
-                results.push({ index: i, email: personalEmail, success: false, message: result.message, code: result.code });
+                results.push({ index: i, email: loginEmail, success: false, message: result.message, code: result.code });
                 failureCount++;
             }
         }
@@ -261,7 +243,7 @@ const bulkInviteStaff = async (req, res) => {
 exports.bulkInviteStaff = bulkInviteStaff;
 const inviteStaffMember = async (req, res) => {
     try {
-        const { firstName, lastName, personalEmail, phone, roleId, branchId, departmentId } = req.body;
+        const { firstName, lastName, loginEmail, phone, roleId, branchId, departmentId } = req.body;
         if (!firstName || !lastName || !personalEmail || !roleId) {
             return res.status(400).json({
                 success: false,
@@ -269,7 +251,7 @@ const inviteStaffMember = async (req, res) => {
             });
         }
         const adminId = req.currentUser?.userId;
-        const result = await createSingleInvitation(firstName, lastName, personalEmail, phone, roleId, branchId, departmentId, adminId);
+        const result = await createSingleInvitation(firstName, lastName, loginEmail, phone, roleId, branchId, departmentId, adminId);
         if (!result.success) {
             const r = result;
             const statusCode = r.code === 'PENDING_INVITATION' ? 400
@@ -473,12 +455,12 @@ const resendInvitation = async (req, res) => {
         }
         await database_1.pool.execute('UPDATE staff_invitations SET token = ?, expires_at = ? WHERE id = ?', [newToken, newExpiresAt, id]);
         const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-        const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
+        const loginEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
         try {
             await (0, email_service_1.sendStaffInvitationEmail)({
                 to: invitation.email,
                 fullName: `${invitation.first_name} ${invitation.last_name}`,
-                workEmail: workEmail,
+                loginEmail: loginEmail,
                 temporaryPassword: newTemporaryPassword,
                 invitationToken: newToken,
                 fromAdmin: 'HR Team'
@@ -571,7 +553,7 @@ const acceptInvitation = async (req, res) => {
             });
         }
         const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-        const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
+        const loginEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
         const newPasswordHash = await bcryptjs_1.default.hash(password, 10);
         const connection = await database_1.pool.getConnection();
         try {
@@ -584,9 +566,9 @@ const acceptInvitation = async (req, res) => {
             await connection.commit();
             return res.json({
                 success: true,
-                message: 'Invitation accepted successfully. You can now login with your work email.',
+                message: 'Invitation accepted successfully. You can now login with your email address.',
                 data: {
-                    email: workEmail
+                    email: invitation.email
                 }
             });
         }
@@ -612,31 +594,27 @@ const acceptInvitationLink = async (req, res) => {
         const { token } = req.params;
         const [rows] = await database_1.pool.execute('SELECT id, user_id, status, expires_at, first_name, last_name FROM staff_invitations WHERE token = ?', [token]);
         if (rows.length === 0) {
-            return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/invite?error=invalid`);
+            return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=invalid`);
         }
         const invitation = rows[0];
         if (invitation.status === 'accepted') {
-            const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-            const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
-            return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/login?accepted=1&email=${encodeURIComponent(workEmail)}`);
+            return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/login?accepted=1&email=${encodeURIComponent(invitation.email)}`);
         }
         if (invitation.status !== 'pending') {
-            return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/invite?error=${invitation.status}`);
+            return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=${invitation.status}`);
         }
         if (new Date(invitation.expires_at) < new Date()) {
-            return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/invite?error=expired`);
+            return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=expired`);
         }
         await database_1.pool.execute('UPDATE staff_invitations SET status = "accepted", accepted_at = NOW() WHERE id = ?', [invitation.id]);
         if (invitation.user_id) {
             await database_1.pool.execute(`UPDATE users SET status = 'active' WHERE id = ?`, [invitation.user_id]);
         }
-        const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-        const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
-        return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/login?accepted=1&email=${encodeURIComponent(workEmail)}`);
+        return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/login?accepted=1&email=${encodeURIComponent(invitation.email)}`);
     }
     catch (error) {
         console.error('Error accepting invitation via link:', error);
-        return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/invite?error=server`);
+        return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=server`);
     }
 };
 exports.acceptInvitationLink = acceptInvitationLink;

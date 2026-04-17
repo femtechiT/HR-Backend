@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import axios from 'axios';
 import { pool } from '../config/database';
 import { sendStaffInvitationEmail } from '../services/email.service';
 import { authenticateJWT } from '../middleware/auth.middleware';
@@ -22,57 +21,7 @@ const generateTemporaryPassword = (): string => {
   return password;
 };
 
-// Function to create an email via cPanel API
-const createCpanelEmail = async (email: string, password: string): Promise<boolean> => {
-  try {
-    // Check if cPanel credentials are configured
-    if (!process.env.CPANEL_HOST || !process.env.CPANEL_USERNAME || !process.env.CPANEL_PASSWORD) {
-      console.warn('cPanel credentials not configured. Skipping email creation.');
-      return true; // Return true to continue with the invitation process
-    }
 
-    // Extract username and domain from email
-    const [username, domain] = email.split('@');
-
-    // cPanel API parameters
-    const cpanelParams = {
-      cpanel_jsonapi_module: 'Email',
-      cpanel_jsonapi_func: 'add_pop',
-      cpanel_jsonapi_apiversion: 2,
-      domain: domain,
-      email: username,
-      password: password,
-      quota: 1000 // Quota in MB, adjust as needed
-    };
-
-    // Import https module properly for ES modules
-    const https = await import('https');
-
-    // Make request to cPanel API
-    const response = await axios.post(
-      `https://${process.env.CPANEL_HOST}:2083/json-api/cpanel`,
-      new URLSearchParams(cpanelParams as any),
-      {
-        headers: {
-          'Authorization': `Basic ${Buffer.from(`${process.env.CPANEL_USERNAME}:${process.env.CPANEL_PASSWORD}`).toString('base64')}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        httpsAgent: new https.Agent({ rejectUnauthorized: false }) // Note: In production, properly configure SSL
-      }
-    );
-
-    // Check if the request was successful
-    if (response.data && response.data.cpanelresult && response.data.cpanelresult.error) {
-      console.error('cPanel API error:', response.data.cpanelresult.error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error creating cPanel email:', error);
-    return false;
-  }
-};
 
 // Internal: core invitation creation logic (shared by single and bulk invite)
 async function createSingleInvitation(
@@ -196,36 +145,20 @@ async function createSingleInvitation(
       fromAdmin: adminName
     });
   } catch (emailError: any) {
-    const isDomainError = emailError?.message?.includes('not verified') || emailError?.message?.includes('domain');
-
-    if (process.env.NODE_ENV !== 'production' && isDomainError) {
-      // In development: log credentials to console instead of failing
-      console.warn('\n' + '='.repeat(60));
-      console.warn('⚠️  Email not sent (unverified Resend domain)');
-      console.warn('='.repeat(60));
-      console.warn(`  Invitee: ${firstName} ${lastName}`);
-      console.warn(`  Personal Email: ${personalEmail}`);
-      console.warn(`  Work Email:     ${workEmail}`);
-      console.warn(`  Temp Password:  ${temporaryPassword}`);
-      console.warn(`  Accept Token:   ${token}`);
-      console.warn('='.repeat(60) + '\n');
-    } else {
-      console.error('Error sending invitation email:', emailError);
-      // Rollback on real failures
-      await pool.execute('DELETE FROM staff WHERE user_id = ?', [userId]);
-      await pool.execute('DELETE FROM users WHERE id = ?', [userId]);
-      await pool.execute('DELETE FROM staff_invitations WHERE user_id = ?', [userId]);
-      return { success: false, message: `Failed to send email to: ${personalEmail}`, code: 'EMAIL_FAILED' };
-    }
+    console.warn('Error sending staff invitation email:', emailError);
+    // Rollback on real failures
+    await pool.execute('DELETE FROM staff WHERE user_id = ?', [userId]);
+    await pool.execute('DELETE FROM users WHERE id = ?', [userId]);
+    await pool.execute('DELETE FROM staff_invitations WHERE user_id = ?', [userId]);
+    return { success: false, message: `Failed to send email to: ${personalEmail}`, code: 'EMAIL_FAILED' };
   }
 
   return {
     success: true,
     data: {
-      email: personalEmail,
+      email: loginEmail,
       firstName,
       lastName,
-      workEmail,
       expiresAt: expiresAt.toISOString()
     }
   };
@@ -580,15 +513,11 @@ export const resendInvitation = async (req: Request, res: Response) => {
       [newToken, newExpiresAt, id]
     );
 
-    // Send invitation email with new credentials
-    const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-    const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
-
     try {
       await sendStaffInvitationEmail({
         to: invitation.email,
         fullName: `${invitation.first_name} ${invitation.last_name}`,
-        workEmail: workEmail,
+        loginEmail: invitation.email,
         temporaryPassword: newTemporaryPassword,
         invitationToken: newToken,
         fromAdmin: 'HR Team'
@@ -701,10 +630,6 @@ export const acceptInvitation = async (req: Request, res: Response) => {
         message: 'Invalid invitation: no user account found'
       });
     }
-
-    // Generate work email
-    const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-    const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
 
     // Hash the new password
     const newPasswordHash = await bcrypt.hash(password, 10);
