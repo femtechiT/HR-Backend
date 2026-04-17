@@ -24,7 +24,7 @@ export const sendWelcomeEmail = async ({ to, fullName }: WelcomeEmailProps): Pro
           <ol>
             <li><strong>Build Your Organization:</strong> Create departments and branches that match your company structure.</li>
             <li><strong>Set Up Roles:</strong> Define custom roles with specific permissions for your team.</li>
-            <li><strong>Invite Team Members:</strong> Use our automated invitation system to provision professional email addresses for your staff.</li>
+            <li><strong>Invite Team Members:</strong> Use our automated invitation system to invite your staff using their personal email addresses.</li>
           </ol>
 
           <h2 style="color: #3498db;">Security Tips:</h2>
@@ -62,7 +62,7 @@ export const sendWelcomeEmail = async ({ to, fullName }: WelcomeEmailProps): Pro
 interface StaffInvitationEmailProps {
   to: string;
   fullName: string;
-  workEmail: string;
+  loginEmail: string;
   temporaryPassword: string;
   invitationToken: string;
   fromAdmin: string;
@@ -71,28 +71,28 @@ interface StaffInvitationEmailProps {
 export const sendStaffInvitationEmail = async ({
   to,
   fullName,
-  workEmail,
+  loginEmail,
   temporaryPassword,
   invitationToken,
   fromAdmin
 }: StaffInvitationEmailProps): Promise<void> => {
   try {
     const defaultEmail = process.env.EMAIL_FROM || `invitations@${process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng'}`;
-    const staffPortalUrl = process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app';
+    const staffPortalUrl = process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng';
 
     const { error } = await resend.emails.send({
       from: defaultEmail,
       to: to,
-      subject: 'Welcome to Femtech! Your Work Account Credentials',
+      subject: 'Welcome to Femtech! Your Account Credentials',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #2c3e50;">Welcome to Femtech, ${fullName}!</h1>
 
           <p>You've been invited by ${fromAdmin} to join Femtech HR Management System.</p>
 
-          <h2 style="color: #3498db;">Your Work Account Credentials:</h2>
+          <h2 style="color: #3498db;">Your Login Credentials:</h2>
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; margin: 20px 0;">
-            <p style="margin: 10px 0;"><strong>Work Email:</strong> <span style="color: #2c3e50; font-family: monospace; font-size: 14px;">${workEmail}</span></p>
+            <p style="margin: 10px 0;"><strong>Login Email:</strong> <span style="color: #2c3e50; font-family: monospace; font-size: 14px;">${loginEmail}</span></p>
             <p style="margin: 10px 0;"><strong>Temporary Password:</strong> <span style="color: #2c3e50; font-family: monospace; font-size: 14px;">${temporaryPassword}</span></p>
           </div>
 
@@ -110,9 +110,9 @@ export const sendStaffInvitationEmail = async ({
 
           <p style="margin: 20px 0;"><strong>Important Security Notes:</strong></p>
           <ul style="line-height: 1.8;">
-            <li>Log in with the work email and temporary password above</li>
+            <li>Log in with the email and temporary password above</li>
             <li>You will be asked to set a permanent password on first login</li>
-            <li>Keep your work email and password secure</li>
+            <li>Keep your credentials secure</li>
             <li>Do not share your credentials with anyone</li>
           </ul>
 

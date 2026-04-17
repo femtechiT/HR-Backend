@@ -148,18 +148,15 @@ async function createSingleInvitation(
   // Hash password
   const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
-  // Generate work email
-  const sanitizedFirstName = firstName.trim().replace(/\s+/g, '').toLowerCase();
-  const sanitizedLastName = lastName.trim().replace(/\s+/g, '').toLowerCase();
-  const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-  const workEmail = `${sanitizedFirstName}.${sanitizedLastName}@${emailDomain}`;
+  // Use personal email as the login email
+  const loginEmail = personalEmail.trim().toLowerCase();
 
   // Create user
   const [userResult]: any = await pool.execute(
     `INSERT INTO users
      (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, 'active', 1, NOW(), NOW())`,
-    [workEmail, passwordHash, `${firstName} ${lastName}`, phone ?? null, roleId, branchId ?? null]
+    [loginEmail, passwordHash, `${firstName} ${lastName}`, phone ?? null, roleId, branchId ?? null]
   );
   const userId = userResult.insertId;
 
@@ -167,9 +164,9 @@ async function createSingleInvitation(
   if (departmentId) {
     await pool.execute(
       `INSERT INTO staff
-       (user_id, employee_id, designation, department, branch_id, joining_date, employment_type, status)
-       VALUES (?, ?, ?, ?, ?, ?, 'full_time', 'active')`,
-      [userId, `EMP${userId.toString().padStart(4, '0')}`, 'Employee', departmentName || 'General', branchId ?? null, new Date().toISOString().split('T')[0]]
+       (user_id, employee_id, designation, department, branch_id, joining_date, employment_type, status, personal_email)
+       VALUES (?, ?, ?, ?, ?, ?, 'full_time', 'active', ?)`,
+      [userId, `EMP${userId.toString().padStart(4, '0')}`, 'Employee', departmentName || 'General', branchId ?? null, new Date().toISOString().split('T')[0], loginEmail]
     );
   }
 
@@ -178,7 +175,7 @@ async function createSingleInvitation(
     `INSERT INTO staff_invitations
      (email, token, first_name, last_name, phone, role_id, branch_id, department_id, user_id, expires_at, created_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [personalEmail, token, firstName, lastName, phone ?? null, roleId, branchId ?? null, departmentId ?? null, userId, expiresAt, adminId ?? null]
+    [loginEmail, token, firstName, lastName, phone ?? null, roleId, branchId ?? null, departmentId ?? null, userId, expiresAt, adminId ?? null]
   );
 
   // Get admin name for email
@@ -191,9 +188,9 @@ async function createSingleInvitation(
   // Send invitation email
   try {
     await sendStaffInvitationEmail({
-      to: personalEmail,
+      to: loginEmail,
       fullName: `${firstName} ${lastName}`,
-      workEmail,
+      loginEmail,
       temporaryPassword,
       invitationToken: token,
       fromAdmin: adminName
@@ -742,9 +739,9 @@ export const acceptInvitation = async (req: Request, res: Response) => {
 
       return res.json({
         success: true,
-        message: 'Invitation accepted successfully. You can now login with your work email.',
+        message: 'Invitation accepted successfully. You can now login with your email address.',
         data: {
-          email: workEmail
+          email: invitation.email
         }
       });
     } catch (transactionError) {
@@ -772,24 +769,22 @@ export const acceptInvitationLink = async (req: Request, res: Response) => {
     );
 
     if (rows.length === 0) {
-      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/invite?error=invalid`);
+      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=invalid`);
     }
 
     const invitation = rows[0];
 
     if (invitation.status === 'accepted') {
       // Already accepted — redirect to login
-      const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-      const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
-      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/login?accepted=1&email=${encodeURIComponent(workEmail)}`);
+      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/login?accepted=1&email=${encodeURIComponent(invitation.email)}`);
     }
 
     if (invitation.status !== 'pending') {
-      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/invite?error=${invitation.status}`);
+      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=${invitation.status}`);
     }
 
     if (new Date(invitation.expires_at) < new Date()) {
-      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/invite?error=expired`);
+      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=expired`);
     }
 
     // Mark as accepted
@@ -807,12 +802,10 @@ export const acceptInvitationLink = async (req: Request, res: Response) => {
     }
 
     // Redirect to Staff Portal
-    const emailDomain = process.env.EMAIL_DOMAIN || process.env.CPANEL_DOMAIN || 'femtechaccess.com.ng';
-    const workEmail = `${invitation.first_name.toLowerCase()}.${invitation.last_name.toLowerCase()}@${emailDomain}`;
-    return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/login?accepted=1&email=${encodeURIComponent(workEmail)}`);
+    return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/login?accepted=1&email=${encodeURIComponent(invitation.email)}`);
   } catch (error) {
     console.error('Error accepting invitation via link:', error);
-    return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://fempwa.vercel.app'}/invite?error=server`);
+    return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=server`);
   }
 };
 
