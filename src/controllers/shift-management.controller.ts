@@ -1938,6 +1938,15 @@ export const getMyShiftAssignments = async (req: Request, res: Response) => {
 
     const userId = req.currentUser.id;
 
+    // Find staff record for this user to handle legacy data where staff_id was stored in user_id column
+    const [staffRows]: any = await pool.execute(
+      'SELECT id FROM staff WHERE user_id = ?',
+      [userId]
+    );
+    const staffId = staffRows.length > 0 ? staffRows[0].id : null;
+
+    console.log(`[ShiftManagement] Fetching assignments for User ID: ${userId}, Staff ID: ${staffId}`);
+
     const [rows]: any = await pool.execute(
       `SELECT
         esa.id,
@@ -1954,29 +1963,40 @@ export const getMyShiftAssignments = async (req: Request, res: Response) => {
         st.start_time,
         st.end_time,
         st.break_duration_minutes,
-        st.recurrence_pattern,
-        st.recurrence_days
+        st.recurrence_pattern as template_recurrence_pattern,
+        st.recurrence_days as template_recurrence_days,
+        esa.recurrence_pattern,
+        esa.recurrence_days
       FROM employee_shift_assignments esa
       LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
-      WHERE esa.user_id = ?
+      WHERE esa.user_id = ? ${staffId ? 'OR esa.user_id = ?' : ''}
       ORDER BY esa.effective_from DESC`,
-      [userId]
+      staffId ? [userId, staffId] : [userId]
     );
 
     // Parse recurrence_days from JSON string to array for each assignment
     const parsedRows = rows.map((row: any) => {
-      if (row.recurrence_days) {
+      // Use assignment recurrence if available, otherwise fallback to template recurrence
+      const recurrencePattern = row.recurrence_pattern || row.template_recurrence_pattern || 'none';
+      let recurrenceDays = row.recurrence_days || row.template_recurrence_days;
+
+      if (recurrenceDays) {
         try {
-          row.recurrence_days = JSON.parse(row.recurrence_days);
+          if (typeof recurrenceDays === 'string') {
+            recurrenceDays = JSON.parse(recurrenceDays);
+          }
         } catch (e) {
           // Keep as-is if parsing fails
         }
       }
+
       // Map to frontend expected format with nested shift_template
       return {
         ...row,
+        recurrence_pattern: recurrencePattern,
+        recurrence_days: recurrenceDays,
         shift_template: {
-          name: row.shift_template_name,
+          name: row.shift_template_name || 'Custom Shift',
           start_time: row.start_time,
           end_time: row.end_time,
           break_duration_minutes: row.break_duration_minutes
@@ -1991,11 +2011,12 @@ export const getMyShiftAssignments = async (req: Request, res: Response) => {
         shiftAssignments: parsedRows
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get my shift assignments error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: error.message
     });
   }
 };

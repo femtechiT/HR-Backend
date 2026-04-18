@@ -19,6 +19,7 @@ export const getMyShifts = async (req: Request, res: Response) => {
 
     const { startDate, endDate, status } = req.query;
 
+    // Find staff record for this user to handle legacy data where staff_id was stored in user_id column
     // Build query to get user's shift assignments with template details
     let query = `
       SELECT
@@ -29,13 +30,15 @@ export const getMyShifts = async (req: Request, res: Response) => {
         esa.effective_to,
         esa.assignment_type,
         esa.status,
-        esa.recurrence_pattern,
-        esa.recurrence_days,
+        esa.recurrence_pattern as assignment_recurrence_pattern,
+        esa.recurrence_days as assignment_recurrence_days,
         esa.recurrence_day_of_week,
         st.name as template_name,
         st.start_time,
         st.end_time,
         st.break_duration_minutes,
+        st.recurrence_pattern as template_recurrence_pattern,
+        st.recurrence_days as template_recurrence_days,
         u.full_name as user_name,
         u.email as user_email,
         s.department,
@@ -81,23 +84,29 @@ export const getMyShifts = async (req: Request, res: Response) => {
         se.reason,
         se.status as exception_status
       FROM shift_exceptions se
-      WHERE se.user_id = ?
+      WHERE (se.user_id = ? ${staffId ? 'OR se.user_id = ?' : ''})
       AND se.status IN ('active', 'approved')
       ORDER BY se.exception_date DESC
     `;
 
-    const [exceptions]: any = await pool.execute(exceptionsQuery, [userId]);
+    const [exceptions]: any = await pool.execute(exceptionsQuery, staffId ? [userId, staffId] : [userId]);
 
     // Format assignments for display
     const formattedAssignments = rows.map((assignment: any) => {
-      // Parse recurrence days if exists
+      // Use assignment recurrence if available, otherwise template
+      const recurrencePattern = assignment.assignment_recurrence_pattern || assignment.template_recurrence_pattern;
+      let recurrenceDays = assignment.assignment_recurrence_days || assignment.template_recurrence_days;
+
+      // Parse recurrence days
       let recurrenceDaysArray = [];
-      if (assignment.recurrence_days) {
+      if (recurrenceDays) {
         try {
-          recurrenceDaysArray = JSON.parse(assignment.recurrence_days);
+          recurrenceDaysArray = typeof recurrenceDays === 'string' ? JSON.parse(recurrenceDays) : recurrenceDays;
         } catch (e) {
           recurrenceDaysArray = assignment.recurrence_day_of_week ? [assignment.recurrence_day_of_week] : [];
         }
+      } else if (assignment.recurrence_day_of_week) {
+        recurrenceDaysArray = [assignment.recurrence_day_of_week];
       }
 
       // Determine shift display type from times
@@ -113,7 +122,7 @@ export const getMyShifts = async (req: Request, res: Response) => {
         effectiveTo: assignment.effective_to,
         assignmentType: assignment.assignment_type,
         status: assignment.status,
-        recurrencePattern: assignment.recurrence_pattern,
+        recurrencePattern: recurrencePattern,
         recurrenceDays: recurrenceDaysArray,
         shiftType: shiftType,
         department: assignment.department,
@@ -158,6 +167,13 @@ export const getMyUpcomingShifts = async (req: Request, res: Response) => {
     const { days = 30 } = req.query;
     const numDays = parseInt(days as string);
 
+    // Find staff record for this user to handle legacy data
+    const [staffRows]: any = await pool.execute(
+      'SELECT id FROM staff WHERE user_id = ?',
+      [userId]
+    );
+    const staffId = staffRows.length > 0 ? staffRows[0].id : null;
+
     // Get user's active assignments
     const assignmentsQuery = `
       SELECT 
@@ -165,8 +181,8 @@ export const getMyUpcomingShifts = async (req: Request, res: Response) => {
         esa.shift_template_id,
         esa.effective_from,
         esa.effective_to,
-        esa.recurrence_pattern,
-        esa.recurrence_days,
+        COALESCE(esa.recurrence_pattern, st.recurrence_pattern) as recurrence_pattern,
+        COALESCE(esa.recurrence_days, st.recurrence_days) as recurrence_days,
         esa.recurrence_day_of_week,
         st.name as template_name,
         st.start_time,
@@ -174,12 +190,13 @@ export const getMyUpcomingShifts = async (req: Request, res: Response) => {
         st.break_duration_minutes
       FROM employee_shift_assignments esa
       LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
-      WHERE esa.user_id = ? AND esa.status = 'active'
-      AND esa.effective_from <= CURDATE()
+      WHERE (esa.user_id = ? ${staffId ? 'OR esa.user_id = ?' : ''}) 
+      AND esa.status = 'active'
+      AND esa.effective_from <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
       AND (esa.effective_to IS NULL OR esa.effective_to >= CURDATE())
     `;
 
-    const [assignments]: any = await pool.execute(assignmentsQuery, [userId]);
+    const [assignments]: any = await pool.execute(assignmentsQuery, staffId ? [userId, staffId, numDays] : [userId, numDays]);
 
     // Get user's exceptions for the period
     const exceptionsQuery = `
@@ -189,12 +206,12 @@ export const getMyUpcomingShifts = async (req: Request, res: Response) => {
         new_start_time,
         new_end_time
       FROM shift_exceptions
-      WHERE user_id = ?
+      WHERE (user_id = ? ${staffId ? 'OR user_id = ?' : ''})
       AND exception_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
       AND status IN ('active', 'approved')
     `;
 
-    const [exceptions]: any = await pool.execute(exceptionsQuery, [userId, numDays]);
+    const [exceptions]: any = await pool.execute(exceptionsQuery, staffId ? [userId, staffId, numDays] : [userId, numDays]);
 
     // Create a map of exception dates for quick lookup
     const exceptionMap = new Map();

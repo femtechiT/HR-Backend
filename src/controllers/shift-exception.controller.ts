@@ -123,18 +123,38 @@ class ShiftExceptionController {
         });
       }
 
+      // Find staff record for this user to handle legacy data where staff_id was stored in user_id column
+      const { pool } = await import('../config/database');
+      const [staffRows]: any = await pool.execute(
+        'SELECT id FROM staff WHERE user_id = ?',
+        [userId]
+      );
+      const staffId = staffRows.length > 0 ? staffRows[0].id : null;
+
       const { startDate, endDate } = req.query;
 
       let exceptions;
 
       if (startDate && endDate) {
-        exceptions = await ShiftExceptionModel.findByDateRange(
-          userId,
-          new Date(startDate as string),
-          new Date(endDate as string)
+        // Since ShiftExceptionModel doesn't support the fallback yet, we'll use a direct query or update the model
+        // For simplicity and speed, let's use direct query here
+        const [rows]: any = await pool.execute(
+          `SELECT * FROM shift_exceptions 
+           WHERE (user_id = ? ${staffId ? 'OR user_id = ?' : ''}) 
+           AND exception_date BETWEEN ? AND ? 
+           AND status IN ('active', 'approved')
+           ORDER BY exception_date DESC`,
+          staffId ? [userId, staffId, startDate, endDate] : [userId, startDate, endDate]
         );
+        exceptions = rows;
       } else {
-        exceptions = await ShiftExceptionModel.findByUserId(userId);
+        const [rows]: any = await pool.execute(
+          `SELECT * FROM shift_exceptions 
+           WHERE (user_id = ? ${staffId ? 'OR user_id = ?' : ''})
+           ORDER BY exception_date DESC`,
+          staffId ? [userId, staffId] : [userId]
+        );
+        exceptions = rows;
       }
 
       return res.status(200).json({
