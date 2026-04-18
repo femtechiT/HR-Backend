@@ -153,22 +153,32 @@ router.get('/balance', authenticateJWT, async (req: Request, res: Response) => {
     // Calculate balance for each leave type
     const balances = leaveTypes.map((leaveType) => {
       // Find allocations for this leave type that are still active (cycle hasn't ended)
-      const typeAllocations = allocations.filter(
-        (alloc) => alloc.leave_type_id === leaveType.id && new Date(alloc.cycle_end_date) >= new Date()
-      );
+      const typeAllocations = allocations.filter((alloc) => {
+        const matchesType = Number(alloc.leave_type_id) === Number(leaveType.id);
+        
+        // Normalize dates to start of day for comparison
+        const cycleEndDate = new Date(alloc.cycle_end_date);
+        cycleEndDate.setHours(23, 59, 59, 999); // Inclusion: valid until the very end of the end date
+        
+        const now = new Date();
+        const isActive = cycleEndDate >= now;
+        
+        return matchesType && isActive;
+      });
 
-      console.log(`[Leave Balance] Leave type "${leaveType.name}": ${typeAllocations.length} active allocations`);
+      console.log(`[Leave Balance] Leave type "${leaveType.name}" (ID: ${leaveType.id}): ${typeAllocations.length} active allocations found out of ${allocations.length} total user allocations`);
 
       // Use the most recent allocation (first one since it's ordered by cycle_start_date DESC)
       const allocation = typeAllocations[0];
       const pendingDays = pendingMap.get(leaveType.id) || 0;
 
       if (allocation) {
-        console.log(`[Leave Balance] "${leaveType.name}" allocation:`, {
+        console.log(`[Leave Balance] Using allocation ID ${allocation.id} for "${leaveType.name}":`, {
           allocated: allocation.allocated_days,
           used: allocation.used_days,
           carried: allocation.carried_over_days,
-          pending: pendingDays
+          pending: pendingDays,
+          cycleEnd: allocation.cycle_end_date
         });
 
         // Calculate remaining days correctly:
@@ -176,8 +186,6 @@ router.get('/balance', authenticateJWT, async (req: Request, res: Response) => {
         const totalAvailable = parseFloat(String(allocation.allocated_days)) + parseFloat(String(allocation.carried_over_days));
         const usedDays = parseFloat(String(allocation.used_days));
         const remainingDays = totalAvailable - usedDays - pendingDays;
-
-        console.log(`[Leave Balance] "${leaveType.name}" calculation: ${totalAvailable} - ${usedDays} - ${pendingDays} = ${remainingDays}`);
 
         return {
           leave_type_id: leaveType.id,
@@ -191,7 +199,15 @@ router.get('/balance', authenticateJWT, async (req: Request, res: Response) => {
           cycle_end_date: allocation.cycle_end_date
         };
       } else {
-        console.log(`[Leave Balance] "${leaveType.name}" - No active allocation found`);
+        // If no active allocation, check if there are any allocations at all for this type (even expired)
+        // to provide better debug info in logs
+        const anyAlloc = allocations.find(a => Number(a.leave_type_id) === Number(leaveType.id));
+        if (anyAlloc) {
+          console.warn(`[Leave Balance] Found expired/inactive allocation for "${leaveType.name}": Cycle ended ${anyAlloc.cycle_end_date}`);
+        } else {
+          console.log(`[Leave Balance] No allocations at all found for user ${userId} and leave type "${leaveType.name}"`);
+        }
+
         return {
           leave_type_id: leaveType.id,
           leave_type_name: leaveType.name,
@@ -206,7 +222,7 @@ router.get('/balance', authenticateJWT, async (req: Request, res: Response) => {
       }
     });
 
-    console.log(`[Leave Balance] Final balances:`, balances);
+    console.log(`[Leave Balance] Returning ${balances.length} balance records`);
 
     return res.json({
       success: true,

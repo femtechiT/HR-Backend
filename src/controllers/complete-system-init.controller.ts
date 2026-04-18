@@ -156,13 +156,23 @@ export const initializeCompleteSystem = async (req: Request, res: Response) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Create Super Admin role first
-    const [roleResult]: any = await pool.execute(
-      'INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
-      ['Super Admin', 'System super administrator with all privileges', JSON.stringify(['*'])]
-    );
+    // Get or create Super Admin role
+    let superAdminRoleId: number;
+    console.log('Checking for existing Super Admin role...');
+    const [existingRoles]: any = await pool.execute('SELECT id FROM roles WHERE name = ?', ['Super Admin']);
     
-    const superAdminRoleId = roleResult.insertId;
+    if (existingRoles.length > 0) {
+      superAdminRoleId = existingRoles[0].id;
+      console.log(`Found existing Super Admin role with ID: ${superAdminRoleId}`);
+    } else {
+      console.log('Creating Super Admin role...');
+      const [roleResult]: any = await pool.execute(
+        'INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
+        ['Super Admin', 'System super administrator with all privileges', JSON.stringify(['*'])]
+      );
+      superAdminRoleId = roleResult.insertId;
+      console.log(`Created Super Admin role with ID: ${superAdminRoleId}`);
+    }
 
     // Create the Super Admin user (use minimal fields to avoid missing column errors)
     const [userResult]: any = await pool.execute(

@@ -177,7 +177,6 @@ app.use('/api/job-postings', jobPostingRoutes);
 app.use('/api/job-applications', applicationSubmissionRoutes);
 app.use('/api/job-application-management', applicationManagementRoutes);
 app.use('/api/shift-scheduling', shiftSchedulingRoutes);
-app.use('/api/shift-scheduling/exceptions', shiftExceptionRoutes);
 app.use('/api/shift-exceptions', shiftExceptionBulkRoutes);  // Bulk exception creation
 app.use('/api/shift-exception-types', shiftExceptionTypeRoutes);
 app.use('/api/my-shifts', myShiftsRoutes);
