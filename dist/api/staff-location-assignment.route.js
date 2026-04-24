@@ -121,8 +121,27 @@ router.put('/:userId', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.
                 message: 'Staff member not found'
             });
         }
-        if (assigned_location_id) {
-            const [location] = await database_1.pool.execute('SELECT id FROM attendance_locations WHERE id = ?', [assigned_location_id]);
+        const normalizedPrimaryLocationId = (() => {
+            const primaryFromPayload = location_assignments?.primary_location;
+            const candidate = assigned_location_id ?? primaryFromPayload ?? null;
+            const numericCandidate = candidate === '' ? null : Number(candidate);
+            if (Number.isFinite(numericCandidate) && numericCandidate > 0) {
+                return numericCandidate;
+            }
+            const secondaryLocations = Array.isArray(location_assignments?.secondary_locations)
+                ? location_assignments.secondary_locations
+                    .map((locationId) => Number(locationId))
+                    .filter((locationId) => Number.isFinite(locationId) && locationId > 0)
+                : [];
+            return secondaryLocations.length > 0 ? secondaryLocations[0] : null;
+        })();
+        const normalizedSecondaryLocations = Array.isArray(location_assignments?.secondary_locations)
+            ? location_assignments.secondary_locations
+                .map((locationId) => Number(locationId))
+                .filter((locationId) => Number.isFinite(locationId) && locationId > 0 && locationId !== normalizedPrimaryLocationId)
+            : [];
+        if (normalizedPrimaryLocationId) {
+            const [location] = await database_1.pool.execute('SELECT id FROM attendance_locations WHERE id = ?', [normalizedPrimaryLocationId]);
             if (location.length === 0) {
                 return res.status(400).json({
                     success: false,
@@ -132,13 +151,20 @@ router.put('/:userId', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.
         }
         const updates = [];
         const values = [];
-        if (assigned_location_id !== undefined) {
+        if (normalizedPrimaryLocationId !== null) {
             updates.push('assigned_location_id = ?');
-            values.push(assigned_location_id);
+            values.push(normalizedPrimaryLocationId);
+        }
+        else if (assigned_location_id !== undefined || location_assignments !== undefined) {
+            updates.push('assigned_location_id = NULL');
         }
         if (location_assignments !== undefined) {
             updates.push('location_assignments = ?');
-            values.push(JSON.stringify(location_assignments));
+            values.push(JSON.stringify({
+                ...(location_assignments && typeof location_assignments === 'object' ? location_assignments : {}),
+                primary_location: normalizedPrimaryLocationId,
+                secondary_locations: normalizedSecondaryLocations
+            }));
         }
         if (location_notes !== undefined) {
             updates.push('location_notes = ?');

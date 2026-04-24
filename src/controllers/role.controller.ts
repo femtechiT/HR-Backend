@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import RoleModel from '../models/role.model';
 import RolePermissionModel from '../models/role-permission.model';
+import PermissionService from '../services/permission.service';
 import { authenticateJWT, checkPermission } from '../middleware/auth.middleware';
 
 // Controller for role management
@@ -284,6 +285,7 @@ export const addRolePermission = async (req: Request, res: Response) => {
     };
 
     const newPermission = await RolePermissionModel.create(permissionData);
+    await PermissionService.invalidateAllUserPermissionCaches();
 
     return res.status(201).json({
       success: true,
@@ -330,6 +332,8 @@ export const removeRolePermission = async (req: Request, res: Response) => {
         message: 'Role permission not found'
       });
     }
+
+    await PermissionService.invalidateAllUserPermissionCaches();
 
     return res.json({
       success: true,

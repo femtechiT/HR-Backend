@@ -58,6 +58,7 @@ import staffDocumentRoutes from './api/staff-document.route';
 import staffLocationAssignmentRoutes from './api/staff-location-assignment.route';
 import dashboardRoutes from './api/dashboard.route';
 import guarantorRoutes from './api/guarantor.route';
+import leavePolicyRoutes from './api/leave-policy.route';
 // import apiKeyRoutes from './api/api-key.route';
 import healthRoutes from './api/health.route';  // API Keys temporarily disabled
 import { SchedulerService } from './services/scheduler.service';
@@ -220,6 +221,7 @@ const staticFileOptions = {
 app.use('/api/uploads/leave-requests', express.static(path.join(process.cwd(), 'uploads', 'leave-requests'), staticFileOptions));
 app.use('/api/uploads/attachments', express.static(path.join(process.cwd(), 'uploads', 'attachments'), staticFileOptions));
 app.use('/api/uploads/profile-photos', express.static(path.join(process.cwd(), 'uploads', 'profile-photos'), staticFileOptions));
+app.use('/api/uploads/guarantors', express.static(path.join(process.cwd(), 'uploads', 'guarantors'), staticFileOptions));
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/payment-types', paymentTypeRoutes);
@@ -262,6 +264,7 @@ app.use('/api/attendance-locations', attendanceLocationRoutes);
 app.use('/api/staff-documents', staffDocumentRoutes);
 app.use('/api/staff-location-assignments', staffLocationAssignmentRoutes);
 app.use('/api/guarantors', guarantorRoutes);
+app.use('/api/leave-policy', leavePolicyRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/leave-cleanup', leaveCleanupRoutes);
 // app.use('/api/api-keys', apiKeyRoutes);  // API Keys temporarily disabled

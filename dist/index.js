@@ -226,6 +226,7 @@ const bootstrap = async () => {
     app.use('/api/uploads/leave-requests', express_1.default.static(path_1.default.join(process.cwd(), 'uploads', 'leave-requests'), staticFileOptions));
     app.use('/api/uploads/attachments', express_1.default.static(path_1.default.join(process.cwd(), 'uploads', 'attachments'), staticFileOptions));
     app.use('/api/uploads/profile-photos', express_1.default.static(path_1.default.join(process.cwd(), 'uploads', 'profile-photos'), staticFileOptions));
+    app.use('/api/uploads/guarantors', express_1.default.static(path_1.default.join(process.cwd(), 'uploads', 'guarantors'), staticFileOptions));
     app.use('/api/attendance', attendance_route_1.default);
     app.use('/api/holidays', holiday_route_1.default);
     app.use('/api/payment-types', payment_type_route_1.default);

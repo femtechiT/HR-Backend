@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/database';
+import PermissionService from '../services/permission.service';
 import { 
   PERMISSION_DEFINITIONS, 
   isValidPermission,
@@ -61,6 +62,8 @@ export const createRole = async (req: Request, res: Response) => {
         );
       }
     }
+
+    await PermissionService.invalidateAllUserPermissionCaches();
 
     // Fetch the created role
     const [newRoleRows]: any = await pool.execute(
@@ -255,6 +258,8 @@ export const updateRole = async (req: Request, res: Response) => {
         }
       }
     }
+
+    await PermissionService.invalidateAllUserPermissionCaches();
 
     // Fetch the updated role
     const [updatedRoleRows]: any = await pool.execute(
