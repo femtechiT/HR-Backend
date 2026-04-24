@@ -1415,6 +1415,7 @@ const getMyShiftAssignments = async (req, res) => {
             });
         }
         const userId = req.currentUser.id;
+        console.log(`[ShiftManagement] Fetching assignments for User ID: ${userId}`);
         const [rows] = await database_1.pool.execute(`SELECT
         esa.id,
         esa.user_id,
@@ -1430,24 +1431,32 @@ const getMyShiftAssignments = async (req, res) => {
         st.start_time,
         st.end_time,
         st.break_duration_minutes,
-        st.recurrence_pattern,
-        st.recurrence_days
+        st.recurrence_pattern as template_recurrence_pattern,
+        st.recurrence_days as template_recurrence_days,
+        esa.recurrence_pattern,
+        esa.recurrence_days
       FROM employee_shift_assignments esa
       LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
-      WHERE esa.user_id = ?
+      WHERE esa.user_id = ? AND esa.status IN ('active', 'approved')
       ORDER BY esa.effective_from DESC`, [userId]);
         const parsedRows = rows.map((row) => {
-            if (row.recurrence_days) {
+            const recurrencePattern = row.recurrence_pattern || row.template_recurrence_pattern || 'none';
+            let recurrenceDays = row.recurrence_days || row.template_recurrence_days;
+            if (recurrenceDays) {
                 try {
-                    row.recurrence_days = JSON.parse(row.recurrence_days);
+                    if (typeof recurrenceDays === 'string') {
+                        recurrenceDays = JSON.parse(recurrenceDays);
+                    }
                 }
                 catch (e) {
                 }
             }
             return {
                 ...row,
+                recurrence_pattern: recurrencePattern,
+                recurrence_days: recurrenceDays,
                 shift_template: {
-                    name: row.shift_template_name,
+                    name: row.shift_template_name || 'Custom Shift',
                     start_time: row.start_time,
                     end_time: row.end_time,
                     break_duration_minutes: row.break_duration_minutes
@@ -1466,7 +1475,8 @@ const getMyShiftAssignments = async (req, res) => {
         console.error('Get my shift assignments error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: 'Internal server error',
+            error: error.message
         });
     }
 };

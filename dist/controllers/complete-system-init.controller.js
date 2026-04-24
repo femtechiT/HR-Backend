@@ -125,8 +125,19 @@ const initializeCompleteSystem = async (req, res) => {
         }
         const saltRounds = 10;
         const passwordHash = await bcryptjs_1.default.hash(password, saltRounds);
-        const [roleResult] = await database_1.pool.execute('INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', ['Super Admin', 'System super administrator with all privileges', JSON.stringify(['*'])]);
-        const superAdminRoleId = roleResult.insertId;
+        let superAdminRoleId;
+        console.log('Checking for existing Super Admin role...');
+        const [existingRoles] = await database_1.pool.execute('SELECT id FROM roles WHERE name = ?', ['Super Admin']);
+        if (existingRoles.length > 0) {
+            superAdminRoleId = existingRoles[0].id;
+            console.log(`Found existing Super Admin role with ID: ${superAdminRoleId}`);
+        }
+        else {
+            console.log('Creating Super Admin role...');
+            const [roleResult] = await database_1.pool.execute('INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', ['Super Admin', 'System super administrator with all privileges', JSON.stringify(['*'])]);
+            superAdminRoleId = roleResult.insertId;
+            console.log(`Created Super Admin role with ID: ${superAdminRoleId}`);
+        }
         const [userResult] = await database_1.pool.execute(`INSERT INTO users
        (email, password_hash, full_name, phone, role_id, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'active', NOW(), NOW())`, [email, passwordHash, fullName, phone || null, superAdminRoleId]);

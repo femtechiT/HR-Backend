@@ -141,6 +141,19 @@ router.get('/dynamic-values/:staffId', authenticateJWT, checkPermission('staff:r
 router.post('/dynamic-values/:staffId', authenticateJWT, checkPermission('staff.update'), validateNumericIdParam('staffId'), setStaffDynamicValues);
 
 // Profile photo upload route
-router.post('/:id/upload-photo', authenticateJWT, upload.single('profile_picture'), uploadProfilePhoto);
+router.post(
+  '/:id/upload-photo',
+  authenticateJWT,
+  validateNumericId,
+  (req: Request, res: Response, next: NextFunction) => {
+    if (req.currentUser?.id === req.numericId) {
+      return next(); // Allow self-upload
+    }
+    // Otherwise require update permission for cross-user photo updates
+    return checkPermission('staff.update')(req, res, next);
+  },
+  upload.single('profile_picture'),
+  uploadProfilePhoto
+);
 
 export default router;

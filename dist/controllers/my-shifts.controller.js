@@ -22,13 +22,15 @@ const getMyShifts = async (req, res) => {
         esa.effective_to,
         esa.assignment_type,
         esa.status,
-        esa.recurrence_pattern,
-        esa.recurrence_days,
+        esa.recurrence_pattern as assignment_recurrence_pattern,
+        esa.recurrence_days as assignment_recurrence_days,
         esa.recurrence_day_of_week,
         st.name as template_name,
         st.start_time,
         st.end_time,
         st.break_duration_minutes,
+        st.recurrence_pattern as template_recurrence_pattern,
+        st.recurrence_days as template_recurrence_days,
         u.full_name as user_name,
         u.email as user_email,
         s.department,
@@ -43,6 +45,9 @@ const getMyShifts = async (req, res) => {
         if (status && status !== 'all') {
             query += ' AND esa.status = ?';
             params.push(status);
+        }
+        else if (!status || status === 'all') {
+            query += " AND esa.status IN ('active', 'approved')";
         }
         if (startDate) {
             query += ' AND esa.effective_from >= ?';
@@ -70,14 +75,19 @@ const getMyShifts = async (req, res) => {
     `;
         const [exceptions] = await database_1.pool.execute(exceptionsQuery, [userId]);
         const formattedAssignments = rows.map((assignment) => {
+            const recurrencePattern = assignment.assignment_recurrence_pattern || assignment.template_recurrence_pattern;
+            let recurrenceDays = assignment.assignment_recurrence_days || assignment.template_recurrence_days;
             let recurrenceDaysArray = [];
-            if (assignment.recurrence_days) {
+            if (recurrenceDays) {
                 try {
-                    recurrenceDaysArray = JSON.parse(assignment.recurrence_days);
+                    recurrenceDaysArray = typeof recurrenceDays === 'string' ? JSON.parse(recurrenceDays) : recurrenceDays;
                 }
                 catch (e) {
                     recurrenceDaysArray = assignment.recurrence_day_of_week ? [assignment.recurrence_day_of_week] : [];
                 }
+            }
+            else if (assignment.recurrence_day_of_week) {
+                recurrenceDaysArray = [assignment.recurrence_day_of_week];
             }
             const shiftType = getShiftTypeFromTimes(assignment.start_time, assignment.end_time);
             return {
@@ -90,7 +100,7 @@ const getMyShifts = async (req, res) => {
                 effectiveTo: assignment.effective_to,
                 assignmentType: assignment.assignment_type,
                 status: assignment.status,
-                recurrencePattern: assignment.recurrence_pattern,
+                recurrencePattern: recurrencePattern,
                 recurrenceDays: recurrenceDaysArray,
                 shiftType: shiftType,
                 department: assignment.department,
@@ -134,8 +144,8 @@ const getMyUpcomingShifts = async (req, res) => {
         esa.shift_template_id,
         esa.effective_from,
         esa.effective_to,
-        esa.recurrence_pattern,
-        esa.recurrence_days,
+        COALESCE(esa.recurrence_pattern, st.recurrence_pattern) as recurrence_pattern,
+        COALESCE(esa.recurrence_days, st.recurrence_days) as recurrence_days,
         esa.recurrence_day_of_week,
         st.name as template_name,
         st.start_time,
@@ -143,11 +153,12 @@ const getMyUpcomingShifts = async (req, res) => {
         st.break_duration_minutes
       FROM employee_shift_assignments esa
       LEFT JOIN shift_templates st ON esa.shift_template_id = st.id
-      WHERE esa.user_id = ? AND esa.status = 'active'
-      AND esa.effective_from <= CURDATE()
+      WHERE esa.user_id = ? 
+      AND esa.status = 'active'
+      AND esa.effective_from <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
       AND (esa.effective_to IS NULL OR esa.effective_to >= CURDATE())
     `;
-        const [assignments] = await database_1.pool.execute(assignmentsQuery, [userId]);
+        const [assignments] = await database_1.pool.execute(assignmentsQuery, [userId, numDays]);
         const exceptionsQuery = `
       SELECT 
         exception_date,
@@ -162,7 +173,9 @@ const getMyUpcomingShifts = async (req, res) => {
         const [exceptions] = await database_1.pool.execute(exceptionsQuery, [userId, numDays]);
         const exceptionMap = new Map();
         exceptions.forEach((ex) => {
-            const dateKey = ex.exception_date.toISOString().split('T')[0];
+            const dateKey = ex.exception_date instanceof Date
+                ? ex.exception_date.toISOString().split('T')[0]
+                : new Date(ex.exception_date).toISOString().split('T')[0];
             exceptionMap.set(dateKey, ex);
         });
         const upcomingShifts = [];
@@ -287,10 +300,11 @@ const getTeamShifts = async (req, res) => {
         const [rows] = await database_1.pool.execute(query, params);
         const shiftsByDepartment = {};
         rows.forEach((row) => {
-            if (!shiftsByDepartment[row.department]) {
-                shiftsByDepartment[row.department] = [];
+            const deptName = row.department || 'Unassigned';
+            if (!shiftsByDepartment[deptName]) {
+                shiftsByDepartment[deptName] = [];
             }
-            shiftsByDepartment[row.department].push({
+            shiftsByDepartment[deptName].push({
                 id: row.id,
                 userId: row.user_id,
                 userName: row.user_name,
@@ -328,7 +342,6 @@ function getShiftTypeFromTimes(startTime, endTime) {
     if (!startTime || !endTime)
         return 'Custom';
     const startHour = parseInt(startTime.split(':')[0]);
-    const endHour = parseInt(endTime.split(':')[0]);
     if (startHour >= 5 && startHour < 12)
         return 'Morning';
     if (startHour >= 12 && startHour < 17)
@@ -347,7 +360,9 @@ function checkIfWorkingDay(assignment, dayName, currentDate) {
         let recurrenceDays = [];
         if (assignment.recurrence_days) {
             try {
-                recurrenceDays = JSON.parse(assignment.recurrence_days);
+                recurrenceDays = typeof assignment.recurrence_days === 'string'
+                    ? JSON.parse(assignment.recurrence_days)
+                    : assignment.recurrence_days;
             }
             catch (e) {
                 recurrenceDays = assignment.recurrence_day_of_week ? [assignment.recurrence_day_of_week] : [];
@@ -356,7 +371,7 @@ function checkIfWorkingDay(assignment, dayName, currentDate) {
         else if (assignment.recurrence_day_of_week) {
             recurrenceDays = [assignment.recurrence_day_of_week];
         }
-        return recurrenceDays.includes(dayName.toLowerCase());
+        return Array.isArray(recurrenceDays) && recurrenceDays.includes(dayName.toLowerCase());
     }
     const effectiveFrom = new Date(assignment.effective_from);
     const effectiveTo = assignment.effective_to ? new Date(assignment.effective_to) : null;

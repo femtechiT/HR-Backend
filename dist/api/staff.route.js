@@ -118,6 +118,11 @@ router.put('/dynamic-fields/:id', auth_middleware_1.authenticateJWT, (0, auth_mi
 router.delete('/dynamic-fields/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff.delete'), validateNumericIdParam('id'), staff_controller_1.deleteDynamicField);
 router.get('/dynamic-values/:staffId', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff:read'), validateNumericIdParam('staffId'), staff_controller_1.getStaffDynamicValues);
 router.post('/dynamic-values/:staffId', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('staff.update'), validateNumericIdParam('staffId'), staff_controller_1.setStaffDynamicValues);
-router.post('/:id/upload-photo', auth_middleware_1.authenticateJWT, staff_photo_controller_1.upload.single('profile_picture'), staff_photo_controller_1.uploadProfilePhoto);
+router.post('/:id/upload-photo', auth_middleware_1.authenticateJWT, validateNumericId, (req, res, next) => {
+    if (req.currentUser?.id === req.numericId) {
+        return next();
+    }
+    return (0, auth_middleware_1.checkPermission)('staff.update')(req, res, next);
+}, staff_photo_controller_1.upload.single('profile_picture'), staff_photo_controller_1.uploadProfilePhoto);
 exports.default = router;
 //# sourceMappingURL=staff.route.js.map

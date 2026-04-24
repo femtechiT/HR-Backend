@@ -36,7 +36,7 @@ class AttendanceModel {
     }
     static async create(attendanceData) {
         const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (user_id, date, status, check_in_time, check_out_time, location_coordinates, location_verified, location_address, notes, is_locked, locked_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+       VALUES (?, ?, ?, ?, ?, ST_GeomFromText(?), ?, ?, ?, ?, ?)`, [
             attendanceData.user_id,
             attendanceData.date,
             attendanceData.status || 'absent',
@@ -72,8 +72,13 @@ class AttendanceModel {
             values.push(attendanceData.check_out_time);
         }
         if (attendanceData.location_coordinates !== undefined) {
-            updates.push('location_coordinates = ?');
-            values.push(attendanceData.location_coordinates);
+            if (attendanceData.location_coordinates) {
+                updates.push('location_coordinates = ST_GeomFromText(?)');
+                values.push(attendanceData.location_coordinates);
+            }
+            else {
+                updates.push('location_coordinates = NULL');
+            }
         }
         if (attendanceData.location_verified !== undefined) {
             updates.push('location_verified = ?');

@@ -54,6 +54,14 @@ export const uploadProfilePhoto = async (req: Request, res: Response) => {
       });
     }
 
+    if (req.currentUser?.id && req.currentUser.id !== userId && req.currentUser.role_id !== 1) {
+      console.log('[Backend] ❌ Forbidden profile photo upload target:', userId, 'requester:', req.currentUser.id);
+      return res.status(403).json({
+        success: false,
+        message: 'You can only upload your own profile photo'
+      });
+    }
+
     if (!req.file) {
       console.log('[Backend] ❌ No file uploaded');
       return res.status(400).json({
