@@ -16,6 +16,7 @@ router.get('/employee-shift-assignments/my', auth_middleware_1.authenticateJWT, 
 router.get('/employee-shift-assignments/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:read'), shift_management_controller_1.getEmployeeShiftAssignmentById);
 router.post('/employee-shift-assignments', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:create'), shift_management_controller_1.assignShiftToEmployee);
 router.put('/employee-shift-assignments/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:update'), shift_management_controller_1.updateEmployeeShiftAssignment);
+router.delete('/employee-shift-assignments/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:update'), shift_management_controller_1.deleteEmployeeShiftAssignment);
 router.post('/employee-shift-assignments/bulk', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:create'), shift_management_controller_1.bulkAssignShifts);
 router.get('/recurring-shifts', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:read'), shift_management_controller_1.getRecurringShifts);
 router.post('/recurring-shifts/bulk', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('employee_shift_assignment:create'), shift_management_controller_1.bulkAssignRecurringShifts);

@@ -681,6 +681,13 @@ const updateEmployeeShiftAssignment = async (req, res) => {
         }
         const updateFields = [];
         const params = [];
+        const normalizeRecurrenceDaysForDb = (value) => {
+            if (value === null)
+                return null;
+            if (typeof value === 'string')
+                return value;
+            return JSON.stringify(value);
+        };
         if (shift_template_id !== undefined) {
             updateFields.push('shift_template_id = ?');
             params.push(shift_template_id);
@@ -715,7 +722,7 @@ const updateEmployeeShiftAssignment = async (req, res) => {
         }
         if (recurrence_days !== undefined) {
             updateFields.push('recurrence_days = ?');
-            params.push(JSON.stringify(recurrence_days));
+            params.push(normalizeRecurrenceDaysForDb(recurrence_days));
         }
         if (recurrence_day_of_week !== undefined) {
             updateFields.push('recurrence_day_of_week = ?');

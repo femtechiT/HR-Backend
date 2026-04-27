@@ -9,6 +9,7 @@ import {
   getEmployeeShiftAssignmentById,
   assignShiftToEmployee,
   updateEmployeeShiftAssignment,
+  deleteEmployeeShiftAssignment,
   bulkAssignShifts,
   bulkAssignRecurringShifts,
   bulkAssignRecurringShiftsByBranch,
