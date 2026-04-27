@@ -88,8 +88,13 @@ async function runMigrations() {
     const migrationsDir = path.join(process.cwd(), 'migrations');
     const migrationFiles = fs.readdirSync(migrationsDir).filter(file => file.endsWith('.sql'));
 
+    // Prefer a single consolidated migration file when present.
+    // This avoids re-running both `000_all_migrations.sql` and all numbered migrations.
+    const consolidated = migrationFiles.includes('000_all_migrations.sql') ? '000_all_migrations.sql' : null;
+    const filesToRun = consolidated ? [consolidated] : migrationFiles.filter((f) => f !== '000_all_migrations.sql');
+
     // Sort files to ensure they run in order
-    const sortedMigrationFiles = migrationFiles.sort();
+    const sortedMigrationFiles = filesToRun.sort();
 
     for (const file of sortedMigrationFiles) {
       const filePath = path.join(migrationsDir, file);

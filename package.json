@@ -6,6 +6,7 @@
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
     "build": "tsc",
+    "migrations:consolidate": "node scripts/consolidate-migrations.cjs",
     "pm2:start": "pm2 start ecosystem.config.cjs --env production",
     "pm2:restart": "pm2 restart ecosystem.config.cjs --env production",
     "pm2:stop": "pm2 stop hr-backend",

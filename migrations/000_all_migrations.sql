@@ -1,9 +1,10 @@
 -- ============================================================================
--- FEMTECH HR MANAGEMENT SYSTEM - COMPLETE DATABASE MIGRATIONS
+-- FEMTECH HR MANAGEMENT SYSTEM - CONSOLIDATED DATABASE MIGRATIONS
 -- ============================================================================
 -- This file contains all migrations combined for faster setup
--- Run this ONCE during initial setup
+-- Run this ONCE during initial setup (fresh database)
 -- ============================================================================
+
 
 
 -- ============================================================================
@@ -23,6 +24,7 @@ CREATE TABLE IF NOT EXISTS roles (
   
   INDEX idx_name (name)
 );
+
 
 -- ============================================================================
 -- Migration: 002_create_branches_table.sql
@@ -50,6 +52,7 @@ CREATE TABLE IF NOT EXISTS branches (
   INDEX idx_status (status)
 );
 
+
 -- ============================================================================
 -- Migration: 003_create_users_table.sql
 -- ============================================================================
@@ -74,6 +77,7 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_role_id (role_id),
   INDEX idx_branch_id (branch_id)
 );
+
 
 -- ============================================================================
 -- Migration: 004_create_staff_table.sql
@@ -103,6 +107,7 @@ CREATE TABLE IF NOT EXISTS staff (
   INDEX idx_status (status)
 );
 
+
 -- ============================================================================
 -- Migration: 005_create_roles_permissions_table.sql
 -- ============================================================================
@@ -122,6 +127,7 @@ CREATE TABLE IF NOT EXISTS roles_permissions (
   INDEX idx_role_id (role_id),
   INDEX idx_permission (permission)
 );
+
 
 -- ============================================================================
 -- Migration: 006_create_staff_documents_table.sql
@@ -153,6 +159,7 @@ CREATE TABLE IF NOT EXISTS staff_documents (
   INDEX idx_expiry_date (expiry_date)
 );
 
+
 -- ============================================================================
 -- Migration: 007_create_staff_addresses_table.sql
 -- ============================================================================
@@ -180,6 +187,7 @@ CREATE TABLE IF NOT EXISTS staff_addresses (
   INDEX idx_state (state)
 );
 
+
 -- ============================================================================
 -- Migration: 008_create_forms_table.sql
 -- ============================================================================
@@ -203,6 +211,7 @@ CREATE TABLE IF NOT EXISTS forms (
   INDEX idx_form_type (form_type),
   INDEX idx_is_active (is_active)
 );
+
 
 -- ============================================================================
 -- Migration: 009_create_form_fields_table.sql
@@ -229,6 +238,7 @@ CREATE TABLE IF NOT EXISTS form_fields (
   UNIQUE KEY uk_form_field_name (form_id, field_name),
   INDEX idx_field_order (field_order)
 );
+
 
 -- ============================================================================
 -- Migration: 010_create_form_submissions_table.sql
@@ -257,6 +267,7 @@ CREATE TABLE IF NOT EXISTS form_submissions (
   INDEX idx_submitted_at (submitted_at)
 );
 
+
 -- ============================================================================
 -- Migration: 013_create_user_permissions_table.sql
 -- ============================================================================
@@ -277,6 +288,7 @@ CREATE TABLE IF NOT EXISTS user_permissions (
   INDEX idx_user_id (user_id),
   INDEX idx_permission (permission)
 );
+
 
 -- ============================================================================
 -- Migration: 014_create_leave_types_table.sql
@@ -303,6 +315,7 @@ CREATE TABLE IF NOT EXISTS leave_types (
   INDEX idx_is_active (is_active)
 );
 
+
 -- ============================================================================
 -- Migration: 015_create_leave_expiry_rules_table.sql
 -- ============================================================================
@@ -321,6 +334,7 @@ CREATE TABLE IF NOT EXISTS leave_expiry_rules (
 
   INDEX idx_name (name)
 );
+
 
 -- ============================================================================
 -- Migration: 016_create_leave_allocations_table.sql
@@ -345,6 +359,7 @@ CREATE TABLE IF NOT EXISTS leave_allocations (
   INDEX idx_user_leave_type (user_id, leave_type_id),
   INDEX idx_cycle_dates (cycle_start_date, cycle_end_date)
 );
+
 
 -- ============================================================================
 -- Migration: 017_create_leave_history_table.sql
@@ -374,6 +389,7 @@ CREATE TABLE IF NOT EXISTS leave_history (
   INDEX idx_status (status)
 );
 
+
 -- ============================================================================
 -- Migration: 019_create_attendance_table.sql
 -- ============================================================================
@@ -401,6 +417,7 @@ CREATE TABLE IF NOT EXISTS attendance (
   INDEX idx_status (status)
 );
 
+
 -- ============================================================================
 -- Migration: 020_create_shift_timings_table.sql
 -- ============================================================================
@@ -416,8 +433,6 @@ CREATE TABLE IF NOT EXISTS shift_timings (
   end_time TIME NOT NULL, -- Standard end time (e.g., '17:00:00')
   effective_from DATE NOT NULL,
   effective_to DATE NULL, -- NULL means indefinite
-  recurrence_pattern ENUM('none', 'daily', 'weekly', 'monthly') DEFAULT 'weekly',
-  recurrence_days JSON, -- JSON array of day names (e.g., ["monday", "saturday"])
   override_branch_id INT NULL, -- Specific branch override
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -425,9 +440,9 @@ CREATE TABLE IF NOT EXISTS shift_timings (
   FOREIGN KEY (user_id) REFERENCES users(id),
   FOREIGN KEY (override_branch_id) REFERENCES branches(id),
   INDEX idx_user_effective (user_id, effective_from, effective_to),
-  INDEX idx_branch (override_branch_id),
-  INDEX idx_recurrence (user_id, recurrence_pattern, effective_from, effective_to)
+  INDEX idx_branch (override_branch_id)
 );
+
 
 -- ============================================================================
 -- Migration: 021_create_holidays_table.sql
@@ -453,6 +468,7 @@ CREATE TABLE IF NOT EXISTS holidays (
   INDEX idx_holiday_name (holiday_name)
 );
 
+
 -- ============================================================================
 -- Migration: 022_add_location_to_branches_table.sql
 -- ============================================================================
@@ -464,6 +480,7 @@ ALTER TABLE branches
 ADD COLUMN IF NOT EXISTS location_coordinates VARCHAR(255) COMMENT 'GPS coordinates (latitude, longitude) for geofencing',
 ADD COLUMN IF NOT EXISTS location_radius_meters INT DEFAULT 100 COMMENT 'Radius in meters for geofencing around branch location',
 ADD COLUMN IF NOT EXISTS attendance_mode ENUM('branch_based', 'multiple_locations') DEFAULT 'branch_based' COMMENT 'Attendance verification mode for this branch';
+
 
 -- ============================================================================
 -- Migration: 023_create_attendance_locations_table.sql
@@ -489,11 +506,12 @@ CREATE TABLE IF NOT EXISTS attendance_locations (
   INDEX idx_active (is_active)
 );
 
+
 -- ============================================================================
 -- Migration: 024_create_audit_logs_table.sql
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS audit_logs (
+CREATE TABLE audit_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NULL,
     action VARCHAR(255) NOT NULL,
@@ -505,6 +523,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     user_agent TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 -- ============================================================================
 -- Migration: 025_create_payment_types_table.sql
@@ -531,6 +550,7 @@ CREATE TABLE IF NOT EXISTS payment_types (
   INDEX idx_is_active (is_active)
 );
 
+
 -- ============================================================================
 -- Migration: 026_create_staff_payment_structure_table.sql
 -- ============================================================================
@@ -556,6 +576,7 @@ CREATE TABLE IF NOT EXISTS staff_payment_structure (
   INDEX idx_payment_type_id (payment_type_id),
   INDEX idx_effective_dates (effective_from, effective_to)
 );
+
 
 -- ============================================================================
 -- Migration: 027_create_payroll_runs_table.sql
@@ -585,6 +606,7 @@ CREATE TABLE IF NOT EXISTS payroll_runs (
   UNIQUE KEY uk_month_year_branch (month, year, branch_id)
 );
 
+
 -- ============================================================================
 -- Migration: 028_create_payroll_records_table.sql
 -- ============================================================================
@@ -612,11 +634,13 @@ CREATE TABLE IF NOT EXISTS payroll_records (
   INDEX idx_processed_at (processed_at)
 );
 
+
 -- ============================================================================
 -- Migration: 029_add_must_change_password_to_users.sql
 -- ============================================================================
 
-ALTER TABLE users ADD COLUMN must_change_password BOOLEAN DEFAULT FALSE AFTER status;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE AFTER status;
+
 
 -- ============================================================================
 -- Migration: 030_create_departments_table.sql
@@ -631,6 +655,7 @@ CREATE TABLE IF NOT EXISTS departments (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (branch_id) REFERENCES branches(id)
 );
+
 
 -- ============================================================================
 -- Migration: 031_create_metrics_library_table.sql
@@ -652,6 +677,7 @@ CREATE TABLE IF NOT EXISTS metrics_library (
   INDEX idx_is_active (is_active)
 );
 
+
 -- ============================================================================
 -- Migration: 032_create_kpi_definitions_table.sql
 -- ============================================================================
@@ -672,6 +698,7 @@ CREATE TABLE IF NOT EXISTS kpi_definitions (
   INDEX idx_is_active (is_active)
 );
 
+
 -- ============================================================================
 -- Migration: 033_create_appraisal_templates_table.sql
 -- ============================================================================
@@ -690,6 +717,7 @@ CREATE TABLE IF NOT EXISTS appraisal_templates (
   INDEX idx_created_by (created_by),
   INDEX idx_is_active (is_active)
 );
+
 
 -- ============================================================================
 -- Migration: 034_create_targets_table.sql
@@ -718,6 +746,7 @@ CREATE TABLE IF NOT EXISTS targets (
   INDEX idx_template_id (template_id)
 );
 
+
 -- ============================================================================
 -- Migration: 035_create_kpi_assignments_table.sql
 -- ============================================================================
@@ -739,6 +768,7 @@ CREATE TABLE IF NOT EXISTS kpi_assignments (
   INDEX idx_user_id (user_id),
   INDEX idx_kpi_definition_id (kpi_definition_id)
 );
+
 
 -- ============================================================================
 -- Migration: 036_create_kpi_scores_table.sql
@@ -763,6 +793,7 @@ CREATE TABLE IF NOT EXISTS kpi_scores (
   INDEX idx_calculated_at (calculated_at)
 );
 
+
 -- ============================================================================
 -- Migration: 037_create_appraisal_cycles_table.sql
 -- ============================================================================
@@ -785,6 +816,7 @@ CREATE TABLE IF NOT EXISTS appraisal_cycles (
   INDEX idx_dates (start_date, end_date)
 );
 
+
 -- ============================================================================
 -- Migration: 038_create_appraisal_assignments_table.sql
 -- ============================================================================
@@ -806,6 +838,7 @@ CREATE TABLE IF NOT EXISTS appraisal_assignments (
   INDEX idx_appraisal_cycle_id (appraisal_cycle_id),
   INDEX idx_status (status)
 );
+
 
 -- ============================================================================
 -- Migration: 039_create_performance_scores_table.sql
@@ -834,6 +867,7 @@ CREATE TABLE IF NOT EXISTS performance_scores (
   INDEX idx_calculated_at (calculated_at)
 );
 
+
 -- ============================================================================
 -- Migration: 040_create_payslips_table.sql
 -- ============================================================================
@@ -852,6 +886,7 @@ CREATE TABLE IF NOT EXISTS payslips (
   FOREIGN KEY (generated_by) REFERENCES users(id)
 );
 
+
 -- ============================================================================
 -- Migration: 041_create_payslip_details_table.sql
 -- ============================================================================
@@ -867,6 +902,7 @@ CREATE TABLE IF NOT EXISTS payslip_details (
   FOREIGN KEY (payslip_id) REFERENCES payslips(id)
 );
 
+
 -- ============================================================================
 -- Migration: 042_add_updated_at_to_roles_permissions.sql
 -- ============================================================================
@@ -876,6 +912,7 @@ CREATE TABLE IF NOT EXISTS payslip_details (
 
 ALTER TABLE roles_permissions 
 ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
 
 -- ============================================================================
 -- Migration: 043_create_notification_templates_table.sql
@@ -901,6 +938,7 @@ CREATE TABLE IF NOT EXISTS notification_templates (
   INDEX idx_enabled (enabled)
 );
 
+
 -- ============================================================================
 -- Migration: 044_create_user_notification_preferences_table.sql
 -- ============================================================================
@@ -922,6 +960,7 @@ CREATE TABLE IF NOT EXISTS user_notification_preferences (
   INDEX idx_user_id (user_id),
   INDEX idx_notification_type (notification_type)
 );
+
 
 -- ============================================================================
 -- Migration: 045_create_notification_queue_table.sql
@@ -960,6 +999,7 @@ CREATE TABLE IF NOT EXISTS notification_queue (
   INDEX idx_priority (priority)
 );
 
+
 -- ============================================================================
 -- Migration: 046_create_device_registrations_table.sql
 -- ============================================================================
@@ -987,6 +1027,7 @@ CREATE TABLE IF NOT EXISTS device_registrations (
   INDEX idx_is_active (is_active),
   INDEX idx_platform (platform)
 );
+
 
 -- ============================================================================
 -- Migration: 047_insert_notification_templates.sql
@@ -1030,6 +1071,7 @@ INSERT INTO notification_templates (name, title_template, body_template, subject
 INSERT INTO notification_templates (name, title_template, body_template, subject_template, channel, variables, enabled) VALUES
 ('welcome_email', 'Welcome to {company_name}, {staff_name}!', 'Dear {staff_name},<br><br>Welcome to {company_name}! We are excited to have you as part of our team.<br><br>Your account has been created with the following details:<br>Email: {email}<br><br>Please log in to the HR portal using your credentials and complete your profile information.<br><br>If you have any questions, feel free to reach out to HR.', 'Welcome to {company_name}!', 'email', '["staff_name", "company_name", "email"]', TRUE);
 
+
 -- ============================================================================
 -- Migration: 048_create_job_postings_table.sql
 -- ============================================================================
@@ -1064,6 +1106,7 @@ CREATE TABLE IF NOT EXISTS job_postings (
   INDEX idx_department_id (department_id),
   INDEX idx_is_active (is_active)
 );
+
 
 -- ============================================================================
 -- Migration: 049_create_job_applications_table.sql
@@ -1101,6 +1144,7 @@ CREATE TABLE IF NOT EXISTS job_applications (
   INDEX idx_applied_at (applied_at)
 );
 
+
 -- ============================================================================
 -- Migration: 050_create_application_comments_table.sql
 -- ============================================================================
@@ -1121,6 +1165,7 @@ CREATE TABLE IF NOT EXISTS application_comments (
   INDEX idx_commented_by (commented_by),
   INDEX idx_created_at (created_at)
 );
+
 
 -- ============================================================================
 -- Migration: 051_insert_recruitment_notification_templates.sql
@@ -1153,6 +1198,7 @@ INSERT INTO notification_templates (name, title_template, body_template, subject
 INSERT INTO notification_templates (name, title_template, body_template, subject_template, channel, variables, enabled) VALUES
 ('application_withdrawn_acknowledgment', 'Application Withdrawal Acknowledged', 'Dear {applicant_name},<br><br>We have received your request to withdraw your application for the position of <strong>{job_title}</strong>.<br><br>Your application has been successfully withdrawn from our recruitment process. If you change your mind or wish to apply for other positions, please feel free to do so.<br><br>Thank you for considering {company_name} as a potential employer.<br><br>Best regards,<br>The {company_name} Recruitment Team', 'Application Withdrawal Acknowledged - {company_name}', 'email', '["applicant_name", "job_title", "company_name"]', TRUE);
 
+
 -- ============================================================================
 -- Migration: 052_create_shift_templates_table.sql
 -- ============================================================================
@@ -1162,7 +1208,6 @@ INSERT INTO notification_templates (name, title_template, body_template, subject
 
 CREATE TABLE IF NOT EXISTS shift_templates (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  branch_id INT NULL,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   start_time TIME NOT NULL,
@@ -1178,13 +1223,11 @@ CREATE TABLE IF NOT EXISTS shift_templates (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (created_by) REFERENCES users(id),
-  FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL,
   INDEX idx_name (name),
   INDEX idx_is_active (is_active),
-  INDEX idx_effective_dates (effective_from, effective_to),
-  INDEX idx_branch (branch_id),
-  INDEX idx_branch_active (branch_id, is_active)
+  INDEX idx_effective_dates (effective_from, effective_to)
 );
+
 
 -- ============================================================================
 -- Migration: 053_create_employee_shift_assignments_table.sql
@@ -1223,6 +1266,7 @@ CREATE TABLE IF NOT EXISTS employee_shift_assignments (
   INDEX idx_status (status)
 );
 
+
 -- ============================================================================
 -- Migration: 054_create_shift_exceptions_table.sql
 -- ============================================================================
@@ -1259,6 +1303,7 @@ CREATE TABLE IF NOT EXISTS shift_exceptions (
   INDEX idx_created_by (created_by)
 );
 
+
 -- ============================================================================
 -- Migration: 055_create_time_off_banks_table.sql
 -- ============================================================================
@@ -1287,6 +1332,7 @@ CREATE TABLE IF NOT EXISTS time_off_banks (
   INDEX idx_valid_dates (valid_from, valid_to),
   CONSTRAINT chk_available_days CHECK (available_days >= 0)
 );
+
 
 -- ============================================================================
 -- Migration: 056_create_schedule_requests_table.sql
@@ -1328,6 +1374,7 @@ CREATE TABLE IF NOT EXISTS schedule_requests (
   INDEX idx_scheduled_for (scheduled_for)
 );
 
+
 -- ============================================================================
 -- Migration: 057_create_schedule_approval_hierarchies_table.sql
 -- ============================================================================
@@ -1363,6 +1410,7 @@ CREATE TABLE IF NOT EXISTS schedule_approval_hierarchies (
   INDEX idx_is_active (is_active)
 );
 
+
 -- ============================================================================
 -- Migration: 058_add_shift_fields_to_attendance_table.sql
 -- ============================================================================
@@ -1371,22 +1419,23 @@ CREATE TABLE IF NOT EXISTS schedule_approval_hierarchies (
 -- Description: Adds fields to track attendance against dynamic schedules
 
 -- Add scheduled_start_time column (without checking if exists, assuming it doesn't)
-ALTER TABLE attendance ADD COLUMN scheduled_start_time TIME NULL COMMENT 'Scheduled start time based on employee shift';
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS scheduled_start_time TIME NULL COMMENT 'Scheduled start time based on employee shift';
 
 -- Add scheduled_end_time column
-ALTER TABLE attendance ADD COLUMN scheduled_end_time TIME NULL COMMENT 'Scheduled end time based on employee shift';
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS scheduled_end_time TIME NULL COMMENT 'Scheduled end time based on employee shift';
 
 -- Add scheduled_break_duration_minutes column
-ALTER TABLE attendance ADD COLUMN scheduled_break_duration_minutes INT DEFAULT 0 COMMENT 'Scheduled break duration based on employee shift';
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS scheduled_break_duration_minutes INT DEFAULT 0 COMMENT 'Scheduled break duration based on employee shift';
 
 -- Add is_late column
-ALTER TABLE attendance ADD COLUMN is_late BOOLEAN DEFAULT NULL COMMENT 'Whether the employee was late based on their scheduled start time';
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS is_late BOOLEAN DEFAULT NULL COMMENT 'Whether the employee was late based on their scheduled start time';
 
 -- Add is_early_departure column
-ALTER TABLE attendance ADD COLUMN is_early_departure BOOLEAN DEFAULT NULL COMMENT 'Whether the employee left early based on their scheduled end time';
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS is_early_departure BOOLEAN DEFAULT NULL COMMENT 'Whether the employee left early based on their scheduled end time';
 
 -- Add actual_working_hours column
-ALTER TABLE attendance ADD COLUMN actual_working_hours DECIMAL(4,2) DEFAULT NULL COMMENT 'Actual working hours after deducting break time';
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS actual_working_hours DECIMAL(4,2) DEFAULT NULL COMMENT 'Actual working hours after deducting break time';
+
 
 -- ============================================================================
 -- Migration: 060_add_date_of_birth_to_users_table.sql
@@ -1395,7 +1444,8 @@ ALTER TABLE attendance ADD COLUMN actual_working_hours DECIMAL(4,2) DEFAULT NULL
 -- Migration: Add date_of_birth column to users table
 -- Description: Adds date of birth column to users table for birthday notifications
 
-ALTER TABLE users ADD COLUMN date_of_birth DATE NULL COMMENT 'Date of birth for birthday notifications';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE NULL COMMENT 'Date of birth for birthday notifications';
+
 
 -- ============================================================================
 -- Migration: 061_create_report_templates_table.sql
@@ -1422,6 +1472,7 @@ CREATE TABLE IF NOT EXISTS report_templates (
   INDEX idx_is_active (is_active),
   INDEX idx_created_by (created_by)
 );
+
 
 -- ============================================================================
 -- Migration: 062_create_scheduled_reports_table.sql
@@ -1454,6 +1505,7 @@ CREATE TABLE IF NOT EXISTS scheduled_reports (
   INDEX idx_created_by (created_by)
 );
 
+
 -- ============================================================================
 -- Migration: 063_create_report_cache_table.sql
 -- ============================================================================
@@ -1474,6 +1526,7 @@ CREATE TABLE IF NOT EXISTS report_cache (
   INDEX idx_expires_at (expires_at),
   INDEX idx_report_template_id (report_template_id)
 );
+
 
 -- ============================================================================
 -- Migration: 064_create_analytics_metrics_table.sql
@@ -1509,6 +1562,7 @@ CREATE TABLE IF NOT EXISTS analytics_metrics (
   INDEX idx_department_id (department_id)
 );
 
+
 -- ============================================================================
 -- Migration: 065_create_report_exports_table.sql
 -- ============================================================================
@@ -1536,6 +1590,7 @@ CREATE TABLE IF NOT EXISTS report_exports (
   INDEX idx_export_status (export_status),
   INDEX idx_exported_at (exported_at)
 );
+
 
 -- ============================================================================
 -- Migration: 066_create_analytics_metrics_table_corrected.sql
@@ -1570,6 +1625,7 @@ CREATE TABLE IF NOT EXISTS analytics_metrics (
   INDEX idx_department_id (department_id),
   INDEX idx_calculated_for_period (calculated_for_period)
 );
+
 
 -- ============================================================================
 -- Migration: 067_add_birthday_notification_templates.sql
@@ -1616,6 +1672,7 @@ ON DUPLICATE KEY UPDATE
   variables = VALUES(variables),
   enabled = VALUES(enabled);
 
+
 -- ============================================================================
 -- Migration: 068_create_notification_logs_table.sql
 -- ============================================================================
@@ -1649,6 +1706,7 @@ CREATE TABLE IF NOT EXISTS notification_logs (
   INDEX idx_related_entity (related_entity_type, related_entity_id)
 );
 
+
 -- ============================================================================
 -- Migration: 069_create_api_keys_table.sql
 -- ============================================================================
@@ -1673,6 +1731,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
   INDEX idx_is_active (is_active),
   INDEX idx_expires_at (expires_at)
 );
+
 
 -- ============================================================================
 -- Migration: 070_enhance_staff_table_with_additional_fields.sql
@@ -1761,6 +1820,7 @@ CREATE INDEX idx_resignation_date ON staff(resignation_date);
 CREATE INDEX idx_last_working_date ON staff(last_working_date);
 CREATE INDEX idx_reporting_manager ON staff(reporting_manager_id);
 
+
 -- ============================================================================
 -- Migration: 071_create_staff_dynamic_fields_table.sql
 -- ============================================================================
@@ -1789,6 +1849,7 @@ CREATE TABLE IF NOT EXISTS staff_dynamic_fields (
   INDEX idx_created_by (created_by)
 );
 
+
 -- ============================================================================
 -- Migration: 072_create_staff_dynamic_field_values_table.sql
 -- ============================================================================
@@ -1810,6 +1871,7 @@ CREATE TABLE IF NOT EXISTS staff_dynamic_field_values (
   INDEX idx_staff_id (staff_id),
   INDEX idx_field_id (field_id)
 );
+
 
 -- ============================================================================
 -- Migration: 073_create_staff_skills_table.sql
@@ -1835,6 +1897,7 @@ CREATE TABLE IF NOT EXISTS staff_skills (
   INDEX idx_skill_name (skill_name),
   INDEX idx_proficiency_level (proficiency_level)
 );
+
 
 -- ============================================================================
 -- Migration: 074_create_company_assets_table.sql
@@ -1871,6 +1934,7 @@ CREATE TABLE IF NOT EXISTS company_assets (
   INDEX idx_asset_status (asset_status)
 );
 
+
 -- ============================================================================
 -- Migration: 075_create_attendance_settings_table.sql
 -- ============================================================================
@@ -1902,6 +1966,7 @@ CREATE TABLE IF NOT EXISTS attendance_settings (
   UNIQUE KEY unique_branch_settings (branch_id)
 );
 
+
 -- ============================================================================
 -- Migration: 076_create_global_attendance_settings_table.sql
 -- ============================================================================
@@ -1928,6 +1993,7 @@ CREATE TABLE IF NOT EXISTS global_attendance_settings (
 
 -- Insert default global settings
 INSERT IGNORE INTO global_attendance_settings (id) VALUES (1);
+
 
 -- ============================================================================
 -- Migration: 077_create_leave_requests_table.sql
@@ -2033,7 +2099,7 @@ CREATE INDEX idx_leave_allocations_expiry ON leave_allocations(expiry_rule_id, p
 
 
 -- ============================================================================
--- Migration: 079_add_recurrence_days_to_assignments.sql
+-- Migration: 079b_add_recurrence_days_to_assignments.sql
 -- ============================================================================
 
 -- Migration: Add recurrence_days JSON column to employee_shift_assignments
@@ -2054,22 +2120,6 @@ WHERE recurrence_pattern = 'weekly' AND recurrence_day_of_week IS NOT NULL;
 UPDATE employee_shift_assignments
 SET recurrence_days = NULL
 WHERE recurrence_pattern != 'weekly';
-
-
--- ============================================================================
--- Migration: 080_add_leave_allocation_constraints.sql
--- ============================================================================
-
--- Migration: Add constraints to leave_allocations table
--- Description: Prevents invalid data and duplicate allocations
-
--- Add check constraint to prevent used_days exceeding allocated + carried_over
-ALTER TABLE leave_allocations
-ADD CONSTRAINT chk_used_days CHECK (used_days <= allocated_days + carried_over_days);
-
--- Add unique constraint to prevent duplicate allocations for same user/leave_type/cycle
-ALTER TABLE leave_allocations
-ADD CONSTRAINT uniq_user_leave_cycle UNIQUE (user_id, leave_type_id, cycle_start_date, cycle_end_date);
 
 
 -- ============================================================================
@@ -2123,6 +2173,22 @@ UPDATE shift_exceptions se
 JOIN shift_exception_types st ON se.exception_type = st.code
 SET se.exception_type_id = st.id
 WHERE se.exception_type_id IS NULL;
+
+
+-- ============================================================================
+-- Migration: 080b_add_leave_allocation_constraints.sql
+-- ============================================================================
+
+-- Migration: Add constraints to leave_allocations table
+-- Description: Prevents invalid data and duplicate allocations
+
+-- Add check constraint to prevent used_days exceeding allocated + carried_over
+ALTER TABLE leave_allocations
+ADD CONSTRAINT chk_used_days CHECK (used_days <= allocated_days + carried_over_days);
+
+-- Add unique constraint to prevent duplicate allocations for same user/leave_type/cycle
+ALTER TABLE leave_allocations
+ADD CONSTRAINT uniq_user_leave_cycle UNIQUE (user_id, leave_type_id, cycle_start_date, cycle_end_date);
 
 
 -- ============================================================================
@@ -2374,11 +2440,16 @@ ON DUPLICATE KEY UPDATE
 -- Migration: 089_fix_leave_requests.sql
 -- ============================================================================
 
--- Fix for leave_requests table — safe re-run: only create if missing,
--- only add cancellation columns if they don't already exist
+-- Fix for leave_requests table
+-- Run this if the table exists but doesn't have user_id column
 
--- If table doesn't exist yet, create it
-CREATE TABLE IF NOT EXISTS leave_requests (
+-- First check if table exists
+-- If it doesn't exist, run the migration: migrations/077_create_leave_requests_table.sql
+
+-- If table exists but wrong structure, recreate it:
+DROP TABLE IF EXISTS leave_requests;
+
+CREATE TABLE leave_requests (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
   leave_type_id INT NOT NULL,
@@ -2391,38 +2462,24 @@ CREATE TABLE IF NOT EXISTS leave_requests (
   reviewed_by INT,
   reviewed_at TIMESTAMP NULL,
   notes TEXT,
+  cancelled_by INT NULL,
+  cancelled_at DATETIME NULL,
+  cancellation_reason TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (user_id) REFERENCES users(id),
   FOREIGN KEY (leave_type_id) REFERENCES leave_types(id),
   FOREIGN KEY (reviewed_by) REFERENCES users(id),
+  FOREIGN KEY (cancelled_by) REFERENCES users(id) ON DELETE SET NULL,
   INDEX idx_user_id (user_id),
   INDEX idx_leave_type_id (leave_type_id),
   INDEX idx_status (status),
   INDEX idx_dates (start_date, end_date)
 );
 
--- Add cancelled_by column if missing (safe for re-run)
-SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'leave_requests' AND COLUMN_NAME = 'cancelled_by');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE leave_requests ADD COLUMN cancelled_by INT NULL AFTER reviewed_by, ADD FOREIGN KEY (cancelled_by) REFERENCES users(id) ON DELETE SET NULL', 'SELECT ''Column cancelled_by already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Add cancelled_at column if missing
-SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'leave_requests' AND COLUMN_NAME = 'cancelled_at');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE leave_requests ADD COLUMN cancelled_at DATETIME NULL AFTER cancelled_by', 'SELECT ''Column cancelled_at already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Add cancellation_reason column if missing
-SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'leave_requests' AND COLUMN_NAME = 'cancellation_reason');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE leave_requests ADD COLUMN cancellation_reason TEXT NULL AFTER cancelled_at', 'SELECT ''Column cancellation_reason already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+-- Verify the table structure
+DESCRIBE leave_requests;
 
 
 -- ============================================================================
@@ -3162,10 +3219,10 @@ WHERE TABLE_SCHEMA = DATABASE()
 -- Purpose: Add course of study field for staff education information
 
 ALTER TABLE staff
-ADD COLUMN course_of_study VARCHAR(255) NULL AFTER year_of_graduation;
+ADD COLUMN IF NOT EXISTS course_of_study VARCHAR(255) NULL AFTER year_of_graduation;
 
 -- Add index for better query performance (optional)
--- ALTER TABLE staff ADD INDEX idx_course_of_study (course_of_study);
+-- ALTER TABLE staff ADD INDEX IF NOT EXISTS idx_course_of_study (course_of_study);
 
 
 -- ============================================================================
@@ -3271,7 +3328,7 @@ ORDER BY ORDINAL_POSITION;
 -- Step 1: Drop the unique constraint that prevents multiple active assignments
 -- This constraint was preventing employees from having multiple shifts
 -- even when they don't conflict on days
-ALTER TABLE employee_shift_assignments
+ALTER TABLE employee_shift_assignments 
 DROP INDEX unique_active_assignment;
 
 -- Step 2: Add a new composite index for efficient queries (optional but recommended)
@@ -3307,6 +3364,8 @@ COMMENT 'Multiple active assignments per user are now allowed. Day-based conflic
 -- ALTER TABLE employee_shift_assignments DROP INDEX idx_user_status_dates;
 -- ALTER TABLE employee_shift_assignments DROP INDEX idx_recurrence;
 -- UPDATE employee_shift_assignments SET status = 'active' WHERE status = 'active_multi';
+
+
 -- ============================================================================
 -- Migration: 106_add_branch_to_shift_templates.sql
 -- ============================================================================
@@ -3384,13 +3443,13 @@ GROUP BY b.id, b.name;
 -- ALTER TABLE shift_templates DROP INDEX idx_branch;
 -- ALTER TABLE shift_templates DROP INDEX idx_branch_active;
 -- ALTER TABLE shift_templates DROP COLUMN branch_id;
--- Migration: Create daily shift assignments table
--- Description: Enables creating one-off shifts for specific dates
+
+
 -- ============================================================================
 -- Migration: 107_add_daily_shift_support.sql
 -- ============================================================================
 
--- Migration: Create daily_shift_assignments table
+-- Migration: Create daily shift assignments table
 -- Description: Enables creating one-off shifts for specific dates
 --              Useful for daily monitoring, adjustments, and exceptions
 --              This is OPTIONAL - only run if you need daily shift management
@@ -3493,6 +3552,7 @@ GROUP BY shift_type;
 -- DROP VIEW IF EXISTS v_daily_shifts_summary;
 -- DROP TABLE IF EXISTS daily_shift_assignments;
 
+
 -- ============================================================================
 -- Migration: 108_add_recurrence_to_shift_timings.sql
 -- ============================================================================
@@ -3503,17 +3563,17 @@ GROUP BY shift_type;
 
 -- Step 1: Add recurrence_pattern column
 ALTER TABLE shift_timings
-ADD COLUMN IF NOT EXISTS recurrence_pattern ENUM('none', 'daily', 'weekly', 'monthly') DEFAULT 'weekly'
+ADD COLUMN recurrence_pattern ENUM('none', 'daily', 'weekly', 'monthly') DEFAULT 'weekly'
 AFTER effective_to;
 
 -- Step 2: Add recurrence_days column (JSON array of day names)
 ALTER TABLE shift_timings
-ADD COLUMN IF NOT EXISTS recurrence_days JSON
+ADD COLUMN recurrence_days JSON
 AFTER recurrence_pattern;
 
 -- Step 3: Add index for efficient recurring shift queries
 ALTER TABLE shift_timings
-ADD INDEX IF NOT EXISTS idx_recurrence (user_id, recurrence_pattern, effective_from, effective_to);
+ADD INDEX idx_recurrence (user_id, recurrence_pattern, effective_from, effective_to);
 
 -- Step 4: Update existing shift timings to have recurrence_pattern = 'daily'
 -- (existing records without recurrence should apply to all days to maintain behavior)
@@ -3521,59 +3581,69 @@ UPDATE shift_timings
 SET recurrence_pattern = 'daily'
 WHERE recurrence_pattern IS NULL OR recurrence_pattern = 'weekly';
 
+-- Verification: Check shift timings with recurrence
+SELECT
+  id,
+  user_id,
+  shift_name,
+  recurrence_pattern,
+  recurrence_days,
+  effective_from,
+  effective_to
+FROM shift_timings
+ORDER BY id DESC
+LIMIT 10;
+
+
 -- ============================================================================
--- Migration: 109_add_invitation_tracking.sql
+-- Migration: 109_add_nationality_and_origin_fields_to_staff.sql
 -- ============================================================================
--- Migration: Add invitation tracking columns to staff_invitations
--- Date: April 14, 2026
--- Purpose: Track when invitees first login, complete profile, last activity, and declined status
--- Migration Number: 109
 
--- Add first_login_at (safe for re-run)
-SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_invitations' AND COLUMN_NAME = 'first_login_at');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE staff_invitations ADD COLUMN first_login_at TIMESTAMP NULL COMMENT ''Timestamp of invitee first successful login''', 'SELECT ''Column first_login_at already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+-- Migration 109: Add nationality, state_of_origin, and lga fields to staff table
+-- Safe to run multiple times
 
--- Add first_login_ip
-SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_invitations' AND COLUMN_NAME = 'first_login_ip');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE staff_invitations ADD COLUMN first_login_ip VARCHAR(45) NULL COMMENT ''IP address of first login''', 'SELECT ''Column first_login_ip already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+ALTER TABLE staff
+ADD COLUMN IF NOT EXISTS nationality VARCHAR(100) NULL AFTER date_of_birth;
 
--- Add profile_completed
-SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_invitations' AND COLUMN_NAME = 'profile_completed');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE staff_invitations ADD COLUMN profile_completed BOOLEAN DEFAULT FALSE COMMENT ''Whether invitee completed their profile setup''', 'SELECT ''Column profile_completed already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+ALTER TABLE staff
+ADD COLUMN IF NOT EXISTS state_of_origin VARCHAR(100) NULL AFTER nationality;
 
--- Add last_activity_at
-SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_invitations' AND COLUMN_NAME = 'last_activity_at');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE staff_invitations ADD COLUMN last_activity_at TIMESTAMP NULL COMMENT ''Timestamp of last system activity''', 'SELECT ''Column last_activity_at already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+ALTER TABLE staff
+ADD COLUMN IF NOT EXISTS lga VARCHAR(100) NULL AFTER state_of_origin;
 
--- Add declined_at
-SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_invitations' AND COLUMN_NAME = 'declined_at');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE staff_invitations ADD COLUMN declined_at TIMESTAMP NULL COMMENT ''Timestamp when invitation was declined''', 'SELECT ''Column declined_at already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
 
--- Add index for first_login_at (safe)
-SET @idx_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_invitations' AND INDEX_NAME = 'idx_first_login');
-SET @sql = IF(@idx_exists = 0, 'CREATE INDEX idx_first_login ON staff_invitations(first_login_at)', 'SELECT ''Index idx_first_login already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+-- ============================================================================
+-- Migration: 110_add_leave_policy_settings.sql
+-- ============================================================================
 
--- Add index for profile_completed (safe)
-SET @idx_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_invitations' AND INDEX_NAME = 'idx_profile_completed');
-SET @sql = IF(@idx_exists = 0, 'CREATE INDEX idx_profile_completed ON staff_invitations(profile_completed)', 'SELECT ''Index idx_profile_completed already exists''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+-- Migration: Add leave policy settings
+-- Description: Stores system-wide leave counting rules such as excluding Sundays
+
+ALTER TABLE global_attendance_settings
+  ADD COLUMN exclude_sundays_from_leave BOOLEAN DEFAULT FALSE AFTER enable_holiday_attendance;
+
+UPDATE global_attendance_settings
+SET exclude_sundays_from_leave = FALSE
+WHERE exclude_sundays_from_leave IS NULL;
+
+
+-- ============================================================================
+-- Migration: 111_add_off_statuses_to_attendance.sql
+-- ============================================================================
+
+-- Migration: Add weekend and off statuses to attendance table
+-- Description: Adds 'weekend' and 'off' statuses for accurate non-working day tracking
+
+ALTER TABLE attendance
+MODIFY COLUMN status ENUM('present', 'absent', 'late', 'half_day', 'leave', 'holiday', 'holiday-working', 'weekend', 'off') DEFAULT 'absent';
+
+
+-- ============================================================================
+-- Migration: 112_add_religion_to_staff.sql
+-- ============================================================================
+
+-- Migration 111: Add religion field to staff table
+-- Stores religion for staff profile completion and HR records.
+
+ALTER TABLE staff
+ADD COLUMN IF NOT EXISTS religion VARCHAR(100) NULL AFTER blood_group;

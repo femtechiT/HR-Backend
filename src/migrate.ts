@@ -68,8 +68,13 @@ async function runMigrations(): Promise<void> {
     const migrationsDir = path.join(__dirname, '../migrations');
     const migrationFiles = fs.readdirSync(migrationsDir).filter(file => file.endsWith('.sql'));
 
+    // Prefer a single consolidated migration file when present.
+    // This avoids running both the consolidated file and all numbered migrations.
+    const consolidated = migrationFiles.includes('000_all_migrations.sql') ? '000_all_migrations.sql' : null;
+    const filesToRun = consolidated ? [consolidated] : migrationFiles.filter((f) => f !== '000_all_migrations.sql');
+
     // Sort files to ensure they run in order
-    const sortedMigrationFiles = migrationFiles.sort();
+    const sortedMigrationFiles = filesToRun.sort();
 
     // Create a new pool with the database specified
     const dbName = process.env.DB_NAME || 'hr_management_system';
