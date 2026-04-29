@@ -470,11 +470,34 @@ export const getMyTodayShift = async (req: Request, res: Response) => {
     // Use the scheduling service to get the authoritative effective schedule
     const schedule = await ShiftSchedulingService.getEffectiveScheduleForDate(userId, today);
 
+    const dateStr = today.toISOString().split('T')[0];
+    const normalizedSchedule = schedule
+      ? {
+          user_id: userId,
+          date: dateStr,
+          schedule_type: schedule.schedule_type,
+          start_time: schedule.start_time,
+          end_time: schedule.end_time,
+          break_duration_minutes: schedule.break_duration_minutes ?? 0,
+          is_working_day: !!schedule.start_time && schedule.schedule_type !== 'holiday' && schedule.schedule_type !== 'leave',
+          schedule_note: schedule.schedule_note
+        }
+      : {
+          user_id: userId,
+          date: dateStr,
+          schedule_type: 'none',
+          start_time: null,
+          end_time: null,
+          break_duration_minutes: 0,
+          is_working_day: false,
+          schedule_note: 'No schedule found'
+        };
+
     return res.status(200).json({
       success: true,
       data: {
-        schedule,
-        date: today.toISOString().split('T')[0]
+        schedule: normalizedSchedule,
+        date: dateStr
       }
     });
   } catch (error) {

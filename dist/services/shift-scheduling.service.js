@@ -29,6 +29,37 @@ class ShiftSchedulingService {
                     schedule_note: `Holiday: ${holidays[0].holiday_name}`
                 };
             }
+            const [leaveHistory] = await database_1.pool.execute(`SELECT id
+         FROM leave_history
+         WHERE user_id = ?
+           AND ? BETWEEN start_date AND end_date
+           AND status = 'approved'
+         LIMIT 1`, [userId, dateStr]);
+            if (leaveHistory.length > 0) {
+                return {
+                    start_time: null,
+                    end_time: null,
+                    break_duration_minutes: 0,
+                    schedule_type: 'leave',
+                    schedule_note: 'On approved leave'
+                };
+            }
+            const [leaveRequests] = await database_1.pool.execute(`SELECT id
+         FROM leave_requests
+         WHERE user_id = ?
+           AND ? BETWEEN start_date AND end_date
+           AND status = 'approved'
+           AND (cancelled_by IS NULL OR cancelled_at IS NULL)
+         LIMIT 1`, [userId, dateStr]);
+            if (leaveRequests.length > 0) {
+                return {
+                    start_time: null,
+                    end_time: null,
+                    break_duration_minutes: 0,
+                    schedule_type: 'leave',
+                    schedule_note: 'On approved leave'
+                };
+            }
             const [assignments] = await database_1.pool.execute(`SELECT esa.custom_start_time, esa.custom_end_time, esa.custom_break_duration_minutes,
                 st.start_time as template_start_time, st.end_time as template_end_time,
                 st.break_duration_minutes as template_break_duration_minutes,

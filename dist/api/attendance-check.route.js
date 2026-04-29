@@ -104,6 +104,25 @@ const getAssignedLocationIds = (staffRecord) => {
     }
     return [...assignedLocationIds].filter((locationId) => Number.isFinite(locationId));
 };
+const isOnApprovedLeave = async (userId, date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    const [leaveHistory] = await database_1.pool.execute(`SELECT id
+     FROM leave_history
+     WHERE user_id = ?
+       AND ? BETWEEN start_date AND end_date
+       AND status = 'approved'
+     LIMIT 1`, [userId, dateStr]);
+    if (leaveHistory.length > 0)
+        return true;
+    const [leaveRequests] = await database_1.pool.execute(`SELECT id
+     FROM leave_requests
+     WHERE user_id = ?
+       AND ? BETWEEN start_date AND end_date
+       AND status = 'approved'
+       AND (cancelled_by IS NULL OR cancelled_at IS NULL)
+     LIMIT 1`, [userId, dateStr]);
+    return leaveRequests.length > 0;
+};
 const verifyUserLocation = async (args) => {
     const { branch, staffRecord, userCoords, strictLocationMode } = args;
     if (!userCoords) {
@@ -207,7 +226,15 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
                 message: 'Date and check_in_time are required'
             });
         }
-        const effectiveSchedule = await shift_scheduling_service_1.ShiftSchedulingService.getEffectiveScheduleForDate(userId, new Date(date));
+        const requestedDate = new Date(date);
+        const effectiveSchedule = await shift_scheduling_service_1.ShiftSchedulingService.getEffectiveScheduleForDate(userId, requestedDate);
+        if (effectiveSchedule?.schedule_type === 'leave' || (await isOnApprovedLeave(userId, requestedDate))) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are on approved leave for this date. Clock-in is not allowed.',
+                data: { on_leave: true }
+            });
+        }
         if (!effectiveSchedule || !effectiveSchedule.start_time) {
             if (effectiveSchedule?.schedule_type !== 'holiday') {
                 const leaveCheck = await database_1.pool.execute(`SELECT id FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date AND status = 'approved'`, [userId, new Date(date)]);
@@ -236,8 +263,17 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
                 });
             }
         }
-        let attendanceRecord = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
+        let attendanceRecord = await attendance_model_1.default.findByUserIdAndDate(userId, requestedDate);
         if (attendanceRecord) {
+            if (attendanceRecord.status === 'leave' || attendanceRecord.status === 'holiday') {
+                return res.status(403).json({
+                    success: false,
+                    message: attendanceRecord.status === 'leave'
+                        ? 'Attendance is marked as leave for this date. Clock-in is not allowed.'
+                        : 'Attendance is marked as holiday for this date. Clock-in is not allowed.',
+                    data: { status: attendanceRecord.status }
+                });
+            }
             if (attendanceRecord.is_locked) {
                 return res.status(403).json({
                     success: false,
@@ -379,7 +415,7 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
                     data: { attendance: newAttendance }
                 });
             }
-            const [leaveHistory] = await database_1.pool.execute(`SELECT id, start_date, end_date, status FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`, [userId, new Date(date)]);
+            const [leaveHistory] = await database_1.pool.execute(`SELECT id, start_date, end_date, status FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`, [userId, requestedDate]);
             const approvedLeaves = leaveHistory.filter((l) => l.status === 'approved');
             if (approvedLeaves.length > 0) {
                 const attendanceData = {
@@ -404,7 +440,7 @@ router.post('/check-in', auth_middleware_1.authenticateJWT, async (req, res) => 
          WHERE user_id = ?
            AND ? BETWEEN start_date AND end_date
            AND status = 'approved'
-           AND (cancelled_by IS NULL OR cancelled_at IS NULL)`, [userId, new Date(date)]);
+           AND (cancelled_by IS NULL OR cancelled_at IS NULL)`, [userId, requestedDate]);
             if (leaveRequests.length > 0) {
                 const attendanceData = {
                     user_id: userId,
@@ -577,11 +613,28 @@ router.post('/check-out', auth_middleware_1.authenticateJWT, async (req, res) =>
                 message: 'Date and check_out_time are required'
             });
         }
-        const attendanceRecord = await attendance_model_1.default.findByUserIdAndDate(userId, new Date(date));
+        const requestedDate = new Date(date);
+        if (await isOnApprovedLeave(userId, requestedDate)) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are on approved leave for this date. Clock-out is not allowed.',
+                data: { on_leave: true }
+            });
+        }
+        const attendanceRecord = await attendance_model_1.default.findByUserIdAndDate(userId, requestedDate);
         if (!attendanceRecord) {
             return res.status(404).json({
                 success: false,
                 message: 'No attendance record found for this date. Please check in first.'
+            });
+        }
+        if (attendanceRecord.status === 'leave' || attendanceRecord.status === 'holiday') {
+            return res.status(403).json({
+                success: false,
+                message: attendanceRecord.status === 'leave'
+                    ? 'Attendance is marked as leave for this date. Clock-out is not allowed.'
+                    : 'Attendance is marked as holiday for this date. Clock-out is not allowed.',
+                data: { status: attendanceRecord.status }
             });
         }
         if (attendanceRecord.is_locked) {

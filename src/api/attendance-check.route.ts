@@ -97,6 +97,33 @@ const getAssignedLocationIds = (staffRecord: any): number[] => {
   return [...assignedLocationIds].filter((locationId) => Number.isFinite(locationId));
 };
 
+const isOnApprovedLeave = async (userId: number, date: Date): Promise<boolean> => {
+  const dateStr = date.toISOString().split('T')[0];
+
+  const [leaveHistory]: any = await pool.execute(
+    `SELECT id
+     FROM leave_history
+     WHERE user_id = ?
+       AND ? BETWEEN start_date AND end_date
+       AND status = 'approved'
+     LIMIT 1`,
+    [userId, dateStr]
+  );
+  if (leaveHistory.length > 0) return true;
+
+  const [leaveRequests]: any = await pool.execute(
+    `SELECT id
+     FROM leave_requests
+     WHERE user_id = ?
+       AND ? BETWEEN start_date AND end_date
+       AND status = 'approved'
+       AND (cancelled_by IS NULL OR cancelled_at IS NULL)
+     LIMIT 1`,
+    [userId, dateStr]
+  );
+  return leaveRequests.length > 0;
+};
+
 type LocationVerifyResult =
   | { verified: true; method: 'assigned_locations' | 'branch_based' | 'multiple_locations_any'; matched_location_id?: number }
   | { verified: false; reason: 'no_coords' | 'no_assignment' | 'outside_allowed_area' };
@@ -259,7 +286,17 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
     }
 
     // NEW: Check if it's a working day and handle check-in cutoff
-    const effectiveSchedule = await ShiftSchedulingService.getEffectiveScheduleForDate(userId, new Date(date));
+    const requestedDate = new Date(date);
+    const effectiveSchedule = await ShiftSchedulingService.getEffectiveScheduleForDate(userId, requestedDate);
+
+    // Block check-in if user is on approved leave for this date
+    if (effectiveSchedule?.schedule_type === 'leave' || (await isOnApprovedLeave(userId, requestedDate))) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are on approved leave for this date. Clock-in is not allowed.',
+        data: { on_leave: true }
+      });
+    }
     
     if (!effectiveSchedule || !effectiveSchedule.start_time) {
       // If it's a holiday, let the holiday-specific logic below handle it
@@ -300,9 +337,21 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
     }
 
     // Check if user has already marked attendance for this date
-    let attendanceRecord = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+    let attendanceRecord = await AttendanceModel.findByUserIdAndDate(userId, requestedDate);
 
     if (attendanceRecord) {
+      // If the day is already marked as leave/holiday, do not allow clock-in.
+      if (attendanceRecord.status === 'leave' || attendanceRecord.status === 'holiday') {
+        return res.status(403).json({
+          success: false,
+          message:
+            attendanceRecord.status === 'leave'
+              ? 'Attendance is marked as leave for this date. Clock-in is not allowed.'
+              : 'Attendance is marked as holiday for this date. Clock-in is not allowed.',
+          data: { status: attendanceRecord.status }
+        });
+      }
+
       // CHECK 1: If attendance is locked, reject check-in
       if (attendanceRecord.is_locked) {
         return res.status(403).json({
@@ -486,7 +535,7 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
       // Check if user has approved leave on this date
       const [leaveHistory] = await pool.execute(
         `SELECT id, start_date, end_date, status FROM leave_history WHERE user_id = ? AND ? BETWEEN start_date AND end_date`,
-        [userId, new Date(date)]
+        [userId, requestedDate]
       ) as [any[], any];
 
       // Filter for approved leaves only (exclude pending/rejected/cancelled)
@@ -522,7 +571,7 @@ router.post('/check-in', authenticateJWT, async (req: Request, res: Response) =>
            AND ? BETWEEN start_date AND end_date
            AND status = 'approved'
            AND (cancelled_by IS NULL OR cancelled_at IS NULL)`,
-        [userId, new Date(date)]
+        [userId, requestedDate]
       ) as [any[], any];
 
       if (leaveRequests.length > 0) {
@@ -736,13 +785,36 @@ router.post('/check-out', authenticateJWT, async (req: Request, res: Response) =
       });
     }
 
+    const requestedDate = new Date(date);
+    // Block check-out if user is on approved leave for this date
+    // (prevents a user from "working" on a leave day even if a record exists).
+    if (await isOnApprovedLeave(userId, requestedDate)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are on approved leave for this date. Clock-out is not allowed.',
+        data: { on_leave: true }
+      });
+    }
+
     // Find existing attendance record for the date
-    const attendanceRecord = await AttendanceModel.findByUserIdAndDate(userId, new Date(date));
+    const attendanceRecord = await AttendanceModel.findByUserIdAndDate(userId, requestedDate);
 
     if (!attendanceRecord) {
       return res.status(404).json({
         success: false,
         message: 'No attendance record found for this date. Please check in first.'
+      });
+    }
+
+    // If the day is already marked as leave/holiday, do not allow clock-out.
+    if (attendanceRecord.status === 'leave' || attendanceRecord.status === 'holiday') {
+      return res.status(403).json({
+        success: false,
+        message:
+          attendanceRecord.status === 'leave'
+            ? 'Attendance is marked as leave for this date. Clock-out is not allowed.'
+            : 'Attendance is marked as holiday for this date. Clock-out is not allowed.',
+        data: { status: attendanceRecord.status }
       });
     }
 

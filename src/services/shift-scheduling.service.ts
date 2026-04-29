@@ -54,6 +54,50 @@ export class ShiftSchedulingService {
         };
       }
 
+      // Next, check if user is on approved leave for this date.
+      // This is needed so staff dashboards and check-in logic can correctly show/deny work on leave days.
+      // Note: leave can be represented in either leave_history (approved) or leave_requests (approved & not cancelled).
+      const [leaveHistory]: any = await pool.execute(
+        `SELECT id
+         FROM leave_history
+         WHERE user_id = ?
+           AND ? BETWEEN start_date AND end_date
+           AND status = 'approved'
+         LIMIT 1`,
+        [userId, dateStr]
+      );
+
+      if (leaveHistory.length > 0) {
+        return {
+          start_time: null,
+          end_time: null,
+          break_duration_minutes: 0,
+          schedule_type: 'leave',
+          schedule_note: 'On approved leave'
+        };
+      }
+
+      const [leaveRequests]: any = await pool.execute(
+        `SELECT id
+         FROM leave_requests
+         WHERE user_id = ?
+           AND ? BETWEEN start_date AND end_date
+           AND status = 'approved'
+           AND (cancelled_by IS NULL OR cancelled_at IS NULL)
+         LIMIT 1`,
+        [userId, dateStr]
+      );
+
+      if (leaveRequests.length > 0) {
+        return {
+          start_time: null,
+          end_time: null,
+          break_duration_minutes: 0,
+          schedule_type: 'leave',
+          schedule_note: 'On approved leave'
+        };
+      }
+
       // Next, check for any active shift assignments for this user
       // Support for multiple assignments - we now look for ALL active assignments and find the one that matches the day
       const [assignments]: any = await pool.execute(
