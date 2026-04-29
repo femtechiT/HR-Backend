@@ -66,13 +66,13 @@ class BranchModel {
   static tableName = 'branches';
 
   static async findAll(): Promise<Branch[]> {
-    const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+    const [rows] = await pool.execute(`SELECT id, name, code, address, city, state, country, phone, email, manager_user_id, ST_AsText(location_coordinates) AS location_coordinates, location_radius_meters, attendance_mode, status, auto_mark_absent_enabled, auto_mark_absent_time, auto_mark_absent_timezone, attendance_lock_date, created_at, updated_at FROM ${this.tableName} ORDER BY created_at DESC`);
     return rows as Branch[];
   }
 
   static async findById(id: number): Promise<Branch | null> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE id = ?`,
+      `SELECT id, name, code, address, city, state, country, phone, email, manager_user_id, ST_AsText(location_coordinates) AS location_coordinates, location_radius_meters, attendance_mode, status, auto_mark_absent_enabled, auto_mark_absent_time, auto_mark_absent_timezone, attendance_lock_date, created_at, updated_at FROM ${this.tableName} WHERE id = ?`,
       [id]
     );
     return (rows as Branch[])[0] || null;
@@ -80,7 +80,7 @@ class BranchModel {
 
   static async findByCode(code: string): Promise<Branch | null> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE code = ?`,
+      `SELECT id, name, code, address, city, state, country, phone, email, manager_user_id, ST_AsText(location_coordinates) AS location_coordinates, location_radius_meters, attendance_mode, status, auto_mark_absent_enabled, auto_mark_absent_time, auto_mark_absent_timezone, attendance_lock_date, created_at, updated_at FROM ${this.tableName} WHERE code = ?`,
       [code]
     );
     return (rows as Branch[])[0] || null;
@@ -89,7 +89,7 @@ class BranchModel {
   static async create(branchData: BranchInput): Promise<Branch> {
     const [result]: any = await pool.execute(
       `INSERT INTO ${this.tableName} (name, code, address, city, state, country, phone, email, manager_user_id, location_coordinates, location_radius_meters, attendance_mode, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ST_GeomFromText(?), ?, ?, 'active')`,
       [
         branchData.name,
         branchData.code,
@@ -166,8 +166,13 @@ class BranchModel {
     }
 
     if (branchData.location_coordinates !== undefined) {
-      updates.push('location_coordinates = ?');
-      values.push(branchData.location_coordinates);
+      if (branchData.location_coordinates && branchData.location_coordinates.startsWith('POINT')) {
+        updates.push('location_coordinates = ST_GeomFromText(?)');
+        values.push(branchData.location_coordinates);
+      } else {
+        updates.push('location_coordinates = ?');
+        values.push(branchData.location_coordinates);
+      }
     }
 
     if (branchData.location_radius_meters !== undefined) {

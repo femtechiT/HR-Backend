@@ -57,13 +57,13 @@ class AttendanceModel {
   static tableName = 'attendance';
 
   static async findAll(): Promise<Attendance[]> {
-    const [rows] = await pool.execute(`SELECT * FROM ${this.tableName} ORDER BY date DESC, created_at DESC`);
+    const [rows] = await pool.execute(`SELECT id, user_id, date, status, check_in_time, check_out_time, ST_AsText(location_coordinates) AS location_coordinates, location_verified, location_address, notes, is_locked, locked_at, created_at, updated_at FROM ${this.tableName} ORDER BY date DESC, created_at DESC`);
     return rows as Attendance[];
   }
 
   static async findById(id: number): Promise<Attendance | null> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE id = ?`,
+      `SELECT id, user_id, date, status, check_in_time, check_out_time, ST_AsText(location_coordinates) AS location_coordinates, location_verified, location_address, notes, is_locked, locked_at, created_at, updated_at FROM ${this.tableName} WHERE id = ?`,
       [id]
     );
     return (rows as Attendance[])[0] || null;
@@ -71,7 +71,7 @@ class AttendanceModel {
 
   static async findByUserId(userId: number): Promise<Attendance[]> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY date DESC`,
+      `SELECT id, user_id, date, status, check_in_time, check_out_time, ST_AsText(location_coordinates) AS location_coordinates, location_verified, location_address, notes, is_locked, locked_at, created_at, updated_at FROM ${this.tableName} WHERE user_id = ? ORDER BY date DESC`,
       [userId]
     );
     return rows as Attendance[];
@@ -79,7 +79,7 @@ class AttendanceModel {
 
   static async findByUserIdAndDate(userId: number, date: Date): Promise<Attendance | null> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE user_id = ? AND date = ?`,
+      `SELECT id, user_id, date, status, check_in_time, check_out_time, ST_AsText(location_coordinates) AS location_coordinates, location_verified, location_address, notes, is_locked, locked_at, created_at, updated_at FROM ${this.tableName} WHERE user_id = ? AND date = ?`,
       [userId, date]
     );
     return (rows as Attendance[])[0] || null;
@@ -87,7 +87,7 @@ class AttendanceModel {
 
   static async findByDate(date: Date): Promise<Attendance[]> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE date = ? ORDER BY user_id`,
+      `SELECT id, user_id, date, status, check_in_time, check_out_time, ST_AsText(location_coordinates) AS location_coordinates, location_verified, location_address, notes, is_locked, locked_at, created_at, updated_at FROM ${this.tableName} WHERE date = ? ORDER BY user_id`,
       [date]
     );
     return rows as Attendance[];
@@ -210,7 +210,7 @@ class AttendanceModel {
   // Method to find attendance records by date range
   static async findByDateRange(userId: number, startDate: Date, endDate: Date): Promise<Attendance[]> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date`,
+      `SELECT id, user_id, date, status, check_in_time, check_out_time, ST_AsText(location_coordinates) AS location_coordinates, location_verified, location_address, notes, is_locked, locked_at, created_at, updated_at FROM ${this.tableName} WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date`,
       [userId, startDate, endDate]
     );
     return rows as Attendance[];

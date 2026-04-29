@@ -34,7 +34,7 @@ class AttendanceProcessorWorker {
         SELECT s.user_id, s.branch_id 
         FROM staff s
         JOIN users u ON s.user_id = u.id
-        WHERE s.status = 'active' AND u.status = 'active'
+        WHERE s.status IN ('active', 'on_leave') AND u.status = 'active'
       `;
       const params: any[] = [];
 

@@ -34,14 +34,14 @@ class AttendanceLocationModel {
 
   static async findAll(): Promise<AttendanceLocation[]> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE is_active = TRUE ORDER BY name`
+      `SELECT id, name, ST_AsText(location_coordinates) AS location_coordinates, location_radius_meters, branch_id, is_active, created_by, created_at, updated_at FROM ${this.tableName} WHERE is_active = TRUE ORDER BY name`
     );
     return rows as AttendanceLocation[];
   }
 
   static async findById(id: number): Promise<AttendanceLocation | null> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE id = ?`,
+      `SELECT id, name, ST_AsText(location_coordinates) AS location_coordinates, location_radius_meters, branch_id, is_active, created_by, created_at, updated_at FROM ${this.tableName} WHERE id = ?`,
       [id]
     );
     return (rows as AttendanceLocation[])[0] || null;
@@ -49,14 +49,14 @@ class AttendanceLocationModel {
 
   static async findActiveLocations(): Promise<AttendanceLocation[]> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE is_active = TRUE ORDER BY name`
+      `SELECT id, name, ST_AsText(location_coordinates) AS location_coordinates, location_radius_meters, branch_id, is_active, created_by, created_at, updated_at FROM ${this.tableName} WHERE is_active = TRUE ORDER BY name`
     );
     return rows as AttendanceLocation[];
   }
 
   static async findByBranch(branchId: number): Promise<AttendanceLocation[]> {
     const [rows] = await pool.execute(
-      `SELECT * FROM ${this.tableName} WHERE branch_id = ? AND is_active = TRUE ORDER BY name`,
+      `SELECT id, name, ST_AsText(location_coordinates) AS location_coordinates, location_radius_meters, branch_id, is_active, created_by, created_at, updated_at FROM ${this.tableName} WHERE branch_id = ? AND is_active = TRUE ORDER BY name`,
       [branchId]
     );
     return rows as AttendanceLocation[];
