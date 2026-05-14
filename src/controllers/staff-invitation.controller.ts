@@ -468,13 +468,13 @@ export const resendInvitation = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if invitation is expired
-    if (new Date(invitation.expires_at) < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invitation has expired'
-      });
-    }
+    // // Check if invitation is expired
+    // if (new Date(invitation.expires_at) < new Date()) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: 'Invitation has expired'
+    //   });
+    // }
 
     // Generate new token, new temporary password, and extend expiry
     const newToken = generateInvitationToken();
