@@ -51,22 +51,38 @@ async function createSingleInvitation(
     }
   }
 
-  // Check if user already exists with this email
-  const [existingUsers]: any = await pool.execute('SELECT id FROM users WHERE email = ?', [personalEmail]);
-  if (existingUsers.length > 0) {
-    return { success: false, message: `User already exists with email: ${personalEmail}`, code: 'USER_EXISTS' };
-  }
-
-  // Check for existing pending invitation
+  // Check for existing invitation record
   const [existingInvitations]: any = await pool.execute(
-    'SELECT id, status, expires_at FROM staff_invitations WHERE email = ? AND status = "pending"',
+    'SELECT id, status, expires_at, user_id FROM staff_invitations WHERE email = ?',
     [personalEmail]
   );
+
+  let invitationId = null;
+  let userId = null;
+
   if (existingInvitations.length > 0) {
     const invitation = existingInvitations[0];
-    const isExpired = new Date(invitation.expires_at) < new Date();
-    if (!isExpired) {
-      return { success: false, message: `Pending invitation already exists for: ${personalEmail}`, code: 'PENDING_INVITATION' };
+    invitationId = invitation.id;
+    userId = invitation.user_id;
+
+    if (invitation.status === 'accepted') {
+      // If accepted, check user status
+      const [userRows]: any = await pool.execute('SELECT status FROM users WHERE id = ?', [userId]);
+      if (userRows.length > 0 && userRows[0].status === 'active') {
+        return { success: false, message: `User already exists and is active: ${personalEmail}`, code: 'USER_EXISTS' };
+      }
+      // If inactive, we can continue to "reinvite" them
+    }
+  } else {
+    // Check if user already exists with this email (even if no invitation record)
+    const [existingUsers]: any = await pool.execute('SELECT id, status FROM users WHERE email = ?', [personalEmail]);
+    if (existingUsers.length > 0) {
+      const user = existingUsers[0];
+      userId = user.id;
+      if (user.status === 'active') {
+        return { success: false, message: `User already exists and is active: ${personalEmail}`, code: 'USER_EXISTS' };
+      }
+      // If inactive, we can continue to "reinvite" them
     }
   }
 
@@ -74,7 +90,7 @@ async function createSingleInvitation(
   const token = generateInvitationToken();
   const temporaryPassword = generateTemporaryPassword();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
+  expiresAt.setDate(expiresAt.getDate() + 30); // Increased to 30 days, though check is removed
 
   // Get department name
   let departmentName = null;
@@ -89,32 +105,75 @@ async function createSingleInvitation(
   // Use personal email as the login email
   const loginEmail = personalEmail.trim().toLowerCase();
 
-  // Create user
-  const [userResult]: any = await pool.execute(
-    `INSERT INTO users
-     (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'active', 1, NOW(), NOW())`,
-    [loginEmail, passwordHash, `${firstName} ${lastName}`, phone ?? null, roleId, branchId ?? null]
-  );
-  const userId = userResult.insertId;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
 
-  // Create staff record if department provided
-  if (departmentId) {
-    await pool.execute(
-      `INSERT INTO staff
-       (user_id, employee_id, designation, department, branch_id, joining_date, employment_type, status, personal_email)
-       VALUES (?, ?, ?, ?, ?, ?, 'full_time', 'active', ?)`,
-      [userId, `EMP${userId.toString().padStart(4, '0')}`, 'Employee', departmentName || 'General', branchId ?? null, new Date().toISOString().split('T')[0], loginEmail]
-    );
+    if (userId) {
+      // Update existing user
+      await connection.execute(
+        `UPDATE users
+         SET password_hash = ?, full_name = ?, phone = ?, role_id = ?, branch_id = ?, 
+             status = 'active', must_change_password = 1, updated_at = NOW()
+         WHERE id = ?`,
+        [passwordHash, `${firstName} ${lastName}`, phone ?? null, roleId, branchId ?? null, userId]
+      );
+
+      // Update staff record if it exists
+      await connection.execute(
+        `UPDATE staff
+         SET designation = ?, department = ?, branch_id = ?, status = 'active', personal_email = ?, updated_at = NOW()
+         WHERE user_id = ?`,
+        ['Employee', departmentName || 'General', branchId ?? null, loginEmail, userId]
+      );
+    } else {
+      // Create user
+      const [userResult]: any = await connection.execute(
+        `INSERT INTO users
+         (email, password_hash, full_name, phone, role_id, branch_id, status, must_change_password, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'active', 1, NOW(), NOW())`,
+        [loginEmail, passwordHash, `${firstName} ${lastName}`, phone ?? null, roleId, branchId ?? null]
+      );
+      userId = userResult.insertId;
+
+      // Create staff record if department provided
+      if (departmentId) {
+        await connection.execute(
+          `INSERT INTO staff
+           (user_id, employee_id, designation, department, branch_id, joining_date, employment_type, status, personal_email)
+           VALUES (?, ?, ?, ?, ?, ?, 'full_time', 'active', ?)`,
+          [userId, `EMP${userId.toString().padStart(4, '0')}`, 'Employee', departmentName || 'General', branchId ?? null, new Date().toISOString().split('T')[0], loginEmail]
+        );
+      }
+    }
+
+    if (invitationId) {
+      // Update existing invitation
+      await connection.execute(
+        `UPDATE staff_invitations
+         SET token = ?, first_name = ?, last_name = ?, phone = ?, role_id = ?, 
+             branch_id = ?, department_id = ?, status = 'pending', expires_at = ?, created_by = ?, updated_at = NOW()
+         WHERE id = ?`,
+        [token, firstName, lastName, phone ?? null, roleId, branchId ?? null, departmentId ?? null, expiresAt, adminId ?? null, invitationId]
+      );
+    } else {
+      // Create invitation record
+      await connection.execute(
+        `INSERT INTO staff_invitations
+         (email, token, first_name, last_name, phone, role_id, branch_id, department_id, user_id, expires_at, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [loginEmail, token, firstName, lastName, phone ?? null, roleId, branchId ?? null, departmentId ?? null, userId, expiresAt, adminId ?? null]
+      );
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    console.error('Transaction error in createSingleInvitation:', error);
+    return { success: false, message: 'Database error during invitation processing' };
+  } finally {
+    connection.release();
   }
-
-  // Create invitation record
-  await pool.execute(
-    `INSERT INTO staff_invitations
-     (email, token, first_name, last_name, phone, role_id, branch_id, department_id, user_id, expires_at, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [loginEmail, token, firstName, lastName, phone ?? null, roleId, branchId ?? null, departmentId ?? null, userId, expiresAt, adminId ?? null]
-  );
 
   // Get admin name for email
   let adminName = 'an administrator';
@@ -135,11 +194,7 @@ async function createSingleInvitation(
     });
   } catch (emailError: any) {
     console.warn('Error sending staff invitation email:', emailError);
-    // Rollback on real failures
-    await pool.execute('DELETE FROM staff WHERE user_id = ?', [userId]);
-    await pool.execute('DELETE FROM users WHERE id = ?', [userId]);
-    await pool.execute('DELETE FROM staff_invitations WHERE user_id = ?', [userId]);
-    return { success: false, message: `Failed to send email to: ${personalEmail}`, code: 'EMAIL_FAILED' };
+    return { success: false, message: `Failed to send email to: ${personalEmail}. User account was created but email failed.`, code: 'EMAIL_FAILED' };
   }
 
   return {
@@ -460,41 +515,39 @@ export const resendInvitation = async (req: Request, res: Response) => {
 
     const invitation = rows[0];
 
-    // Check if invitation is still pending
-    if (invitation.status !== 'pending') {
+    // Check if invitation is still pending - updated to allow resending if not accepted
+    if (invitation.status === 'accepted') {
       return res.status(400).json({
         success: false,
-        message: `Cannot resend invitation. Status is ${invitation.status}`
+        message: 'Cannot resend invitation. It has already been accepted.'
       });
     }
-
-    // // Check if invitation is expired
-    // if (new Date(invitation.expires_at) < new Date()) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: 'Invitation has expired'
-    //   });
-    // }
 
     // Generate new token, new temporary password, and extend expiry
     const newToken = generateInvitationToken();
     const newTemporaryPassword = generateTemporaryPassword();
     const newExpiresAt = new Date();
-    newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+    newExpiresAt.setDate(newExpiresAt.getDate() + 30); // 30 days expiry
 
     // Hash the new temporary password and update user account
     const userId = invitation.user_id;
     if (userId) {
       const newPasswordHash = await bcrypt.hash(newTemporaryPassword, 10);
       await pool.execute(
-        `UPDATE users SET password_hash = ?, must_change_password = 1, updated_at = NOW() WHERE id = ?`,
+        `UPDATE users SET password_hash = ?, must_change_password = 1, status = 'active', updated_at = NOW() WHERE id = ?`,
         [newPasswordHash, userId]
+      );
+      
+      // Also update staff record status if it exists
+      await pool.execute(
+        `UPDATE staff SET status = 'active', updated_at = NOW() WHERE user_id = ?`,
+        [userId]
       );
     }
 
-    // Update invitation with new token
+    // Update invitation with new token and reset status to pending
     await pool.execute(
-      'UPDATE staff_invitations SET token = ?, expires_at = ? WHERE id = ?',
+      'UPDATE staff_invitations SET token = ?, expires_at = ?, status = "pending", updated_at = NOW() WHERE id = ?',
       [newToken, newExpiresAt, id]
     );
 
@@ -598,14 +651,6 @@ export const acceptInvitation = async (req: Request, res: Response) => {
       });
     }
 
-    // Check expiry
-    if (new Date(invitation.expires_at) < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invitation has expired'
-      });
-    }
-
     // Get the user ID from invitation
     const userId = invitation.user_id;
     
@@ -691,10 +736,6 @@ export const acceptInvitationLink = async (req: Request, res: Response) => {
 
     if (invitation.status !== 'pending') {
       return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=${invitation.status}`);
-    }
-
-    if (new Date(invitation.expires_at) < new Date()) {
-      return res.redirect(`${process.env.STAFF_PORTAL_URL || 'https://tms.femtechaccess.com.ng'}/invite?error=expired`);
     }
 
     // Mark as accepted

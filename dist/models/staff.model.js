@@ -7,7 +7,7 @@ class StaffModel {
         return this.findAllWithFilters(limit, offset, branchId, department, status, search);
     }
     static async findAllWithFilters(limit = 20, offset = 0, branchId, department, status, search) {
-        let query = `SELECT s.*, u.full_name, u.email, b.name as branch_name
+        let query = `SELECT s.*, u.full_name, u.email, u.phone, u.must_change_password, b.name as branch_name
                  FROM ${this.tableName} s
                  LEFT JOIN users u ON s.user_id = u.id
                  LEFT JOIN branches b ON s.branch_id = b.id`;
@@ -59,7 +59,7 @@ class StaffModel {
         };
     }
     static async findById(id) {
-        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email, b.name as branch_name
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email, u.phone, u.must_change_password, b.name as branch_name
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
        LEFT JOIN branches b ON s.branch_id = b.id
@@ -67,7 +67,7 @@ class StaffModel {
         return rows[0] || null;
     }
     static async findByUserId(userId) {
-        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email, b.name as branch_name
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email, u.phone, u.must_change_password, b.name as branch_name
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
        LEFT JOIN branches b ON s.branch_id = b.id
@@ -77,7 +77,7 @@ class StaffModel {
         return rows[0] || null;
     }
     static async findByEmployeeId(employeeId) {
-        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email
+        const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email, u.phone, u.must_change_password
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
        WHERE s.employee_id = ?`, [employeeId]);

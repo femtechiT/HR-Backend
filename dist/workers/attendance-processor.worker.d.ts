@@ -1,7 +1,7 @@
 declare class AttendanceProcessorWorker {
     private static isRunning;
     private static lastCheckTime;
-    private static processedDates;
+    private static processedBranchDates;
     static processAttendanceForDate(date: Date, branchId?: number): Promise<{
         processed: number;
         absent: number;
@@ -28,7 +28,7 @@ declare class AttendanceProcessorWorker {
     static getStatus(): {
         isRunning: boolean;
         lastCheckTime: Date;
-        processedDates: string[];
+        processedBranchDates: string[];
     };
 }
 export default AttendanceProcessorWorker;

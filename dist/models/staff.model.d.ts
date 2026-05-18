@@ -3,6 +3,8 @@ export interface Staff {
     user_id: number;
     full_name: string;
     email: string;
+    phone?: string;
+    must_change_password?: boolean | number;
     employee_id?: string;
     designation?: string;
     department?: string;

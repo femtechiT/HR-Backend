@@ -10,9 +10,12 @@ const shift_scheduling_service_1 = require("../services/shift-scheduling.service
 class AttendanceProcessorWorker {
     static isRunning = false;
     static lastCheckTime = null;
-    static processedDates = new Set();
+    static processedBranchDates = new Set();
     static async processAttendanceForDate(date, branchId) {
-        const dateStr = date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         const logPrefix = branchId ? `[Branch ${branchId}]` : '[All Branches]';
         console.log(`${logPrefix} Starting attendance processing for date: ${dateStr}`);
         try {
@@ -169,12 +172,11 @@ class AttendanceProcessorWorker {
         try {
             this.isRunning = true;
             const now = new Date();
-            const currentTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-            const todayStr = now.toISOString().split('T')[0];
-            if (this.processedDates.has(todayStr)) {
-                console.log(`[Auto-Mark] Already processed for ${todayStr}, skipping`);
-                return;
-            }
+            const currentTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
             console.log(`[Auto-Mark] Checking for branches with auto-mark time: ${currentTime}`);
             const [branches] = await database_1.pool.execute(`
         SELECT id, name, code, auto_mark_absent_time, auto_mark_absent_timezone
@@ -188,20 +190,32 @@ class AttendanceProcessorWorker {
             }
             console.log(`[Auto-Mark] Found ${branches.length} branch(es) scheduled for auto-mark at ${currentTime}`);
             for (const branch of branches) {
+                const branchKey = `${branch.id}-${todayStr}`;
+                if (this.processedBranchDates.has(branchKey)) {
+                    console.log(`[Auto-Mark] Branch ${branch.name} already processed for ${todayStr}, skipping`);
+                    continue;
+                }
                 try {
                     console.log(`[Auto-Mark] Processing branch: ${branch.name} (${branch.code})`);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const result = await this.processAttendanceForDate(today, branch.id);
                     await this.lockAttendanceForDate(branch.id, today, 1, 'Auto-mark absent');
+                    this.processedBranchDates.add(branchKey);
                     console.log(`[Auto-Mark] Completed for ${branch.name}: ${result.absent} marked absent`);
                 }
                 catch (error) {
                     console.error(`[Auto-Mark] Error processing branch ${branch.name}:`, error);
                 }
             }
-            this.processedDates.add(todayStr);
             this.lastCheckTime = now;
+            if (this.processedBranchDates.size > 1000) {
+                for (const key of this.processedBranchDates) {
+                    if (!key.endsWith(todayStr)) {
+                        this.processedBranchDates.delete(key);
+                    }
+                }
+            }
         }
         catch (error) {
             console.error('[Auto-Mark] Error:', error);
@@ -211,7 +225,10 @@ class AttendanceProcessorWorker {
         }
     }
     static async lockAttendanceForDate(branchId, date, lockedBy, reason) {
-        const dateStr = date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         try {
             const [result] = await database_1.pool.execute(`
         UPDATE attendance a
@@ -252,8 +269,6 @@ class AttendanceProcessorWorker {
         catch (error) {
             console.error('Error in initial yesterday attendance processing:', error);
         }
-        const todayStr = new Date().toISOString().split('T')[0];
-        this.processedDates.add(todayStr);
         console.log('[Auto-Mark] Starting minute-by-minute check...');
         setInterval(async () => {
             try {
@@ -270,7 +285,7 @@ class AttendanceProcessorWorker {
         return {
             isRunning: this.isRunning,
             lastCheckTime: this.lastCheckTime,
-            processedDates: Array.from(this.processedDates)
+            processedBranchDates: Array.from(this.processedBranchDates)
         };
     }
 }
