@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const database_1 = require("../config/database");
+const cache_service_1 = require("../services/cache.service");
 class RoleModel {
     static tableName = 'roles';
     static async findAll() {
@@ -8,12 +9,28 @@ class RoleModel {
         return rows;
     }
     static async findById(id) {
+        const cacheKey = `role:${id}`;
+        let role = await cache_service_1.CacheService.get(cacheKey);
+        if (role)
+            return role;
         const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
-        return rows[0] || null;
+        role = rows[0] || null;
+        if (role) {
+            await cache_service_1.CacheService.set(cacheKey, role, 3600);
+        }
+        return role;
     }
     static async findByName(name) {
+        const cacheKey = `role:name:${name}`;
+        let role = await cache_service_1.CacheService.get(cacheKey);
+        if (role)
+            return role;
         const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE name = ?`, [name]);
-        return rows[0] || null;
+        role = rows[0] || null;
+        if (role) {
+            await cache_service_1.CacheService.set(cacheKey, role, 3600);
+        }
+        return role;
     }
     static async create(roleData) {
         const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, description, permissions)
@@ -49,10 +66,21 @@ class RoleModel {
         }
         values.push(id);
         await database_1.pool.execute(`UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`, values);
-        return await this.findById(id);
+        await cache_service_1.CacheService.del(`role:${id}`);
+        const currentRole = await this.findById(id);
+        if (currentRole) {
+            await cache_service_1.CacheService.del(`role:name:${currentRole.name}`);
+        }
+        return currentRole;
     }
     static async delete(id) {
+        const role = await this.findById(id);
         const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        if (result.affectedRows > 0) {
+            await cache_service_1.CacheService.del(`role:${id}`);
+            if (role)
+                await cache_service_1.CacheService.del(`role:name:${role.name}`);
+        }
         return result.affectedRows > 0;
     }
     static async getRolePermissions(roleId) {

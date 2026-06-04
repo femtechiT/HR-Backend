@@ -980,8 +980,23 @@ export const getCurrentUserStaffDetails = async (req: Request, res: Response) =>
 
     const userId = req.currentUser.id;
 
-    // Get staff details by user ID
-    const staff = await StaffModel.findByUserId(userId);
+    // Get staff details by user ID with addresses joined for better performance
+    const { pool } = await import('../config/database');
+    const [rows]: any = await pool.execute(
+      `SELECT s.*, 
+              u.full_name, u.email, u.phone, u.profile_picture,
+              ca.street_address as current_address,
+              pa.street_address as permanent_address
+       FROM staff s
+       JOIN users u ON s.user_id = u.id
+       LEFT JOIN staff_addresses ca ON s.id = ca.staff_id AND ca.address_type = 'current'
+       LEFT JOIN staff_addresses pa ON s.id = pa.staff_id AND pa.address_type = 'permanent'
+       WHERE s.user_id = ?
+       LIMIT 1`,
+      [userId]
+    );
+
+    const staff = rows[0];
 
     if (!staff) {
       return res.status(404).json({
@@ -990,12 +1005,10 @@ export const getCurrentUserStaffDetails = async (req: Request, res: Response) =>
       });
     }
 
-    const staffWithAddresses = await enrichStaffWithAddresses(staff);
-
     return res.json({
       success: true,
       message: 'Current user staff details retrieved successfully',
-      data: { staff: staffWithAddresses }
+      data: { staff }
     });
   } catch (error) {
     console.error('Get current user staff details error:', error);

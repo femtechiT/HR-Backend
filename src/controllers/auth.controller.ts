@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import JwtUtil from '../utils/jwt.util';
 import UserModel from '../models/user.model';
 import PermissionService from '../services/permission.service';
+import { pool } from '../config/database';
 
 interface LoginRequestBody {
   email: string;
@@ -110,78 +111,50 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
     // Auto-accept pending invitations + track first login
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     try {
-      const { pool } = await import('../config/database');
-
-      // Check available columns first to be defensive - use SHOW COLUMNS as it's more reliable
-      const [columns]: any = await pool.execute('SHOW COLUMNS FROM staff_invitations');
-      const availableCols = new Set(columns.map((c: any) => c.Field));
-
+      // Optimized invitation tracking - assume standard columns exist after migrations
       // Step 1: Auto-accept any pending invitation for this user
       const [pendingRows]: any = await pool.execute(
-        `SELECT si.id FROM staff_invitations si
-         WHERE si.user_id = ? AND si.status = 'pending'
+        `SELECT id FROM staff_invitations 
+         WHERE user_id = ? AND status = 'pending'
          LIMIT 1`,
         [user.id]
       );
 
       if (pendingRows.length > 0) {
-        // Build update fields dynamically based on what columns exist
-        const updateFields: string[] = ["status = 'accepted'"];
-        const updateParams: any[] = [];
-
-        if (availableCols.has('accepted_at')) updateFields.push("accepted_at = NOW()");
-        if (availableCols.has('first_login_at')) updateFields.push("first_login_at = NOW()");
-        if (availableCols.has('first_login_ip')) {
-          updateFields.push("first_login_ip = ?");
-          updateParams.push(ip);
-        }
-        if (availableCols.has('profile_completed')) {
-          updateFields.push("profile_completed = ?");
-          updateParams.push(!!user.phone ? 1 : 0);
-        }
-        
-        updateParams.push(pendingRows[0].id);
-
         await pool.execute(
-          `UPDATE staff_invitations SET ${updateFields.join(', ')} WHERE id = ?`,
-          updateParams
+          `UPDATE staff_invitations SET 
+             status = 'accepted',
+             accepted_at = NOW(),
+             first_login_at = NOW(),
+             first_login_ip = ?,
+             profile_completed = ?
+           WHERE id = ?`,
+          [ip, !!user.phone ? 1 : 0, pendingRows[0].id]
         );
         console.log(`[Invite Tracking] Auto-accepted invitation for user ${user.id} (${user.email}) on first login`);
       } else {
-        // Step 2: Track first login for already-accepted invitations (only if column exists)
-        if (availableCols.has('first_login_at')) {
-          const [acceptedRows]: any = await pool.execute(
-            `SELECT si.id FROM staff_invitations si
-             WHERE si.user_id = ? AND si.status = 'accepted' AND si.first_login_at IS NULL
-             LIMIT 1`,
-            [user.id]
+        // Step 2: Track first login for already-accepted invitations
+        const [acceptedRows]: any = await pool.execute(
+          `SELECT id FROM staff_invitations 
+           WHERE user_id = ? AND status = 'accepted' AND first_login_at IS NULL
+           LIMIT 1`,
+          [user.id]
+        );
+
+        if (acceptedRows.length > 0) {
+          await pool.execute(
+            `UPDATE staff_invitations SET 
+               first_login_at = NOW(),
+               first_login_ip = ?,
+               profile_completed = ?
+             WHERE id = ?`,
+            [ip, !!user.phone ? 1 : 0, acceptedRows[0].id]
           );
-
-          if (acceptedRows.length > 0) {
-            const updateFields: string[] = ["first_login_at = NOW()"];
-            const updateParams: any[] = [];
-
-            if (availableCols.has('first_login_ip')) {
-              updateFields.push("first_login_ip = ?");
-              updateParams.push(ip);
-            }
-            if (availableCols.has('profile_completed')) {
-              updateFields.push("profile_completed = ?");
-              updateParams.push(!!user.phone ? 1 : 0);
-            }
-            
-            updateParams.push(acceptedRows[0].id);
-
-            await pool.execute(
-              `UPDATE staff_invitations SET ${updateFields.join(', ')} WHERE id = ?`,
-              updateParams
-            );
-            console.log(`[Invite Tracking] Recorded first login for user ${user.id} (${user.email})`);
-          }
+          console.log(`[Invite Tracking] Recorded first login for user ${user.id} (${user.email})`);
         }
         
-        // Step 3: Update last_activity for returning users (only if column exists)
-        if (!needsPasswordChange && availableCols.has('last_activity_at')) {
+        // Step 3: Update last_activity for returning users
+        if (!needsPasswordChange) {
           await pool.execute(
             `UPDATE staff_invitations SET last_activity_at = NOW()
              WHERE user_id = ? AND status = 'accepted'`,
@@ -190,7 +163,7 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
         }
       }
     } catch (trackingError) {
-      // Don't fail login if tracking fails
+      // Don't fail login if tracking fails (e.g. if migrations aren't fully applied)
       console.error('Invitation tracking error (non-critical):', trackingError);
     }
 

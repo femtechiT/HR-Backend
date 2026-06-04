@@ -529,6 +529,28 @@ router.post(
       });
     }
 
+    // CHECK FOR OVERLAPPING LEAVE REQUESTS
+    const [overlappingRequests]: any = await pool.execute(
+      `SELECT id, start_date, end_date, status 
+       FROM leave_requests 
+       WHERE user_id = ? 
+       AND status IN ('submitted', 'approved')
+       AND (
+         (start_date <= ? AND end_date >= ?) 
+         OR (start_date <= ? AND end_date >= ?)
+         OR (? <= start_date AND ? >= end_date)
+       )`,
+      [userId, start_date, start_date, end_date, end_date, start_date, end_date]
+    );
+
+    if (overlappingRequests.length > 0) {
+      const overlap = overlappingRequests[0];
+      return res.status(400).json({
+        success: false,
+        message: `You already have a ${overlap.status} leave request that overlaps with these dates.`
+      });
+    }
+
     // Start a transaction to ensure atomicity of leave request + attachments
     const connection = await pool.getConnection();
     try {

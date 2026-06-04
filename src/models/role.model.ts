@@ -1,4 +1,5 @@
 import { pool } from '../config/database';
+import { CacheService } from '../services/cache.service';
 
 export interface Role {
   id: number;
@@ -30,19 +31,43 @@ class RoleModel {
   }
 
   static async findById(id: number): Promise<Role | null> {
+    const cacheKey = `role:${id}`;
+    
+    // Try cache first
+    let role = await CacheService.get<Role>(cacheKey);
+    if (role) return role;
+
     const [rows] = await pool.execute(
       `SELECT * FROM ${this.tableName} WHERE id = ?`,
       [id]
     );
-    return (rows as Role[])[0] || null;
+    role = (rows as Role[])[0] || null;
+
+    if (role) {
+      await CacheService.set(cacheKey, role, 3600); // Cache for 1 hour
+    }
+
+    return role;
   }
 
   static async findByName(name: string): Promise<Role | null> {
+    const cacheKey = `role:name:${name}`;
+    
+    // Try cache first
+    let role = await CacheService.get<Role>(cacheKey);
+    if (role) return role;
+
     const [rows] = await pool.execute(
       `SELECT * FROM ${this.tableName} WHERE name = ?`,
       [name]
     );
-    return (rows as Role[])[0] || null;
+    role = (rows as Role[])[0] || null;
+
+    if (role) {
+      await CacheService.set(cacheKey, role, 3600);
+    }
+
+    return role;
   }
 
   static async create(roleData: RoleInput): Promise<Role> {
@@ -96,14 +121,27 @@ class RoleModel {
       values
     );
 
-    return await this.findById(id);
+    // Invalidate cache
+    await CacheService.del(`role:${id}`);
+    const currentRole = await this.findById(id);
+    if (currentRole) {
+      await CacheService.del(`role:name:${currentRole.name}`);
+    }
+
+    return currentRole;
   }
 
   static async delete(id: number): Promise<boolean> {
+    const role = await this.findById(id);
     const result: any = await pool.execute(
       `DELETE FROM ${this.tableName} WHERE id = ?`,
       [id]
     );
+
+    if (result.affectedRows > 0) {
+      await CacheService.del(`role:${id}`);
+      if (role) await CacheService.del(`role:name:${role.name}`);
+    }
 
     return result.affectedRows > 0;
   }

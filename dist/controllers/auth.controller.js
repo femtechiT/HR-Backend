@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -40,6 +7,7 @@ exports.getPermissions = exports.refreshToken = exports.logout = exports.login =
 const jwt_util_1 = __importDefault(require("../utils/jwt.util"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const permission_service_1 = __importDefault(require("../services/permission.service"));
+const database_1 = require("../config/database");
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -101,54 +69,33 @@ const login = async (req, res) => {
         const needsProfileCompletion = !user.phone;
         const ip = req.ip || req.socket.remoteAddress || 'unknown';
         try {
-            const { pool } = await Promise.resolve().then(() => __importStar(require('../config/database')));
-            const [columns] = await pool.execute('SHOW COLUMNS FROM staff_invitations');
-            const availableCols = new Set(columns.map((c) => c.Field));
-            const [pendingRows] = await pool.execute(`SELECT si.id FROM staff_invitations si
-         WHERE si.user_id = ? AND si.status = 'pending'
+            const [pendingRows] = await database_1.pool.execute(`SELECT id FROM staff_invitations 
+         WHERE user_id = ? AND status = 'pending'
          LIMIT 1`, [user.id]);
             if (pendingRows.length > 0) {
-                const updateFields = ["status = 'accepted'"];
-                const updateParams = [];
-                if (availableCols.has('accepted_at'))
-                    updateFields.push("accepted_at = NOW()");
-                if (availableCols.has('first_login_at'))
-                    updateFields.push("first_login_at = NOW()");
-                if (availableCols.has('first_login_ip')) {
-                    updateFields.push("first_login_ip = ?");
-                    updateParams.push(ip);
-                }
-                if (availableCols.has('profile_completed')) {
-                    updateFields.push("profile_completed = ?");
-                    updateParams.push(!!user.phone ? 1 : 0);
-                }
-                updateParams.push(pendingRows[0].id);
-                await pool.execute(`UPDATE staff_invitations SET ${updateFields.join(', ')} WHERE id = ?`, updateParams);
+                await database_1.pool.execute(`UPDATE staff_invitations SET 
+             status = 'accepted',
+             accepted_at = NOW(),
+             first_login_at = NOW(),
+             first_login_ip = ?,
+             profile_completed = ?
+           WHERE id = ?`, [ip, !!user.phone ? 1 : 0, pendingRows[0].id]);
                 console.log(`[Invite Tracking] Auto-accepted invitation for user ${user.id} (${user.email}) on first login`);
             }
             else {
-                if (availableCols.has('first_login_at')) {
-                    const [acceptedRows] = await pool.execute(`SELECT si.id FROM staff_invitations si
-             WHERE si.user_id = ? AND si.status = 'accepted' AND si.first_login_at IS NULL
-             LIMIT 1`, [user.id]);
-                    if (acceptedRows.length > 0) {
-                        const updateFields = ["first_login_at = NOW()"];
-                        const updateParams = [];
-                        if (availableCols.has('first_login_ip')) {
-                            updateFields.push("first_login_ip = ?");
-                            updateParams.push(ip);
-                        }
-                        if (availableCols.has('profile_completed')) {
-                            updateFields.push("profile_completed = ?");
-                            updateParams.push(!!user.phone ? 1 : 0);
-                        }
-                        updateParams.push(acceptedRows[0].id);
-                        await pool.execute(`UPDATE staff_invitations SET ${updateFields.join(', ')} WHERE id = ?`, updateParams);
-                        console.log(`[Invite Tracking] Recorded first login for user ${user.id} (${user.email})`);
-                    }
+                const [acceptedRows] = await database_1.pool.execute(`SELECT id FROM staff_invitations 
+           WHERE user_id = ? AND status = 'accepted' AND first_login_at IS NULL
+           LIMIT 1`, [user.id]);
+                if (acceptedRows.length > 0) {
+                    await database_1.pool.execute(`UPDATE staff_invitations SET 
+               first_login_at = NOW(),
+               first_login_ip = ?,
+               profile_completed = ?
+             WHERE id = ?`, [ip, !!user.phone ? 1 : 0, acceptedRows[0].id]);
+                    console.log(`[Invite Tracking] Recorded first login for user ${user.id} (${user.email})`);
                 }
-                if (!needsPasswordChange && availableCols.has('last_activity_at')) {
-                    await pool.execute(`UPDATE staff_invitations SET last_activity_at = NOW()
+                if (!needsPasswordChange) {
+                    await database_1.pool.execute(`UPDATE staff_invitations SET last_activity_at = NOW()
              WHERE user_id = ? AND status = 'accepted'`, [user.id]);
                 }
             }
