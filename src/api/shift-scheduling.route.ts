@@ -75,12 +75,12 @@ router.put('/schedule-requests/:id/approve', authenticateJWT, checkPermission('s
 router.put('/schedule-requests/:id/reject', authenticateJWT, checkPermission('schedule_request:reject'), rejectScheduleRequest);
 
 // Shift Exceptions Routes
-router.get('/exceptions', authenticateJWT, checkPermission('shift_exception:read'), getAllShiftExceptions);
+router.get('/exceptions', authenticateJWT, checkPermission('shift-exception:read'), getAllShiftExceptions);
 router.get('/exceptions/my', authenticateJWT, getMyShiftExceptions);
-router.get('/exceptions/:id', authenticateJWT, checkPermission('shift_exception:read'), getShiftExceptionById);
-router.post('/exceptions', authenticateJWT, checkPermission('shift_exception:create'), createShiftException);
-router.put('/exceptions/:id', authenticateJWT, checkPermission('shift_exception:update'), updateShiftException);
-router.delete('/exceptions/:id', authenticateJWT, checkPermission('shift_exception:delete'), deleteShiftException);
+router.get('/exceptions/:id', authenticateJWT, checkPermission('shift-exception:read'), getShiftExceptionById);
+router.post('/exceptions', authenticateJWT, checkPermission('shift-exception:create'), createShiftException);
+router.put('/exceptions/:id', authenticateJWT, checkPermission('shift-exception:update'), updateShiftException);
+router.delete('/exceptions/:id', authenticateJWT, checkPermission('shift-exception:delete'), deleteShiftException);
 
 // Time Off Banks Routes are now in their own dedicated route file at /api/time-off-banks
 // See /api/time-off-banks for all time off bank functionality

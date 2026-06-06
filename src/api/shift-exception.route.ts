@@ -28,7 +28,7 @@ router.get(
 router.post(
   '/',
   authenticateJWT,
-  checkPermission('shift_exception:create'),
+  checkPermission('shift-exception:create'),
   createShiftException
 );
 
@@ -36,7 +36,7 @@ router.post(
 router.get(
   '/',
   authenticateJWT,
-  checkPermission('shift_exception:read'),
+  checkPermission('shift-exception:read'),
   getAllShiftExceptions
 );
 
@@ -44,7 +44,7 @@ router.get(
 router.get(
   '/:id',
   authenticateJWT,
-  checkPermission('shift_exception:read'),
+  checkPermission('shift-exception:read'),
   getShiftExceptionById
 );
 
@@ -52,7 +52,7 @@ router.get(
 router.put(
   '/:id',
   authenticateJWT,
-  checkPermission('shift_exception:update'),
+  checkPermission('shift-exception:update'),
   updateShiftException
 );
 
@@ -60,7 +60,7 @@ router.put(
 router.delete(
   '/:id',
   authenticateJWT,
-  checkPermission('shift_exception:delete'),
+  checkPermission('shift-exception:delete'),
   deleteShiftException
 );
 
