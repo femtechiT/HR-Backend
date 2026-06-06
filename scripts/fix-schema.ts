@@ -254,6 +254,21 @@ async function fixSchema() {
     } catch (_) {}
   }
 
+  // Add early_departure to attendance.status ENUM if not already present
+  if (await tableExists('attendance')) {
+    try {
+      const [enumCheck]: any = await pool.execute(
+        `SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'attendance' AND COLUMN_NAME = 'status'`
+      );
+      if (enumCheck.length > 0 && !enumCheck[0].COLUMN_TYPE.includes('early_departure')) {
+        await pool.execute(`ALTER TABLE attendance MODIFY COLUMN status ENUM('present','absent','late','half_day','leave','holiday','holiday-working','weekend','early_departure') NOT NULL DEFAULT 'absent'`);
+        console.log('   ✅ Added early_departure to attendance.status ENUM');
+      }
+    } catch (e: any) {
+      console.log(`   ⚠️  Could not update ENUM: ${e.message?.substring(0, 80)}`);
+    }
+  }
+
   await pool.execute('SET FOREIGN_KEY_CHECKS = 1');
 
   console.log('\n✅ Schema fix complete!');

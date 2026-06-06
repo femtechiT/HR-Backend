@@ -71,6 +71,44 @@ class ShiftExceptionModel {
     return (rows as ShiftException[])[0] || null;
   }
 
+  static async findAllByBranch(branchId: number, userId?: number): Promise<any[]> {
+    const params: any[] = [branchId];
+    let userFilter = '';
+    if (userId) {
+      userFilter = ' AND se.user_id = ?';
+      params.push(userId);
+    }
+    const [rows] = await pool.execute(
+      `SELECT se.*, u.full_name as user_name
+       FROM ${this.tableName} se
+       LEFT JOIN users u ON se.user_id = u.id
+       INNER JOIN staff s ON se.user_id = s.user_id
+       WHERE s.branch_id = ?${userFilter}
+       ORDER BY se.created_at DESC`,
+      params
+    );
+    return rows as any[];
+  }
+
+  static async findByDateRangeByBranch(branchId: number, startDate: Date, endDate: Date, userId?: number): Promise<any[]> {
+    const params: any[] = [branchId, startDate, endDate];
+    let userFilter = '';
+    if (userId) {
+      userFilter = ' AND se.user_id = ?';
+      params.push(userId);
+    }
+    const [rows] = await pool.execute(
+      `SELECT se.*, u.full_name as user_name
+       FROM ${this.tableName} se
+       LEFT JOIN users u ON se.user_id = u.id
+       INNER JOIN staff s ON se.user_id = s.user_id
+       WHERE s.branch_id = ? AND se.exception_date BETWEEN ? AND ?${userFilter}
+       ORDER BY se.exception_date DESC`,
+      params
+    );
+    return rows as any[];
+  }
+
   static async findByUserId(userId: number): Promise<any[]> {
     const [rows] = await pool.execute(
       `SELECT se.*, u.full_name as user_name

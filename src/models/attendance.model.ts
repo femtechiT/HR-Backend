@@ -4,7 +4,7 @@ export interface Attendance {
   id: number;
   user_id: number;
   date: Date;
-  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend';
+  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend' | 'early_departure';
   check_in_time: Date | null;
   check_out_time: Date | null;
   location_coordinates: string | null; // POINT data stored as string
@@ -20,7 +20,7 @@ export interface Attendance {
 export interface AttendanceInput {
   user_id: number;
   date: Date;
-  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend';
+  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend' | 'early_departure';
   check_in_time?: Date | null;
   check_out_time?: Date | null;
   location_coordinates?: string | null; // WKT format: "POINT(longitude latitude)"
@@ -42,7 +42,7 @@ export function locationToWKT(location: { longitude: number; latitude: number } 
 }
 
 export interface AttendanceUpdate {
-  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'weekend';
+  status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'weekend' | 'early_departure';
   check_in_time?: Date | null;
   check_out_time?: Date | null;
   location_coordinates?: string | null;
@@ -229,7 +229,7 @@ class AttendanceModel {
     const [rows] = await pool.execute(
       `SELECT
         COUNT(*) as total_days,
-        SUM(CASE WHEN status IN ('present', 'late', 'half_day') THEN 1 ELSE 0 END) as working_days
+        SUM(CASE WHEN status IN ('present', 'late', 'half_day', 'early_departure') THEN 1 ELSE 0 END) as working_days
        FROM ${this.tableName}
        WHERE user_id = ? AND date BETWEEN ? AND ?`,
       [userId, startDate, endDate]
@@ -248,6 +248,7 @@ class AttendanceModel {
     absent_days: number;
     late_days: number;
     half_day_days: number;
+    early_departure_days: number;
   }> {
     const [rows] = await pool.execute(
       `SELECT
@@ -255,7 +256,8 @@ class AttendanceModel {
         SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present_days,
         SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_days,
         SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late_days,
-        SUM(CASE WHEN status = 'half_day' THEN 1 ELSE 0 END) as half_day_days
+        SUM(CASE WHEN status = 'half_day' THEN 1 ELSE 0 END) as half_day_days,
+        SUM(CASE WHEN status = 'early_departure' THEN 1 ELSE 0 END) as early_departure_days
        FROM ${this.tableName}
        WHERE user_id = ? AND date BETWEEN ? AND ?`,
       [userId, startDate, endDate]
@@ -267,7 +269,8 @@ class AttendanceModel {
       present_days: result.present_days || 0,
       absent_days: result.absent_days || 0,
       late_days: result.late_days || 0,
-      half_day_days: result.half_day_days || 0
+      half_day_days: result.half_day_days || 0,
+      early_departure_days: result.early_departure_days || 0
     };
   }
 }

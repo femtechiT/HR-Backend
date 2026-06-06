@@ -39,6 +39,21 @@ class ShiftExceptionController {
         });
       }
 
+      // Verify admin and staff are in the same branch
+      const currentUserId = req.currentUser?.id;
+      if (currentUserId) {
+        const adminStaff = await StaffModel.findByUserId(currentUserId);
+        if (adminStaff?.branch_id) {
+          const staffBranchId = staff.branch_id;
+          if (!staffBranchId || staffBranchId !== adminStaff.branch_id) {
+            return res.status(403).json({
+              success: false,
+              message: 'You can only create exceptions for staff in your branch'
+            });
+          }
+        }
+      }
+
       // Create the shift exception
       const exceptionData: ShiftExceptionInput = {
         user_id,
@@ -75,11 +90,32 @@ class ShiftExceptionController {
   static async getAll(req: Request, res: Response) {
     try {
       const { startDate, endDate, userId } = req.query;
+      const currentUserId = req.currentUser?.id;
+
+      // Get current user's branch (if not Super Admin)
+      let branchId: number | null = null;
+      if (currentUserId) {
+        const adminStaff = await StaffModel.findByUserId(currentUserId);
+        branchId = adminStaff?.branch_id || null;
+      }
 
       let exceptions;
+      const userIdNum = userId ? parseInt(userId as string) : undefined;
 
-      if (userId) {
-        // Get exceptions for specific user
+      if (branchId) {
+        // Branch admin - only see exceptions for staff in their branch
+        if (startDate && endDate) {
+          exceptions = await ShiftExceptionModel.findByDateRangeByBranch(
+            branchId,
+            new Date(startDate as string),
+            new Date(endDate as string),
+            userIdNum
+          );
+        } else {
+          exceptions = await ShiftExceptionModel.findAllByBranch(branchId, userIdNum);
+        }
+      } else if (userId) {
+        // Super Admin or no branch - get exceptions for specific user
         const userIdNum = parseInt(userId as string);
         if (startDate && endDate) {
           exceptions = await ShiftExceptionModel.findByDateRange(
@@ -91,7 +127,7 @@ class ShiftExceptionController {
           exceptions = await ShiftExceptionModel.findByUserId(userIdNum);
         }
       } else {
-        // Get all exceptions
+        // Super Admin - get all exceptions
         exceptions = await ShiftExceptionModel.findAll();
       }
 
@@ -209,6 +245,21 @@ class ShiftExceptionController {
         });
       }
 
+      // Verify branch access
+      const currentUserId = req.currentUser?.id;
+      if (currentUserId) {
+        const adminStaff = await StaffModel.findByUserId(currentUserId);
+        if (adminStaff?.branch_id) {
+          const targetStaff = await StaffModel.findByUserId(existingException.user_id);
+          if (!targetStaff || targetStaff.branch_id !== adminStaff.branch_id) {
+            return res.status(403).json({
+              success: false,
+              message: 'You can only update exceptions for staff in your branch'
+            });
+          }
+        }
+      }
+
       // Update the exception
       const updatedException = await ShiftExceptionModel.update(id, updateData);
 
@@ -241,6 +292,21 @@ class ShiftExceptionController {
           success: false,
           message: 'Shift exception not found'
         });
+      }
+
+      // Verify branch access
+      const currentUserId = req.currentUser?.id;
+      if (currentUserId) {
+        const adminStaff = await StaffModel.findByUserId(currentUserId);
+        if (adminStaff?.branch_id) {
+          const targetStaff = await StaffModel.findByUserId(existingException.user_id);
+          if (!targetStaff || targetStaff.branch_id !== adminStaff.branch_id) {
+            return res.status(403).json({
+              success: false,
+              message: 'You can only delete exceptions for staff in your branch'
+            });
+          }
+        }
       }
 
       // Delete the exception

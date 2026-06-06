@@ -301,7 +301,7 @@ export class ShiftSchedulingService {
     scheduled_start_time: string | null;
     scheduled_end_time: string | null;
     scheduled_break_duration_minutes: number;
-    status: 'present' | 'late' | null;
+    status: 'present' | 'late' | 'early_departure' | null;
   }> {
     try {
       // Get the effective schedule for this date
@@ -332,7 +332,7 @@ export class ShiftSchedulingService {
 
       // Calculate late arrival
       let isLate = false;
-      let status: 'present' | 'late' = 'present';
+      let status: 'present' | 'late' | 'early_departure' = 'present';
       
       if (checkInTime) {
         const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
@@ -346,6 +346,9 @@ export class ShiftSchedulingService {
         // Consider late if arrived after scheduled start time (with grace period)
         isLate = checkInDateTime.getTime() > adjustedStartTime.getTime();
         status = isLate ? 'late' : 'present';
+      } else {
+        // No check-in means we can't determine status from check-in
+        status = 'present';
       }
 
       // Calculate early departure
@@ -357,6 +360,11 @@ export class ShiftSchedulingService {
 
         // Consider early departure if left before scheduled end time
         isEarlyDeparture = checkOutDateTime.getTime() < scheduledEndTime.getTime();
+
+        // If present but left early, mark as early_departure
+        if (isEarlyDeparture && !isLate && status !== 'late') {
+          status = 'early_departure';
+        }
       }
 
       // Calculate actual working hours
