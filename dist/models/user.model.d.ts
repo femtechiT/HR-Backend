@@ -36,7 +36,7 @@ export interface UserUpdate {
 declare class UserModel {
     static tableName: string;
     static findAll(): Promise<User[]>;
-    static findAllWithFilters(limit?: number, offset?: number, branchId?: number, status?: string, roleId?: number): Promise<{
+    static findAllWithFilters(limit?: number, offset?: number, branchId?: number, status?: string, roleId?: number, search?: string): Promise<{
         users: User[];
         totalCount: number;
     }>;

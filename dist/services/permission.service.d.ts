@@ -5,6 +5,7 @@ interface PermissionCheckResult {
 }
 declare class PermissionService {
     static hasPermission(userId: number, permission: string): Promise<PermissionCheckResult>;
+    static hasPermissionAny(userId: number, permissions: string[]): Promise<PermissionCheckResult>;
     static getAllUserPermissions(userId: number): Promise<{
         permission: string;
         source: 'user' | 'role';

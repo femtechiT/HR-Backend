@@ -8,6 +8,7 @@ const type_utils_1 = require("../utils/type-utils");
 const user_model_1 = __importDefault(require("../models/user.model"));
 const user_permission_model_1 = __importDefault(require("../models/user-permission.model"));
 const role_model_1 = __importDefault(require("../models/role.model"));
+const permission_service_1 = __importDefault(require("../services/permission.service"));
 const password_utils_1 = require("../utils/password-utils");
 const email_service_1 = require("../services/email.service");
 const getAllUsers = async (req, res) => {
@@ -18,6 +19,7 @@ const getAllUsers = async (req, res) => {
         const branchId = req.query.branchId ? (0, type_utils_1.getNumberQueryParam)(req, 'branchId') : undefined;
         const status = (0, type_utils_1.getStringQueryParam)(req, 'status');
         const roleId = req.query.roleId ? (0, type_utils_1.getNumberQueryParam)(req, 'roleId') : undefined;
+        const search = (0, type_utils_1.getStringQueryParam)(req, 'search');
         if (page < 1) {
             return res.status(400).json({
                 success: false,
@@ -30,7 +32,7 @@ const getAllUsers = async (req, res) => {
                 message: 'Limit must be between 1 and 100'
             });
         }
-        const { users, totalCount } = await user_model_1.default.findAllWithFilters(limit, offset, branchId, status, roleId);
+        const { users, totalCount } = await user_model_1.default.findAllWithFilters(limit, offset, branchId, status, roleId, search);
         const totalPages = Math.ceil(totalCount / limit);
         return res.json({
             success: true,
@@ -120,6 +122,7 @@ const updateUserRole = async (req, res) => {
         if (!updatedUser) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
+        await permission_service_1.default.invalidateUserPermissionCache(userId);
         const { password_hash, ...userWithoutPassword } = updatedUser;
         return res.json({
             success: true,
@@ -244,6 +247,9 @@ const updateUser = async (req, res) => {
         if (must_change_password !== undefined)
             updateData.must_change_password = must_change_password;
         const updatedUser = await user_model_1.default.update(userId, updateData);
+        if (role_id !== undefined) {
+            await permission_service_1.default.invalidateUserPermissionCache(userId);
+        }
         if (updatedUser) {
             const { password_hash, ...userWithoutPassword } = updatedUser;
             return res.json({
@@ -397,6 +403,7 @@ const addUserPermission = async (req, res) => {
             allow_deny: allow_deny || 'allow'
         };
         const newPermission = await user_permission_model_1.default.create(permissionData);
+        await permission_service_1.default.invalidateUserPermissionCache(userId);
         return res.status(201).json({
             success: true,
             message: 'User permission added successfully',
@@ -438,6 +445,7 @@ const removeUserPermission = async (req, res) => {
                 message: 'User permission not found'
             });
         }
+        await permission_service_1.default.invalidateUserPermissionCache(userId);
         return res.json({
             success: true,
             message: 'User permission removed successfully'

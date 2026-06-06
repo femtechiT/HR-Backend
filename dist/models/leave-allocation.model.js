@@ -125,7 +125,12 @@ class LeaveAllocationModel {
         return await this.findById(id, connection);
     }
     static async delete(id) {
+        const existingAllocation = await this.findById(id);
         const result = await database_1.pool.execute(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+        if (result.affectedRows > 0 && existingAllocation) {
+            await cache_service_1.CacheService.del(`leave_allocations:user:${existingAllocation.user_id}`);
+            await cache_service_1.CacheService.del(`leave_allocations:user:${existingAllocation.user_id}:type:${existingAllocation.leave_type_id}`);
+        }
         return result.affectedRows > 0;
     }
     static async getRemainingBalance(userId, leaveTypeId) {

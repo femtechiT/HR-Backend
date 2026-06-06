@@ -13,7 +13,7 @@ export declare class ShiftSchedulingService {
         scheduled_start_time: string | null;
         scheduled_end_time: string | null;
         scheduled_break_duration_minutes: number;
-        status: 'present' | 'late' | null;
+        status: 'present' | 'late' | 'early_departure' | null;
     }>;
     static updateAttendanceWithScheduleInfo(attendanceId: number, userId: number, date: Date, gracePeriodMinutes?: number): Promise<boolean>;
     static processAttendanceForDate(userId: number, date: Date): Promise<void>;

@@ -56,6 +56,19 @@ class ShiftExceptionController {
                     message: 'User not found or does not have a staff record'
                 });
             }
+            const currentUserId = req.currentUser?.id;
+            if (currentUserId) {
+                const adminStaff = await staff_model_1.default.findByUserId(currentUserId);
+                if (adminStaff?.branch_id) {
+                    const staffBranchId = staff.branch_id;
+                    if (!staffBranchId || staffBranchId !== adminStaff.branch_id) {
+                        return res.status(403).json({
+                            success: false,
+                            message: 'You can only create exceptions for staff in your branch'
+                        });
+                    }
+                }
+            }
             const exceptionData = {
                 user_id,
                 exception_date: new Date(exception_date),
@@ -85,8 +98,23 @@ class ShiftExceptionController {
     static async getAll(req, res) {
         try {
             const { startDate, endDate, userId } = req.query;
+            const currentUserId = req.currentUser?.id;
+            let branchId = null;
+            if (currentUserId) {
+                const adminStaff = await staff_model_1.default.findByUserId(currentUserId);
+                branchId = adminStaff?.branch_id || null;
+            }
             let exceptions;
-            if (userId) {
+            const userIdNum = userId ? parseInt(userId) : undefined;
+            if (branchId) {
+                if (startDate && endDate) {
+                    exceptions = await shift_exception_model_1.default.findByDateRangeByBranch(branchId, new Date(startDate), new Date(endDate), userIdNum);
+                }
+                else {
+                    exceptions = await shift_exception_model_1.default.findAllByBranch(branchId, userIdNum);
+                }
+            }
+            else if (userId) {
                 const userIdNum = parseInt(userId);
                 if (startDate && endDate) {
                     exceptions = await shift_exception_model_1.default.findByDateRange(userIdNum, new Date(startDate), new Date(endDate));
@@ -184,6 +212,19 @@ class ShiftExceptionController {
                     message: 'Shift exception not found'
                 });
             }
+            const currentUserId = req.currentUser?.id;
+            if (currentUserId) {
+                const adminStaff = await staff_model_1.default.findByUserId(currentUserId);
+                if (adminStaff?.branch_id) {
+                    const targetStaff = await staff_model_1.default.findByUserId(existingException.user_id);
+                    if (!targetStaff || targetStaff.branch_id !== adminStaff.branch_id) {
+                        return res.status(403).json({
+                            success: false,
+                            message: 'You can only update exceptions for staff in your branch'
+                        });
+                    }
+                }
+            }
             const updatedException = await shift_exception_model_1.default.update(id, updateData);
             return res.status(200).json({
                 success: true,
@@ -208,6 +249,19 @@ class ShiftExceptionController {
                     success: false,
                     message: 'Shift exception not found'
                 });
+            }
+            const currentUserId = req.currentUser?.id;
+            if (currentUserId) {
+                const adminStaff = await staff_model_1.default.findByUserId(currentUserId);
+                if (adminStaff?.branch_id) {
+                    const targetStaff = await staff_model_1.default.findByUserId(existingException.user_id);
+                    if (!targetStaff || targetStaff.branch_id !== adminStaff.branch_id) {
+                        return res.status(403).json({
+                            success: false,
+                            message: 'You can only delete exceptions for staff in your branch'
+                        });
+                    }
+                }
             }
             await shift_exception_model_1.default.delete(id);
             return res.status(200).json({

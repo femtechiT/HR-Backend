@@ -232,12 +232,18 @@ class ShiftSchedulingService {
                 isLate = checkInDateTime.getTime() > adjustedStartTime.getTime();
                 status = isLate ? 'late' : 'present';
             }
+            else {
+                status = 'present';
+            }
             let isEarlyDeparture = false;
             if (checkOutTime) {
                 const [checkOutHours, checkOutMinutes] = checkOutTime.split(':').map(Number);
                 const checkOutDateTime = new Date(date);
                 checkOutDateTime.setHours(checkOutHours, checkOutMinutes, 0, 0);
                 isEarlyDeparture = checkOutDateTime.getTime() < scheduledEndTime.getTime();
+                if (isEarlyDeparture && !isLate && status !== 'late') {
+                    status = 'early_departure';
+                }
             }
             let actualWorkingHours = null;
             if (checkInTime && checkOutTime) {

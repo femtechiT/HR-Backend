@@ -4,15 +4,52 @@ const database_1 = require("../config/database");
 class ShiftExceptionModel {
     static tableName = 'shift_exceptions';
     static async findAll() {
-        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+        const [rows] = await database_1.pool.execute(`SELECT se.*, u.full_name as user_name
+       FROM ${this.tableName} se
+       LEFT JOIN users u ON se.user_id = u.id
+       ORDER BY se.created_at DESC`);
         return rows;
     }
     static async findById(id) {
         const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
         return rows[0] || null;
     }
+    static async findAllByBranch(branchId, userId) {
+        const params = [branchId];
+        let userFilter = '';
+        if (userId) {
+            userFilter = ' AND se.user_id = ?';
+            params.push(userId);
+        }
+        const [rows] = await database_1.pool.execute(`SELECT se.*, u.full_name as user_name
+       FROM ${this.tableName} se
+       LEFT JOIN users u ON se.user_id = u.id
+       INNER JOIN staff s ON se.user_id = s.user_id
+       WHERE s.branch_id = ?${userFilter}
+       ORDER BY se.created_at DESC`, params);
+        return rows;
+    }
+    static async findByDateRangeByBranch(branchId, startDate, endDate, userId) {
+        const params = [branchId, startDate, endDate];
+        let userFilter = '';
+        if (userId) {
+            userFilter = ' AND se.user_id = ?';
+            params.push(userId);
+        }
+        const [rows] = await database_1.pool.execute(`SELECT se.*, u.full_name as user_name
+       FROM ${this.tableName} se
+       LEFT JOIN users u ON se.user_id = u.id
+       INNER JOIN staff s ON se.user_id = s.user_id
+       WHERE s.branch_id = ? AND se.exception_date BETWEEN ? AND ?${userFilter}
+       ORDER BY se.exception_date DESC`, params);
+        return rows;
+    }
     static async findByUserId(userId) {
-        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} WHERE user_id = ? ORDER BY exception_date DESC`, [userId]);
+        const [rows] = await database_1.pool.execute(`SELECT se.*, u.full_name as user_name
+       FROM ${this.tableName} se
+       LEFT JOIN users u ON se.user_id = u.id
+       WHERE se.user_id = ?
+       ORDER BY se.exception_date DESC`, [userId]);
         return rows;
     }
     static async findByDate(userId, date) {
@@ -20,9 +57,11 @@ class ShiftExceptionModel {
         return rows[0] || null;
     }
     static async findByDateRange(userId, startDate, endDate) {
-        const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName}
-       WHERE user_id = ? AND exception_date BETWEEN ? AND ? AND status = 'active'
-       ORDER BY exception_date DESC`, [userId, startDate, endDate]);
+        const [rows] = await database_1.pool.execute(`SELECT se.*, u.full_name as user_name
+       FROM ${this.tableName} se
+       LEFT JOIN users u ON se.user_id = u.id
+       WHERE se.user_id = ? AND se.exception_date BETWEEN ? AND ? AND se.status = 'active'
+       ORDER BY se.exception_date DESC`, [userId, startDate, endDate]);
         return rows;
     }
     static async create(exceptionData) {

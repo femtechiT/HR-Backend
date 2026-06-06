@@ -2,7 +2,7 @@ export interface Attendance {
     id: number;
     user_id: number;
     date: Date;
-    status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend';
+    status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend' | 'early_departure';
     check_in_time: Date | null;
     check_out_time: Date | null;
     location_coordinates: string | null;
@@ -17,7 +17,7 @@ export interface Attendance {
 export interface AttendanceInput {
     user_id: number;
     date: Date;
-    status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend';
+    status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'holiday-working' | 'weekend' | 'early_departure';
     check_in_time?: Date | null;
     check_out_time?: Date | null;
     location_coordinates?: string | null;
@@ -32,7 +32,7 @@ export declare function locationToWKT(location: {
     latitude: number;
 } | string | null): string | null;
 export interface AttendanceUpdate {
-    status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'weekend';
+    status?: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'holiday' | 'weekend' | 'early_departure';
     check_in_time?: Date | null;
     check_out_time?: Date | null;
     location_coordinates?: string | null;
@@ -61,6 +61,7 @@ declare class AttendanceModel {
         absent_days: number;
         late_days: number;
         half_day_days: number;
+        early_departure_days: number;
     }>;
 }
 export default AttendanceModel;

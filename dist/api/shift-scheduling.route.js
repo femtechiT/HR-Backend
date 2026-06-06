@@ -30,11 +30,11 @@ router.put('/schedule-requests/:id', auth_middleware_1.authenticateJWT, schedule
 router.put('/schedule-requests/:id/cancel', auth_middleware_1.authenticateJWT, schedule_request_controller_1.cancelScheduleRequest);
 router.put('/schedule-requests/:id/approve', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('schedule_request:approve'), schedule_request_controller_1.approveScheduleRequest);
 router.put('/schedule-requests/:id/reject', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('schedule_request:reject'), schedule_request_controller_1.rejectScheduleRequest);
-router.get('/exceptions', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_exception:read'), shift_exception_controller_1.getAllShiftExceptions);
+router.get('/exceptions', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift-exception:read'), shift_exception_controller_1.getAllShiftExceptions);
 router.get('/exceptions/my', auth_middleware_1.authenticateJWT, shift_exception_controller_1.getMyShiftExceptions);
-router.get('/exceptions/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_exception:read'), shift_exception_controller_1.getShiftExceptionById);
-router.post('/exceptions', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_exception:create'), shift_exception_controller_1.createShiftException);
-router.put('/exceptions/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_exception:update'), shift_exception_controller_1.updateShiftException);
-router.delete('/exceptions/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift_exception:delete'), shift_exception_controller_1.deleteShiftException);
+router.get('/exceptions/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift-exception:read'), shift_exception_controller_1.getShiftExceptionById);
+router.post('/exceptions', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift-exception:create'), shift_exception_controller_1.createShiftException);
+router.put('/exceptions/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift-exception:update'), shift_exception_controller_1.updateShiftException);
+router.delete('/exceptions/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('shift-exception:delete'), shift_exception_controller_1.deleteShiftException);
 exports.default = router;
 //# sourceMappingURL=shift-scheduling.route.js.map

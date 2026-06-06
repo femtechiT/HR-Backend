@@ -75,21 +75,12 @@ const checkPermission = (permission) => {
     return async (req, res, next) => {
         try {
             if (req.currentUser) {
-                const permissionFormats = [
+                const permissionResult = await permission_service_1.default.hasPermissionAny(req.currentUser.id, [
                     permission,
                     permission.replace('.', ':'),
                     permission.replace(':', '.')
-                ];
-                let hasAccess = false;
-                let permissionResult;
-                for (const permFormat of permissionFormats) {
-                    permissionResult = await permission_service_1.default.hasPermission(req.currentUser.id, permFormat);
-                    if (permissionResult.hasPermission) {
-                        hasAccess = true;
-                        break;
-                    }
-                }
-                if (!hasAccess) {
+                ]);
+                if (!permissionResult.hasPermission) {
                     return res.status(403).json({
                         success: false,
                         message: `Insufficient permissions. Required: ${permission}`,

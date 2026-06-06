@@ -47,11 +47,13 @@ export interface ShiftExceptionUpdate {
 }
 declare class ShiftExceptionModel {
     static tableName: string;
-    static findAll(): Promise<ShiftException[]>;
+    static findAll(): Promise<any[]>;
     static findById(id: number): Promise<ShiftException | null>;
-    static findByUserId(userId: number): Promise<ShiftException[]>;
+    static findAllByBranch(branchId: number, userId?: number): Promise<any[]>;
+    static findByDateRangeByBranch(branchId: number, startDate: Date, endDate: Date, userId?: number): Promise<any[]>;
+    static findByUserId(userId: number): Promise<any[]>;
     static findByDate(userId: number, date: Date): Promise<ShiftException | null>;
-    static findByDateRange(userId: number, startDate: Date, endDate: Date): Promise<ShiftException[]>;
+    static findByDateRange(userId: number, startDate: Date, endDate: Date): Promise<any[]>;
     static create(exceptionData: ShiftExceptionInput): Promise<ShiftException>;
     static update(id: number, exceptionData: ShiftExceptionUpdate): Promise<ShiftException | null>;
     static delete(id: number): Promise<boolean>;

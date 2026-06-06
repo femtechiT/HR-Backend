@@ -12,7 +12,7 @@ class UserModel {
         const [rows] = await database_1.pool.execute(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
         return rows;
     }
-    static async findAllWithFilters(limit = 20, offset = 0, branchId, status, roleId) {
+    static async findAllWithFilters(limit = 20, offset = 0, branchId, status, roleId, search) {
         let query = `SELECT * FROM ${this.tableName}`;
         const params = [];
         const conditions = [];
@@ -28,6 +28,12 @@ class UserModel {
             conditions.push('role_id = ?');
             params.push(roleId);
         }
+        if (search && search.trim()) {
+            conditions.push('(full_name LIKE ? OR email LIKE ?)');
+            const searchPattern = `%${search.trim()}%`;
+            params.push(searchPattern, searchPattern);
+        }
+        const paramsForConditions = params.length;
         if (conditions.length > 0) {
             query += ' WHERE ' + conditions.join(' AND ');
         }
@@ -38,7 +44,7 @@ class UserModel {
         if (conditions.length > 0) {
             countQuery += ' WHERE ' + conditions.join(' AND ');
         }
-        const [countResult] = await database_1.pool.execute(countQuery, params.slice(0, conditions.length));
+        const [countResult] = await database_1.pool.execute(countQuery, params.slice(0, paramsForConditions));
         const totalCount = countResult[0].count;
         return {
             users: rows,
@@ -143,11 +149,25 @@ class UserModel {
         return this.findById(id);
     }
     static async delete(id) {
+        const user = await this.findById(id);
         const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET status = 'inactive' WHERE id = ?`, [id]);
+        if (result.affectedRows > 0) {
+            await cache_service_1.CacheService.del(`user:${id}`);
+            if (user?.email) {
+                await cache_service_1.CacheService.del(`user:email:${user.email}`);
+            }
+        }
         return result.affectedRows > 0;
     }
     static async softDelete(id) {
+        const user = await this.findById(id);
         const result = await database_1.pool.execute(`UPDATE ${this.tableName} SET status = 'terminated' WHERE id = ?`, [id]);
+        if (result.affectedRows > 0) {
+            await cache_service_1.CacheService.del(`user:${id}`);
+            if (user?.email) {
+                await cache_service_1.CacheService.del(`user:email:${user.email}`);
+            }
+        }
         return result.affectedRows > 0;
     }
     static async comparePassword(inputPassword, hashedPassword) {
