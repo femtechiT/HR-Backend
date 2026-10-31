@@ -70,6 +70,7 @@ import syncRoutes from './api/sync.route';
 import syncFullRoutes from './api/sync-full.route';
 import { SchedulerService } from './services/scheduler.service';
 import AttendanceProcessorWorker from './workers/attendance-processor.worker';
+import { AttendanceSelfHealWorker } from './workers/attendance-self-heal.worker';
 import AutoCheckoutWorker from './workers/auto-checkout.worker';
 import LeaveCleanupWorker from './workers/leave-cleanup.worker';
 import { NotificationDispatcherWorker } from './workers/notification-dispatcher.worker';
@@ -266,6 +267,14 @@ const bootstrap = async () => {
     LeaveCleanupWorker.start();
   } catch (error) {
     console.error('[Server] Leave cleanup worker failed to start:', error);
+  }
+
+  // Start attendance self-heal worker (re-syncs recent attendance status
+  // against current leave/day-off/exception approvals on a recurring basis)
+  try {
+    AttendanceSelfHealWorker.start();
+  } catch (error) {
+    console.error('[Server] Attendance self-heal worker failed to start:', error);
   }
 
   // Start notification dispatcher worker (sends queued email/push notifications)
