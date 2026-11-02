@@ -47,10 +47,44 @@ const shift_scheduling_service_1 = require("../services/shift-scheduling.service
 const database_1 = require("../config/database");
 const router = (0, express_1.Router)();
 const getLeavePolicy = async () => {
-    const [rows] = await database_1.pool.execute(`SELECT exclude_sundays_from_leave
+    const [rows] = await database_1.pool.execute(`SELECT exclude_sundays_from_leave, daily_leave_cap
      FROM global_attendance_settings
      LIMIT 1`);
-    return rows[0] || { exclude_sundays_from_leave: false };
+    return rows[0] || { exclude_sundays_from_leave: false, daily_leave_cap: null };
+};
+const toDateOnlyString = (value) => {
+    if (value instanceof Date)
+        return value.toISOString().split('T')[0];
+    return String(value).split('T')[0];
+};
+const checkDailyLeaveCap = async (startDate, endDate, dailyLeaveCap) => {
+    if (!dailyLeaveCap || dailyLeaveCap < 1) {
+        return { breached: false };
+    }
+    const [overlapping] = await database_1.pool.execute(`SELECT lr.start_date, lr.end_date
+     FROM leave_requests lr
+     JOIN leave_types lt ON lr.leave_type_id = lt.id
+     WHERE lr.status IN ('submitted', 'approved')
+     AND lt.bypasses_leave_cap = FALSE
+     AND lr.start_date <= ? AND lr.end_date >= ?`, [endDate, startDate]);
+    const existingRanges = overlapping.map((r) => ({
+        start: toDateOnlyString(r.start_date),
+        end: toDateOnlyString(r.end_date)
+    }));
+    const breachedDates = [];
+    const current = new Date(startDate);
+    const last = new Date(endDate);
+    current.setHours(0, 0, 0, 0);
+    last.setHours(0, 0, 0, 0);
+    while (current <= last) {
+        const dayStr = current.toISOString().split('T')[0];
+        const count = existingRanges.filter((r) => r.start <= dayStr && r.end >= dayStr).length;
+        if (count >= dailyLeaveCap) {
+            breachedDates.push(dayStr);
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    return breachedDates.length > 0 ? { breached: true, breachedDates } : { breached: false };
 };
 const calculateLeaveDays = (startDate, endDate, excludeSundays) => {
     const start = new Date(startDate);
@@ -406,6 +440,18 @@ router.post('/', auth_middleware_1.authenticateJWT, upload_middleware_1.upload.a
                 success: false,
                 message: `Insufficient leave balance. Requested: ${requestedDays} days, Available: ${remainingDays} days (excluding ${pendingDays} days in pending requests)`
             });
+        }
+        if (!leaveType.bypasses_leave_cap) {
+            const capCheck = await checkDailyLeaveCap(start_date, end_date, leavePolicy.daily_leave_cap);
+            if (capCheck.breached) {
+                const formattedDates = capCheck.breachedDates
+                    .map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
+                    .join(', ');
+                return res.status(400).json({
+                    success: false,
+                    message: `The maximum number of staff allowed on leave (${leavePolicy.daily_leave_cap}) has already been reached for: ${formattedDates}. Please choose different dates or contact HR.`
+                });
+            }
         }
         const [overlappingRequests] = await database_1.pool.execute(`SELECT id, start_date, end_date, status 
        FROM leave_requests 

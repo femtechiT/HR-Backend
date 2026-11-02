@@ -184,7 +184,7 @@ class AttendanceModel {
     `;
         const params = [startDate, endDate];
         if (activeOnly) {
-            query += ' AND s.status = \'active\' AND u.status = \'active\'';
+            query += ' AND s.status = \'active\' AND u.status = \'active\' AND s.deleted_at IS NULL AND u.deleted_at IS NULL';
         }
         if (branchId) {
             query += ' AND s.branch_id = ?';

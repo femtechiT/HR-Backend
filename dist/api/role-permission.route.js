@@ -14,6 +14,7 @@ router.get('/available', auth_middleware_1.authenticateJWT, (0, permission_middl
         const allPermissions = [
             'staff.create', 'staff.read', 'staff.update', 'staff.delete',
             'user.create', 'user.read', 'user.update', 'user.delete',
+            'user.terminate', 'user.permanent_delete', 'user.restore',
             'role.create', 'role.read', 'role.update', 'role.delete',
             'permission.manage',
             'form.create', 'form.read', 'form.update', 'form.delete',

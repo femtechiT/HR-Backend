@@ -25,8 +25,8 @@ class LeaveTypeModel {
         return rows[0] || null;
     }
     static async create(leaveTypeData) {
-        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, days_per_year, is_paid, allow_carryover, carryover_limit, expiry_rule_id, created_by, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+        const [result] = await database_1.pool.execute(`INSERT INTO ${this.tableName} (name, days_per_year, is_paid, allow_carryover, carryover_limit, expiry_rule_id, created_by, is_active, bypasses_leave_cap)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             leaveTypeData.name,
             leaveTypeData.days_per_year,
             leaveTypeData.is_paid,
@@ -34,7 +34,8 @@ class LeaveTypeModel {
             leaveTypeData.carryover_limit,
             leaveTypeData.expiry_rule_id || null,
             leaveTypeData.created_by || null,
-            leaveTypeData.is_active ?? true
+            leaveTypeData.is_active ?? true,
+            leaveTypeData.bypasses_leave_cap ?? false
         ]);
         const insertedId = result.insertId;
         const createdItem = await this.findById(insertedId);
@@ -73,6 +74,10 @@ class LeaveTypeModel {
         if (leaveTypeData.is_active !== undefined) {
             updates.push('is_active = ?');
             values.push(leaveTypeData.is_active);
+        }
+        if (leaveTypeData.bypasses_leave_cap !== undefined) {
+            updates.push('bypasses_leave_cap = ?');
+            values.push(leaveTypeData.bypasses_leave_cap);
         }
         if (updates.length === 0) {
             return await this.findById(id);

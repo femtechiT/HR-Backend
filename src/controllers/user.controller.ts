@@ -209,9 +209,10 @@ export const createUser = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if user with this email already exists
+    // Check if user with this email already exists. A soft-deleted account
+    // doesn't block reuse — their email is free for a new hire.
     const existingUser = await UserModel.findByEmail(email);
-    if (existingUser) {
+    if (existingUser && !existingUser.deleted_at) {
       return res.status(409).json({
         success: false,
         message: 'A user with this email already exists'
@@ -268,6 +269,21 @@ export const updateUser = async (req: Request, res: Response) => {
         success: false,
         message: 'User not found'
       });
+    }
+
+    // Dropping the DB UNIQUE constraint on email (Migration 126, to let a
+    // soft-deleted account's email be reused) means this duplicate check now
+    // has to happen here in code — it used to be caught for free at the SQL
+    // layer. Only a live (non-deleted) account other than this one counts
+    // as a conflict.
+    if (email !== undefined && email !== existingUser.email) {
+      const emailOwner = await UserModel.findByEmail(email);
+      if (emailOwner && !emailOwner.deleted_at && emailOwner.id !== userId) {
+        return res.status(409).json({
+          success: false,
+          message: 'A user with this email already exists'
+        });
+      }
     }
 
     // Prepare update data
@@ -420,6 +436,141 @@ export const terminateUser = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error('Terminate user error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// True soft-delete (Migration 126) — distinct from deleteUser/terminateUser
+// above, which only flip `status`. This hides the account+staff record
+// everywhere except User Management's "Deleted" filter, and frees their
+// email for reuse by a new hire (see createUser's duplicate-email check).
+export const softDeleteUser = async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+    const userId = parseInt(typeof idStr === 'string' ? idStr : '');
+    const deletedBy = req.currentUser?.id;
+
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID'
+      });
+    }
+
+    if (!deletedBy) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized: No user information'
+      });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Keep users.deleted_at and staff.deleted_at in sync atomically.
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const deleted = await UserModel.markAsDeleted(userId, deletedBy, connection);
+      if (!deleted) {
+        await connection.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const linkedStaff = await StaffModel.findByUserId(userId);
+      if (linkedStaff) {
+        await StaffModel.markAsDeleted(linkedStaff.id, deletedBy, connection);
+      }
+
+      await connection.commit();
+
+      return res.json({
+        success: true,
+        message: 'User deleted successfully'
+      });
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Soft-delete user error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Undo softDeleteUser. Leaves `status` as-is — restoring visibility isn't
+// the same as reactivating employment, those stay separate admin actions.
+export const restoreUser = async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+    const userId = parseInt(typeof idStr === 'string' ? idStr : '');
+
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID'
+      });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const restored = await UserModel.restore(userId, connection);
+      if (!restored) {
+        await connection.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const linkedStaff = await StaffModel.findByUserId(userId);
+      if (linkedStaff) {
+        await StaffModel.restore(linkedStaff.id, connection);
+      }
+
+      await connection.commit();
+
+      return res.json({
+        success: true,
+        message: 'User restored successfully'
+      });
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Restore user error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error'

@@ -6,6 +6,8 @@ import {
   updateUser,
   deleteUser,
   terminateUser,
+  softDeleteUser,
+  restoreUser,
   getUserPermissions,
   addUserPermission,
   removeUserPermission,
@@ -27,6 +29,8 @@ router.post('/:id/reset-password', authenticateJWT, checkPermission('user.update
 router.put('/:id/role', authenticateJWT, checkPermission('user.update'), updateUserRole);
 router.delete('/:id', authenticateJWT, checkPermission('user.delete'), deleteUser);
 router.patch('/:id/terminate', authenticateJWT, checkPermission('user.terminate'), terminateUser);
+router.patch('/:id/delete', authenticateJWT, checkPermission('user.permanent_delete'), softDeleteUser);
+router.patch('/:id/restore', authenticateJWT, checkPermission('user.restore'), restoreUser);
 
 // Profile photo upload (explicitly user-id based; avoids staff.id/user.id ambiguity)
 router.post(

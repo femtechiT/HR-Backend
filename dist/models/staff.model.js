@@ -12,7 +12,7 @@ class StaffModel {
                  LEFT JOIN users u ON s.user_id = u.id
                  LEFT JOIN branches b ON s.branch_id = b.id`;
         const params = [];
-        const conditions = [];
+        const conditions = ['s.deleted_at IS NULL'];
         if (branchId) {
             conditions.push('s.branch_id = ?');
             params.push(branchId);
@@ -473,11 +473,23 @@ class StaffModel {
         const result = await db.execute(`UPDATE ${this.tableName} SET status = 'active', resignation_date = NULL, last_working_date = NULL WHERE id = ?`, [id]);
         return result.affectedRows > 0;
     }
+    static async markAsDeleted(id, deletedBy, connection) {
+        const db = connection || database_1.pool;
+        const result = await db.execute(`UPDATE ${this.tableName}
+       SET deleted_at = NOW(), deleted_by = ?, status = IF(status = 'active', 'inactive', status)
+       WHERE id = ?`, [deletedBy, id]);
+        return result.affectedRows > 0;
+    }
+    static async restore(id, connection) {
+        const db = connection || database_1.pool;
+        const result = await db.execute(`UPDATE ${this.tableName} SET deleted_at = NULL, deleted_by = NULL WHERE id = ?`, [id]);
+        return result.affectedRows > 0;
+    }
     static async findByDepartment(department, branchId) {
         let query = `SELECT s.*, u.full_name, u.email
                  FROM ${this.tableName} s
                  LEFT JOIN users u ON s.user_id = u.id
-                 WHERE s.department = ?`;
+                 WHERE s.department = ? AND s.deleted_at IS NULL AND s.status NOT IN ('inactive', 'terminated')`;
         const params = [department];
         if (branchId) {
             query += ' AND s.branch_id = ?';
@@ -490,7 +502,7 @@ class StaffModel {
         const [rows] = await database_1.pool.execute(`SELECT s.*, u.full_name, u.email
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
-       WHERE s.branch_id = ?`, [branchId.toString()]);
+       WHERE s.branch_id = ? AND s.deleted_at IS NULL AND s.status NOT IN ('inactive', 'terminated')`, [branchId.toString()]);
         return rows;
     }
 }

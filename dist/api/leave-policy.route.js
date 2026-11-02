@@ -7,12 +7,13 @@ const router = (0, express_1.Router)();
 const getDefaultPolicy = () => ({
     id: 1,
     exclude_sundays_from_leave: false,
+    daily_leave_cap: null,
     created_at: new Date(),
     updated_at: new Date()
 });
 router.get('/', auth_middleware_1.authenticateJWT, async (req, res) => {
     try {
-        const [rows] = await database_1.pool.execute(`SELECT id, exclude_sundays_from_leave, created_at, updated_at
+        const [rows] = await database_1.pool.execute(`SELECT id, exclude_sundays_from_leave, daily_leave_cap, created_at, updated_at
        FROM global_attendance_settings
        LIMIT 1`);
         const policy = rows[0] || getDefaultPolicy();
@@ -40,23 +41,51 @@ router.patch('/', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.check
             });
         }
         const excludeSundays = settings.exclude_sundays_from_leave;
-        if (typeof excludeSundays === 'undefined') {
+        const dailyLeaveCapProvided = Object.prototype.hasOwnProperty.call(settings, 'daily_leave_cap');
+        let dailyLeaveCap = null;
+        if (dailyLeaveCapProvided) {
+            const rawCap = settings.daily_leave_cap;
+            if (rawCap === null || rawCap === '' || rawCap === undefined) {
+                dailyLeaveCap = null;
+            }
+            else {
+                const parsed = Number(rawCap);
+                if (!Number.isInteger(parsed) || parsed < 1) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'daily_leave_cap must be a positive whole number, or null to disable it'
+                    });
+                }
+                dailyLeaveCap = parsed;
+            }
+        }
+        if (typeof excludeSundays === 'undefined' && !dailyLeaveCapProvided) {
             return res.status(400).json({
                 success: false,
-                message: 'exclude_sundays_from_leave is required'
+                message: 'At least one setting (exclude_sundays_from_leave or daily_leave_cap) is required'
             });
         }
         const [existingRows] = await database_1.pool.execute(`SELECT id FROM global_attendance_settings LIMIT 1`);
         if (existingRows.length > 0) {
-            await database_1.pool.execute(`UPDATE global_attendance_settings
-         SET exclude_sundays_from_leave = ?, updated_at = NOW()
-         WHERE id = ?`, [Boolean(excludeSundays), existingRows[0].id]);
+            const updates = [];
+            const values = [];
+            if (typeof excludeSundays !== 'undefined') {
+                updates.push('exclude_sundays_from_leave = ?');
+                values.push(Boolean(excludeSundays));
+            }
+            if (dailyLeaveCapProvided) {
+                updates.push('daily_leave_cap = ?');
+                values.push(dailyLeaveCap);
+            }
+            updates.push('updated_at = NOW()');
+            values.push(existingRows[0].id);
+            await database_1.pool.execute(`UPDATE global_attendance_settings SET ${updates.join(', ')} WHERE id = ?`, values);
         }
         else {
-            await database_1.pool.execute(`INSERT INTO global_attendance_settings (id, exclude_sundays_from_leave)
-         VALUES (1, ?)`, [Boolean(excludeSundays)]);
+            await database_1.pool.execute(`INSERT INTO global_attendance_settings (id, exclude_sundays_from_leave, daily_leave_cap)
+         VALUES (1, ?, ?)`, [Boolean(excludeSundays), dailyLeaveCapProvided ? dailyLeaveCap : null]);
         }
-        const [updatedRows] = await database_1.pool.execute(`SELECT id, exclude_sundays_from_leave, created_at, updated_at
+        const [updatedRows] = await database_1.pool.execute(`SELECT id, exclude_sundays_from_leave, daily_leave_cap, created_at, updated_at
        FROM global_attendance_settings
        LIMIT 1`);
         return res.json({

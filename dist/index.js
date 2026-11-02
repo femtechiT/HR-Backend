@@ -105,6 +105,7 @@ const audit_log_route_1 = __importDefault(require("./api/audit-log.route"));
 const sync_route_1 = __importDefault(require("./api/sync.route"));
 const sync_full_route_1 = __importDefault(require("./api/sync-full.route"));
 const attendance_processor_worker_1 = __importDefault(require("./workers/attendance-processor.worker"));
+const attendance_self_heal_worker_1 = require("./workers/attendance-self-heal.worker");
 const auto_checkout_worker_1 = __importDefault(require("./workers/auto-checkout.worker"));
 const leave_cleanup_worker_1 = __importDefault(require("./workers/leave-cleanup.worker"));
 const notification_dispatcher_worker_1 = require("./workers/notification-dispatcher.worker");
@@ -253,6 +254,12 @@ const bootstrap = async () => {
     }
     catch (error) {
         console.error('[Server] Leave cleanup worker failed to start:', error);
+    }
+    try {
+        attendance_self_heal_worker_1.AttendanceSelfHealWorker.start();
+    }
+    catch (error) {
+        console.error('[Server] Attendance self-heal worker failed to start:', error);
     }
     try {
         notification_dispatcher_worker_1.NotificationDispatcherWorker.startWorker(parseInt(process.env.NOTIFICATION_DISPATCH_INTERVAL || '300'));

@@ -71,6 +71,8 @@ export interface Staff {
     assigned_location_id?: number;
     location_assignments?: any;
     location_notes?: string;
+    deleted_at?: Date | null;
+    deleted_by?: number | null;
 }
 export interface StaffInput {
     user_id: number;
@@ -229,6 +231,8 @@ declare class StaffModel {
     static delete(id: number, connection?: any): Promise<boolean>;
     static deactivate(id: number, connection?: any): Promise<boolean>;
     static reactivate(id: number, connection?: any): Promise<boolean>;
+    static markAsDeleted(id: number, deletedBy: number, connection?: any): Promise<boolean>;
+    static restore(id: number, connection?: any): Promise<boolean>;
     static findByDepartment(department: string, branchId?: number): Promise<Staff[]>;
     static findByBranch(branchId: number): Promise<Staff[]>;
 }

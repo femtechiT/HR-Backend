@@ -17,6 +17,8 @@ router.post('/:id/reset-password', auth_middleware_1.authenticateJWT, (0, auth_m
 router.put('/:id/role', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.update'), user_controller_1.updateUserRole);
 router.delete('/:id', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.delete'), user_controller_1.deleteUser);
 router.patch('/:id/terminate', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.terminate'), user_controller_1.terminateUser);
+router.patch('/:id/delete', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.permanent_delete'), user_controller_1.softDeleteUser);
+router.patch('/:id/restore', auth_middleware_1.authenticateJWT, (0, auth_middleware_1.checkPermission)('user.restore'), user_controller_1.restoreUser);
 router.post('/me/upload-photo', auth_middleware_1.authenticateJWT, (req, res, next) => {
     if (!req.currentUser) {
         return res.status(401).json({ success: false, message: 'Authentication required' });

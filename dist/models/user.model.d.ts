@@ -11,6 +11,8 @@ export interface User {
     profile_picture?: string;
     created_at: Date;
     updated_at: Date;
+    deleted_at?: Date | null;
+    deleted_by?: number | null;
 }
 export interface UserInput {
     email: string;
@@ -47,6 +49,8 @@ declare class UserModel {
     static delete(id: number, connection?: any): Promise<boolean>;
     static reactivate(id: number, connection?: any): Promise<boolean>;
     static softDelete(id: number, connection?: any): Promise<boolean>;
+    static markAsDeleted(id: number, deletedBy: number, connection?: any): Promise<boolean>;
+    static restore(id: number, connection?: any): Promise<boolean>;
     static comparePassword(inputPassword: string, hashedPassword: string): Promise<boolean>;
     static setPasswordChangeRequirement(userId: number, mustChange: boolean): Promise<User | null>;
 }

@@ -57,6 +57,13 @@ async function createSingleInvitation(firstName, lastName, personalEmail, phone,
             }
         }
     }
+    if (userId) {
+        const [matchedUserRows] = await database_1.pool.execute('SELECT deleted_at FROM users WHERE id = ?', [userId]);
+        if (matchedUserRows.length > 0 && matchedUserRows[0].deleted_at) {
+            userId = null;
+            invitationId = null;
+        }
+    }
     const token = generateInvitationToken();
     const temporaryPassword = (0, password_utils_1.generateTemporaryPassword)();
     const expiresAt = new Date();

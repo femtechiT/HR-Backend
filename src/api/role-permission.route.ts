@@ -16,6 +16,7 @@ router.get('/available', authenticateJWT, checkPermission('permissions.manage'),
       
       // User permissions
       'user.create', 'user.read', 'user.update', 'user.delete',
+      'user.terminate', 'user.permanent_delete', 'user.restore',
       
       // Role permissions
       'role.create', 'role.read', 'role.update', 'role.delete',

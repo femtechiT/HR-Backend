@@ -83,7 +83,7 @@ class ShiftExceptionModel {
        FROM ${this.tableName} se
        LEFT JOIN users u ON se.user_id = u.id
        INNER JOIN staff s ON se.user_id = s.user_id
-       WHERE s.branch_id = ?${userFilter}
+       WHERE s.branch_id = ? AND s.deleted_at IS NULL AND s.status NOT IN ('inactive', 'terminated')${userFilter}
        ORDER BY se.created_at DESC`,
       params
     );
@@ -102,7 +102,7 @@ class ShiftExceptionModel {
        FROM ${this.tableName} se
        LEFT JOIN users u ON se.user_id = u.id
        INNER JOIN staff s ON se.user_id = s.user_id
-       WHERE s.branch_id = ? AND se.exception_date BETWEEN ? AND ?${userFilter}
+       WHERE s.branch_id = ? AND s.deleted_at IS NULL AND s.status NOT IN ('inactive', 'terminated') AND se.exception_date BETWEEN ? AND ?${userFilter}
        ORDER BY se.exception_date DESC`,
       params
     );

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeUserPermission = exports.addUserPermission = exports.getUserPermissions = exports.terminateUser = exports.deleteUser = exports.updateUser = exports.createUser = exports.getUserById = exports.updateUserRole = exports.resetUserPassword = exports.getAllUsers = void 0;
+exports.removeUserPermission = exports.addUserPermission = exports.getUserPermissions = exports.restoreUser = exports.softDeleteUser = exports.terminateUser = exports.deleteUser = exports.updateUser = exports.createUser = exports.getUserById = exports.updateUserRole = exports.resetUserPassword = exports.getAllUsers = void 0;
 const database_1 = require("../config/database");
 const type_utils_1 = require("../utils/type-utils");
 const user_model_1 = __importDefault(require("../models/user.model"));
@@ -190,7 +190,7 @@ const createUser = async (req, res) => {
             });
         }
         const existingUser = await user_model_1.default.findByEmail(email);
-        if (existingUser) {
+        if (existingUser && !existingUser.deleted_at) {
             return res.status(409).json({
                 success: false,
                 message: 'A user with this email already exists'
@@ -239,6 +239,15 @@ const updateUser = async (req, res) => {
                 success: false,
                 message: 'User not found'
             });
+        }
+        if (email !== undefined && email !== existingUser.email) {
+            const emailOwner = await user_model_1.default.findByEmail(email);
+            if (emailOwner && !emailOwner.deleted_at && emailOwner.id !== userId) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'A user with this email already exists'
+                });
+            }
         }
         const updateData = {};
         if (email !== undefined)
@@ -390,6 +399,125 @@ const terminateUser = async (req, res) => {
     }
 };
 exports.terminateUser = terminateUser;
+const softDeleteUser = async (req, res) => {
+    try {
+        const idParam = req.params.id;
+        const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+        const userId = parseInt(typeof idStr === 'string' ? idStr : '');
+        const deletedBy = req.currentUser?.id;
+        if (isNaN(userId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid user ID'
+            });
+        }
+        if (!deletedBy) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized: No user information'
+            });
+        }
+        const user = await user_model_1.default.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        const connection = await database_1.pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            const deleted = await user_model_1.default.markAsDeleted(userId, deletedBy, connection);
+            if (!deleted) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+            const linkedStaff = await staff_model_1.default.findByUserId(userId);
+            if (linkedStaff) {
+                await staff_model_1.default.markAsDeleted(linkedStaff.id, deletedBy, connection);
+            }
+            await connection.commit();
+            return res.json({
+                success: true,
+                message: 'User deleted successfully'
+            });
+        }
+        catch (err) {
+            await connection.rollback();
+            throw err;
+        }
+        finally {
+            connection.release();
+        }
+    }
+    catch (error) {
+        console.error('Soft-delete user error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+exports.softDeleteUser = softDeleteUser;
+const restoreUser = async (req, res) => {
+    try {
+        const idParam = req.params.id;
+        const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+        const userId = parseInt(typeof idStr === 'string' ? idStr : '');
+        if (isNaN(userId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid user ID'
+            });
+        }
+        const user = await user_model_1.default.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        const connection = await database_1.pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            const restored = await user_model_1.default.restore(userId, connection);
+            if (!restored) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+            const linkedStaff = await staff_model_1.default.findByUserId(userId);
+            if (linkedStaff) {
+                await staff_model_1.default.restore(linkedStaff.id, connection);
+            }
+            await connection.commit();
+            return res.json({
+                success: true,
+                message: 'User restored successfully'
+            });
+        }
+        catch (err) {
+            await connection.rollback();
+            throw err;
+        }
+        finally {
+            connection.release();
+        }
+    }
+    catch (error) {
+        console.error('Restore user error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+exports.restoreUser = restoreUser;
 const getUserPermissions = async (req, res) => {
     try {
         const idParam = req.params.id;

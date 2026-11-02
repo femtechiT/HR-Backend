@@ -74,6 +74,9 @@ export interface Staff {
   assigned_location_id?: number;
   location_assignments?: any; // JSON: {primary_location: number, secondary_locations: number[]}
   location_notes?: string;
+  // Soft delete (Migration 126) — orthogonal to `status`
+  deleted_at?: Date | null;
+  deleted_by?: number | null;
 }
 
 export interface StaffInput {
@@ -243,7 +246,12 @@ class StaffModel {
                  LEFT JOIN users u ON s.user_id = u.id
                  LEFT JOIN branches b ON s.branch_id = b.id`;
     const params: any[] = [];
-    const conditions: string[] = [];
+    // Soft-deleted staff never appear through this method, regardless of the
+    // `status` filter — this model is never used by the User Management
+    // screen (that goes through UserModel, the one place deleted rows can
+    // surface), so every other staff list/picker in the system is covered
+    // by excluding them here, once, at the source.
+    const conditions: string[] = ['s.deleted_at IS NULL'];
 
     if (branchId) {
       conditions.push('s.branch_id = ?');
@@ -835,12 +843,43 @@ class StaffModel {
     return result.affectedRows > 0;
   }
 
+  // Real soft-delete (Migration 126) — distinct from deactivate()/delete()
+  // above, which only flip `status`. This hides the record from every staff
+  // list/picker in the system (findAllWithFilters excludes deleted_at IS NOT
+  // NULL unconditionally) while leaving the row and its history intact.
+  // Forcing status to 'inactive' here means the existing login gate
+  // (`status !== 'active'`) also blocks a deleted account automatically.
+  static async markAsDeleted(id: number, deletedBy: number, connection?: any): Promise<boolean> {
+    const db = connection || pool;
+    const result: any = await db.execute(
+      `UPDATE ${this.tableName}
+       SET deleted_at = NOW(), deleted_by = ?, status = IF(status = 'active', 'inactive', status)
+       WHERE id = ?`,
+      [deletedBy, id]
+    );
+
+    return result.affectedRows > 0;
+  }
+
+  // Undo markAsDeleted. Leaves `status` as whatever it was left at (inactive,
+  // terminated, etc) — restoring visibility isn't the same as reactivating
+  // employment, those are separate admin actions.
+  static async restore(id: number, connection?: any): Promise<boolean> {
+    const db = connection || pool;
+    const result: any = await db.execute(
+      `UPDATE ${this.tableName} SET deleted_at = NULL, deleted_by = NULL WHERE id = ?`,
+      [id]
+    );
+
+    return result.affectedRows > 0;
+  }
+
   // Get staff by department
   static async findByDepartment(department: string, branchId?: number): Promise<Staff[]> {
     let query = `SELECT s.*, u.full_name, u.email
                  FROM ${this.tableName} s
                  LEFT JOIN users u ON s.user_id = u.id
-                 WHERE s.department = ?`;
+                 WHERE s.department = ? AND s.deleted_at IS NULL AND s.status NOT IN ('inactive', 'terminated')`;
     const params = [department];
 
     if (branchId) {
@@ -858,7 +897,7 @@ class StaffModel {
       `SELECT s.*, u.full_name, u.email
        FROM ${this.tableName} s
        LEFT JOIN users u ON s.user_id = u.id
-       WHERE s.branch_id = ?`,
+       WHERE s.branch_id = ? AND s.deleted_at IS NULL AND s.status NOT IN ('inactive', 'terminated')`,
       [branchId.toString()]
     );
     return rows as Staff[];

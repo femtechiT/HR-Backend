@@ -86,6 +86,19 @@ async function createSingleInvitation(
     }
   }
 
+  // A matched user who was soft-deleted (Migration 126) is a genuinely free
+  // email, not a returning employee — don't resurrect their old row by
+  // falling into the reinvite/update branch below. Forget the match
+  // entirely so this becomes a brand-new user+staff+invitation row; the old
+  // deleted record is left untouched for history.
+  if (userId) {
+    const [matchedUserRows]: any = await pool.execute('SELECT deleted_at FROM users WHERE id = ?', [userId]);
+    if (matchedUserRows.length > 0 && matchedUserRows[0].deleted_at) {
+      userId = null;
+      invitationId = null;
+    }
+  }
+
   // Generate token and temp password
   const token = generateInvitationToken();
   const temporaryPassword = generateTemporaryPassword();

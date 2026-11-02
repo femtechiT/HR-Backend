@@ -20,9 +20,15 @@ class UserModel {
             conditions.push('branch_id = ?');
             params.push(branchId);
         }
-        if (status) {
-            conditions.push('status = ?');
-            params.push(status);
+        if (status === 'deleted') {
+            conditions.push('deleted_at IS NOT NULL');
+        }
+        else {
+            conditions.push('deleted_at IS NULL');
+            if (status) {
+                conditions.push('status = ?');
+                params.push(status);
+            }
         }
         if (roleId) {
             conditions.push('role_id = ?');
@@ -176,6 +182,32 @@ class UserModel {
         const db = connection || database_1.pool;
         const user = await this.findById(id);
         const result = await db.execute(`UPDATE ${this.tableName} SET status = 'terminated' WHERE id = ?`, [id]);
+        if (result.affectedRows > 0) {
+            await cache_service_1.CacheService.del(`user:${id}`);
+            if (user?.email) {
+                await cache_service_1.CacheService.del(`user:email:${user.email}`);
+            }
+        }
+        return result.affectedRows > 0;
+    }
+    static async markAsDeleted(id, deletedBy, connection) {
+        const db = connection || database_1.pool;
+        const user = await this.findById(id);
+        const result = await db.execute(`UPDATE ${this.tableName}
+       SET deleted_at = NOW(), deleted_by = ?, status = IF(status = 'active', 'inactive', status)
+       WHERE id = ?`, [deletedBy, id]);
+        if (result.affectedRows > 0) {
+            await cache_service_1.CacheService.del(`user:${id}`);
+            if (user?.email) {
+                await cache_service_1.CacheService.del(`user:email:${user.email}`);
+            }
+        }
+        return result.affectedRows > 0;
+    }
+    static async restore(id, connection) {
+        const db = connection || database_1.pool;
+        const user = await this.findById(id);
+        const result = await db.execute(`UPDATE ${this.tableName} SET deleted_at = NULL, deleted_by = NULL WHERE id = ?`, [id]);
         if (result.affectedRows > 0) {
             await cache_service_1.CacheService.del(`user:${id}`);
             if (user?.email) {

@@ -39,7 +39,8 @@ router.post('/send', authenticateJWT, async (req: Request, res: Response) => {
       `SELECT s.*, u.full_name, u.email, u.must_change_password
        FROM staff s
        JOIN users u ON s.user_id = u.id
-       WHERE u.email IS NOT NULL AND u.email != '' AND u.status = 'active'`
+       WHERE u.email IS NOT NULL AND u.email != '' AND u.status = 'active'
+         AND s.status = 'active' AND s.deleted_at IS NULL AND u.deleted_at IS NULL`
     );
 
     const eligibleStaff: any[] = [];
@@ -120,7 +121,8 @@ router.get('/preview', authenticateJWT, async (req: Request, res: Response) => {
       `SELECT s.*, u.full_name, u.email, u.must_change_password
        FROM staff s
        JOIN users u ON s.user_id = u.id
-       WHERE u.email IS NOT NULL AND u.email != '' AND u.status = 'active'`
+       WHERE u.email IS NOT NULL AND u.email != '' AND u.status = 'active'
+         AND s.status = 'active' AND s.deleted_at IS NULL AND u.deleted_at IS NULL`
     );
 
     const eligibleStaff: any[] = [];

@@ -15,6 +15,9 @@ export interface User {
   profile_picture?: string;
   created_at: Date;
   updated_at: Date;
+  // Soft delete (Migration 126) — orthogonal to `status`
+  deleted_at?: Date | null;
+  deleted_by?: number | null;
 }
 
 export interface UserInput {
@@ -65,9 +68,19 @@ class UserModel {
       params.push(branchId);
     }
 
-    if (status) {
-      conditions.push('status = ?');
-      params.push(status);
+    // 'deleted' is a pseudo-status, not a real `status` enum value — it's
+    // the one place in the system allowed to surface a soft-deleted account
+    // (User Management's "Deleted" filter). Every other value, including no
+    // filter at all, must exclude deleted rows so they never leak into the
+    // normal Active/Inactive/Terminated/All views.
+    if (status === 'deleted') {
+      conditions.push('deleted_at IS NOT NULL');
+    } else {
+      conditions.push('deleted_at IS NULL');
+      if (status) {
+        conditions.push('status = ?');
+        params.push(status);
+      }
     }
 
     if (roleId) {
@@ -300,6 +313,53 @@ class UserModel {
     const user = await this.findById(id);
     const result: any = await db.execute(
       `UPDATE ${this.tableName} SET status = 'terminated' WHERE id = ?`,
+      [id]
+    );
+
+    if (result.affectedRows > 0) {
+      await CacheService.del(`user:${id}`);
+      if (user?.email) {
+        await CacheService.del(`user:email:${user.email}`);
+      }
+    }
+
+    return result.affectedRows > 0;
+  }
+
+  // Real soft-delete (Migration 126) — distinct from delete()/softDelete()
+  // above, which (despite the name) only flip `status` to inactive/terminated
+  // and never hid the row from findAllWithFilters. This is the one that
+  // actually hides the account everywhere except User Management's "Deleted"
+  // filter, while keeping the row for history. Forcing status to 'inactive'
+  // means the existing login gate (`status !== 'active'`) also blocks the
+  // account automatically — no auth code changes needed.
+  static async markAsDeleted(id: number, deletedBy: number, connection?: any): Promise<boolean> {
+    const db = connection || pool;
+    const user = await this.findById(id);
+    const result: any = await db.execute(
+      `UPDATE ${this.tableName}
+       SET deleted_at = NOW(), deleted_by = ?, status = IF(status = 'active', 'inactive', status)
+       WHERE id = ?`,
+      [deletedBy, id]
+    );
+
+    if (result.affectedRows > 0) {
+      await CacheService.del(`user:${id}`);
+      if (user?.email) {
+        await CacheService.del(`user:email:${user.email}`);
+      }
+    }
+
+    return result.affectedRows > 0;
+  }
+
+  // Undo markAsDeleted. Leaves `status` as-is — restoring visibility isn't
+  // the same as reactivating employment, those stay separate admin actions.
+  static async restore(id: number, connection?: any): Promise<boolean> {
+    const db = connection || pool;
+    const user = await this.findById(id);
+    const result: any = await db.execute(
+      `UPDATE ${this.tableName} SET deleted_at = NULL, deleted_by = NULL WHERE id = ?`,
       [id]
     );
 

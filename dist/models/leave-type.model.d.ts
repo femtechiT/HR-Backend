@@ -8,6 +8,7 @@ export interface LeaveType {
     expiry_rule_id: number | null;
     created_by: number | null;
     is_active: boolean;
+    bypasses_leave_cap: boolean;
     created_at: Date;
     updated_at: Date;
 }
@@ -20,6 +21,7 @@ export interface LeaveTypeInput {
     expiry_rule_id?: number | null;
     created_by?: number | null;
     is_active?: boolean;
+    bypasses_leave_cap?: boolean;
 }
 export interface LeaveTypeUpdate {
     name?: string;
@@ -29,6 +31,7 @@ export interface LeaveTypeUpdate {
     carryover_limit?: number;
     expiry_rule_id?: number | null;
     is_active?: boolean;
+    bypasses_leave_cap?: boolean;
 }
 declare class LeaveTypeModel {
     static tableName: string;

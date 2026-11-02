@@ -151,11 +151,12 @@ router.post('/', auth_middleware_1.authenticateJWT, async (req, res) => {
          FROM staff s
          JOIN users u ON u.id = s.reporting_manager_id
          WHERE s.user_id = ? AND s.reporting_manager_id IS NOT NULL
+           AND u.status = 'active' AND u.deleted_at IS NULL
          UNION
          SELECT DISTINCT u.id, u.full_name
          FROM users u
          INNER JOIN roles_permissions rp ON u.role_id = rp.role_id
-         WHERE rp.permission = 'floating_day:clear' AND rp.allow_deny = 'allow' AND u.status = 'active'`, [userId]);
+         WHERE rp.permission = 'floating_day:clear' AND rp.allow_deny = 'allow' AND u.status = 'active' AND u.deleted_at IS NULL`, [userId]);
             for (const clearer of clearers) {
                 await notificationService.queueNotification(clearer.id, 'leave_request_pending', {
                     approver_name: clearer.full_name,
